@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>B tv Campaign Manager with Big Banner</title>
+  <title>B tv Campaign Manager</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -40,11 +40,11 @@
 
     // --- Specifications & Templates ---
     const BANNER_SPECS = [
-      { type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '22:10', size: '3840 x 1745', max: 'Max 4MB', desc: '홈 화면 최상단 대형 롤링 배너. 텍스트/인물 안전영역 준수 필수.' },
-      { type: 'BIG_BANNER', name: '빅배너', icon: Monitor, ratio: '21:9', size: '2880 x 1234', max: 'Max 3MB', desc: '이달의 추천작 등 대형 프로모션 영역.' },
-      { type: 'GENERAL_BANNER', name: '일반 배너', icon: LayoutPanelLeft, ratio: '가변', size: '1단/2단/3단', max: 'Max 2~3MB', desc: '1단, 2단, 3단 통합 배너. 목적에 따라 단수를 변경하세요.' },
-      { type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '1:2', size: '800 x 1600', max: 'Max 3MB', desc: '세로형 긴 배너. 카피 가독성이 매우 중요함.' },
-      { type: 'BAND_BANNER', name: '띠배너', icon: ImageIcon, ratio: '8:1', size: '3840 x 480', max: 'Max 2MB', desc: '콘텐츠 블록 사이에 삽입되는 얇고 긴 형태의 프로모션 배너.' },
+      { type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', size: '3840 x 2160', max: 'Max 4MB', desc: '홈 화면 최상단 대형 롤링 배너. 텍스트/인물 안전영역 준수 필수.' },
+      { type: 'BIG_BANNER', name: '빅배너', icon: Monitor, ratio: '21:9', size: '2880 x 1234', max: 'Max 3MB', desc: '텍스트(좌)와 이미지(우)로 구성된 대형 프로모션 영역.' },
+      { type: 'GENERAL_BANNER', name: '일반 배너', icon: LayoutPanelLeft, ratio: '가변', size: '1단/2단/3단', max: 'Max 2~3MB', desc: '1, 2, 3단 통합 배너. 상단 프리뷰와 하단 배너가 세트로 구성됩니다.' },
+      { type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '129:181.5', size: '800 x 1600', max: 'Max 3MB', desc: '세로형 긴 배너. 카피 가독성이 매우 중요함.' },
+      { type: 'BAND_BANNER', name: '띠배너', icon: ImageIcon, ratio: '397:65.5', size: '3840 x 480', max: 'Max 2MB', desc: '콘텐츠 블록 사이에 삽입되는 얇고 긴 배너.' },
     ];
 
     const DEFAULT_TODAY_BTV = {
@@ -58,20 +58,20 @@
     };
 
     const DEFAULT_BIG_BANNER = {
-      copy: '빅배너 타이틀',
-      desc: '놓치면 후회할 대작들을 만나보세요.',
-      landingValue: '가입 유도 랜딩 (UI_PATH: /join)',
-      buttonText: '바로 보기', 
+      copy: '텍스트(컬러변경가능)\n일이삼사오육칠팔구십...',
+      buttonText: '바로가기', 
       imageUrl: '',
-      gnb: '영화',
+      landingValue: '가입 유도 랜딩 (UI_PATH: /join)',
+      gnb: '홈',
     };
 
     const DEFAULT_GENERAL_BANNER = {
-      colType: '2단', // 기본값 2단
-      copy: '메인 문구',
+      colType: '2단', // 기본값
+      previewCopy: '프리뷰 좌측 문구\n일이삼사오육칠',
+      previewImageUrl: '',
+      bannerCopy: '배너 내 문구',
+      bannerImageUrl: '',
       landingValue: '가입 유도 랜딩 (UI_PATH: /join)',
-      buttonText: '바로 보기', 
-      imageUrl: '',
       gnb: '영화',
     };
 
@@ -81,28 +81,16 @@
 
       const [localShowSafeZone, setLocalShowSafeZone] = useState(true);
       
-      const isActualUrl = Boolean(block?.data?.imageUrl && typeof block.data.imageUrl === 'string' && block.data.imageUrl.startsWith('http'));
-      const hasImageText = Boolean(block?.data?.imageUrl && !isActualUrl && block.data.imageUrl.trim() !== '');
+      const checkIsUrl = (str) => Boolean(str && typeof str === 'string' && str.startsWith('http'));
+      const checkHasText = (str) => Boolean(str && !checkIsUrl(str) && str.trim() !== '');
 
-      const getPreviewClasses = (type, colType) => {
-        if (type === 'GENERAL_BANNER') {
-          if (colType === '1단') return 'aspect-[3/4] w-[300px] max-w-full'; 
-          if (colType === '3단') return 'aspect-[3/1] w-[850px] max-w-full'; 
-          return 'aspect-[16/9] w-[500px] max-w-full'; // 2단
-        }
-        switch(type) {
-          case 'TODAY_BTV': return 'aspect-[22/10] w-full max-w-[1000px]'; 
-          case 'BIG_BANNER': return 'aspect-[21/9] w-full max-w-[900px]'; 
-          case 'LONG_BANNER': return 'aspect-[1/2] w-[240px] max-w-full'; 
-          case 'BAND_BANNER': return 'aspect-[8/1] w-[850px] max-w-full'; 
-          default: return 'aspect-[16/9] w-[500px] max-w-full';
-        }
-      };
+      const isActualUrl = checkIsUrl(block?.data?.imageUrl);
+      const hasImageText = checkHasText(block?.data?.imageUrl);
 
       return (
         <div className="p-6 flex flex-col xl:flex-row gap-6 min-h-[calc(100vh-80px)] animate-in fade-in duration-300">
           {/* Form Column */}
-          <div className="w-full xl:w-[380px] flex-shrink-0 space-y-6">
+          <div className="w-full xl:w-[400px] flex-shrink-0 space-y-6">
             <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 space-y-5 shadow-2xl">
               <div className="flex justify-between items-center border-b border-[#262833] pb-4 mb-2">
                 <h3 className="text-base font-extrabold text-white flex items-center gap-2">
@@ -137,9 +125,9 @@
                       onChange={e => onUpdate(block.id, 'colType', e.target.value)}
                       className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all shadow-sm"
                     >
-                      <option value="1단">1단 배너 (포스터형)</option>
-                      <option value="2단">2단 배너 (기본형)</option>
-                      <option value="3단">3단 배너 (와이드형)</option>
+                      <option value="1단">1단 배너 (비율 62:89)</option>
+                      <option value="2단">2단 배너 (비율 129:89)</option>
+                      <option value="3단">3단 배너 (비율 196:89)</option>
                     </select>
                   </div>
                 )}
@@ -151,23 +139,44 @@
                       <input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
                       <textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none transition-all" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
                       <textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none transition-all" />
                     </div>
                   </>
                 ) : block.type === 'BIG_BANNER' ? (
                   <>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">빅배너 주요 타이틀</label>
-                      <textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none transition-all" />
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5">좌측 텍스트 영역</label>
+                      <textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={3} placeholder="텍스트(컬러변경가능)..." className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none transition-all" />
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">상세 설명 (Desc)</label>
-                      <textarea value={block.data?.desc || ''} onChange={e => onUpdate(block.id, 'desc', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none transition-all" />
+                  </>
+                ) : block.type === 'GENERAL_BANNER' ? (
+                  <>
+                    <div className="p-3 bg-[#161820] rounded-xl border border-[#303340] space-y-3">
+                      <div className="text-xs font-bold text-orange-400">프리뷰 영역 (상단 노출)</div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-400 mb-1">좌측 문구</label>
+                        <textarea value={block.data?.previewCopy || ''} onChange={e => onUpdate(block.id, 'previewCopy', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white focus:border-orange-500 outline-none resize-none" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-400 mb-1">우측 이미지 URL</label>
+                        <input type="text" value={block.data?.previewImageUrl || ''} onChange={e => onUpdate(block.id, 'previewImageUrl', e.target.value)} placeholder="이미지 링크 또는 키워드" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white focus:border-orange-500 outline-none" />
+                      </div>
+                    </div>
+                    <div className="p-3 bg-[#161820] rounded-xl border border-[#303340] space-y-3">
+                      <div className="text-xs font-bold text-[#7387ff]">배너 영역 (하단 포스터)</div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-400 mb-1">배너 내 문구 (선택)</label>
+                        <input type="text" value={block.data?.bannerCopy || ''} onChange={e => onUpdate(block.id, 'bannerCopy', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white focus:border-[#7387ff] outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-400 mb-1">배너 배경 URL</label>
+                        <input type="text" value={block.data?.bannerImageUrl || ''} onChange={e => onUpdate(block.id, 'bannerImageUrl', e.target.value)} placeholder="이미지 링크 또는 키워드" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white focus:border-[#7387ff] outline-none" />
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -189,19 +198,23 @@
                     <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">버튼명 <span className="text-[10px] font-normal text-[#7387ff]">고정</span></label>
                     <input type="text" value="자세히 보기" disabled className="w-full bg-[#1a1c26]/50 border border-[#303340] rounded-lg p-2.5 text-sm text-slate-500 cursor-not-allowed" />
                   </div>
-                ) : (
+                ) : block.type === 'BIG_BANNER' ? (
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">버튼명 <span className="text-[10px] font-normal text-slate-500">옵션</span></label>
-                    <input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
+                    <input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로가기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
+                  </div>
+                ) : null}
+
+                {/* TODAY_BTV 및 BIG_BANNER용 메인 이미지 필드 */}
+                {['TODAY_BTV', 'BIG_BANNER'].includes(block.type) && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
+                      {block.type === 'BIG_BANNER' ? '우측 이미지 URL' : '배경 이미지 URL'}
+                      <span className="text-[10px] font-normal text-slate-500">단어 입력 시 텍스트 노출</span>
+                    </label>
+                    <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="링크 입력 또는 키워드" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
                   </div>
                 )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
-                    배경 이미지 URL <span className="text-[10px] font-normal text-slate-500">키워드 입력 시 텍스트 표시</span>
-                  </label>
-                  <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="링크 또는 키워드 입력" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
-                </div>
               </div>
             </div>
 
@@ -215,16 +228,16 @@
           </div>
 
           {/* Preview Column */}
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-hidden relative shadow-inner min-w-[600px]">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[600px] custom-scrollbar">
             
             <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-6 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-4 py-1.5 rounded-full border border-[#7387ff]/30 z-20 shadow-md">
               <Grid size={14}/>
               <span className="text-xs font-bold tracking-tight">편성 메뉴: {block.data?.gnb || '미지정'}</span>
             </div>
 
-            {/* 1. Today B tv Mockup (22:10) */}
+            {/* 1. Today B tv Mockup (기존 코드 완벽 복원) */}
             {block.type === 'TODAY_BTV' ? (
-              <div className={`relative bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a] ${getPreviewClasses(block.type)}`}>
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a] mt-8 shrink-0">
                 <div className="absolute inset-0 bg-[#0a0a0f]"></div>
                 <div className="absolute inset-0 bg-no-repeat bg-right-top transition-all duration-500 flex items-center justify-center" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none', backgroundSize: '75% 85%' }}>
                   {hasImageText && <div className="ml-[40%] text-white/20 text-[5rem] font-black select-none tracking-tighter italic">{block.data.imageUrl}</div>}
@@ -238,10 +251,23 @@
                   <div className="absolute left-0 top-0 bottom-0 w-[80px] flex flex-col items-center pt-16 pb-8 gap-8 opacity-70 border-r border-white/5">
                     <Menu size={22} className="opacity-50"/><Tv size={22} className="opacity-50"/><Home size={26} className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-100"/><Grid size={22} className="opacity-50"/><Settings size={22} className="mt-auto opacity-50"/>
                   </div>
+
+                  <div className="flex justify-between items-start pt-8 pl-[100px] pr-10">
+                    <div className="flex gap-3">
+                      <div className="w-9 h-9 rounded-full bg-slate-300/20 backdrop-blur border border-white/10 flex items-center justify-center shadow-lg"><User size={18} className="text-white/80"/></div>
+                      <div className="flex items-center gap-2 bg-[#1a1a24]/60 backdrop-blur-md border border-white/10 rounded-full px-5 py-2"><Search size={16} className="text-white/70" /><span className="text-sm font-medium text-white/90">검색</span></div>
+                      <div className="flex items-center gap-2 bg-[#1a1a24]/60 backdrop-blur-md border border-white/10 rounded-full px-5 py-2"><Mic size={16} className="text-[#8997ff]" /><span className="text-sm font-medium text-white/90">에이닷과 대화해요!</span></div>
+                    </div>
+                    <div className="flex items-center gap-2.5 opacity-90">
+                      {['Btv+', 'OTT', 'NETFLIX', 'YouTube', 'Disney+', 'tv'].map((ott, i) => (
+                        <div key={i} className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[7px] font-black text-black tracking-tighter shadow-sm overflow-hidden">{ott}</div>
+                      ))}
+                    </div>
+                  </div>
                   
-                  <div className="absolute left-[100px] top-[40%] -translate-y-1/4 w-[40%] pl-2">
+                  <div className="absolute left-[100px] top-[42%] -translate-y-1/4 w-[38%] pl-2">
                     {block.data?.topText && <h3 className="text-[#32d782] text-base font-bold mb-2 drop-shadow-md tracking-tight">{block.data.topText}</h3>}
-                    <h1 className="text-white text-[2.2rem] font-black mb-4 leading-[1.2] whitespace-pre-wrap break-keep drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
+                    <h1 className="text-white text-[2rem] font-black mb-4 leading-[1.2] whitespace-pre-wrap break-keep drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
                       {block.data?.mainTitle || '타이틀 입력'}
                     </h1>
                     <p className="text-slate-200 text-sm font-medium mb-6 leading-[1.6] whitespace-pre-wrap break-keep drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -249,123 +275,113 @@
                     </p>
                     <div className="inline-flex w-fit bg-[#4631e6] border border-white/10 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-[0_4px_20px_rgba(70,49,230,0.6)]">자세히 보기</div>
                   </div>
+                  
+                  <div className="absolute bottom-8 left-[100px] right-0 flex flex-col gap-4">
+                    <div className="flex gap-1.5 px-2">
+                      <div className="w-5 h-1.5 bg-white rounded-full shadow-sm"></div>
+                      {[1,2,3,4,5,6,7,8,9].map(i => <div key={i} className="w-1.5 h-1.5 bg-white/40 rounded-full shadow-sm"></div>)}
+                    </div>
+                    <div className="flex gap-4 overflow-hidden pr-8">
+                      {['아바타', '삼악도', '소년심판', '직장상사 길들이기', '주토피아2'].map((t, i) => (
+                        <div key={i} className="w-[185px] h-[104px] bg-[#1e2029]/80 backdrop-blur-md rounded-xl border border-white/10 shadow-lg relative overflow-hidden flex flex-col justify-end p-3">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                          {i < 3 && <span className="absolute top-2 left-2 bg-pink-600/90 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">이벤트</span>}
+                          <span className="relative z-10 text-white text-xs font-bold truncate">{t}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-30 pointer-events-none">
                     <div className="absolute left-[50%] top-0 bottom-0 w-px border-l-[1.5px] border-dashed border-white/50"></div>
                     <div className="absolute top-[45%] left-0 right-0 h-px border-t-[1.5px] border-dashed border-white/50"></div>
-                    <div className="absolute right-[4%] top-[15%] bottom-[28%] left-[53%] bg-[#00bcd4]/20 border border-[#00bcd4]/50 flex items-center justify-center backdrop-blur-[1px]"><span className="text-white font-black text-[1.5rem] bg-black/40 px-4 py-2 rounded-lg">이미지 안전 영역</span></div>
+                    <div className="absolute right-[4%] top-[15%] bottom-[28%] left-[53%] bg-[#00bcd4]/20 border border-[#00bcd4]/50 flex items-center justify-center backdrop-blur-[1px]"><span className="text-white font-black text-[1.5rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-tight bg-black/40 px-4 py-2 rounded-lg">이미지 안전 영역</span></div>
+                    <div className="absolute left-[100px] top-[22%] bottom-[40%] w-[38%] bg-pink-500/10 border border-dashed border-pink-500/50 flex items-start p-2"><span className="text-pink-100 text-[10px] font-bold bg-pink-600/90 px-2 py-1 rounded shadow-sm">텍스트 최대 2줄</span></div>
+                    <div className="absolute left-0 right-0 bottom-0 h-[28%] border-t-2 border-dashed border-orange-500 bg-orange-500/10 flex items-end justify-center pb-6"><span className="font-bold text-xs px-4 py-1.5 rounded-lg bg-orange-600/90 text-white shadow-lg backdrop-blur">하단 메뉴/썸네일 침범 금지</span></div>
                   </div>
                 )}
               </div>
             ) : block.type === 'BIG_BANNER' ? (
-              /* 2. Big Banner Mockup (21:9) */
-              <div className={`relative bg-[#191b23] rounded-[20px] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-[#303340] flex transition-all duration-300 ${getPreviewClasses(block.type)}`}>
-                <div className="absolute inset-0 bg-no-repeat bg-cover bg-center" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}>
-                    {!isActualUrl && <div className="absolute inset-0 bg-gradient-to-r from-[#191b23] to-[#262833]"></div>}
+              /* 2. Big Banner Mockup (21:9 비율, 좌 텍스트 우 이미지) */
+              <div className="w-full max-w-[850px] aspect-[21/9] bg-[#191b23] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex shrink-0 mt-8">
+                <div className="absolute right-0 top-0 bottom-0 w-[60%] bg-no-repeat bg-cover bg-center" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}>
+                    {!isActualUrl && <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center"><ImageIcon size={48} className="text-white/10"/></div>}
+                    {hasImageText && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-[3rem] font-black select-none italic tracking-tighter text-center px-4">{block.data.imageUrl}</div>}
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/90 to-transparent"></div>
 
-                {hasImageText && (
-                  <div className="absolute inset-0 flex items-center justify-end text-white/10 text-[4rem] font-black select-none italic tracking-tighter text-right pr-10 pointer-events-none">
-                    {block.data.imageUrl}
-                  </div>
-                )}
-
-                <div className="relative z-10 w-[65%] h-full flex flex-col justify-center items-start p-10 text-left gap-4">
-                  <span className="text-white/80 text-xs font-bold tracking-widest bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10">빅배너 프로모션</span>
-                  <h2 className="text-white font-black whitespace-pre-wrap leading-[1.2] text-[2.5rem] tracking-tighter drop-shadow-2xl">
-                    {block.data?.copy || '빅배너 타이틀'}
+                <div className="relative z-10 w-[55%] h-full flex flex-col justify-center items-start p-10 text-left gap-4">
+                  <h2 className="text-white font-black whitespace-pre-wrap leading-[1.3] text-[2.2rem] tracking-tight drop-shadow-xl">
+                    {block.data?.copy || '텍스트(컬러변경가능)\n일이삼사오육칠팔구십'}
                   </h2>
-                  <p className="text-slate-300 text-base font-medium drop-shadow-md leading-relaxed whitespace-pre-wrap break-keep max-w-[85%]">
-                    {block.data?.desc || '이달의 추천작 등 대형 프로모션 영역 설명을 입력하세요.'}
-                  </p>
                   {block.data?.buttonText && (
-                    <span className="mt-4 inline-flex items-center justify-center bg-white text-black px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl cursor-pointer">
+                    <div className="mt-2 inline-flex items-center gap-2 bg-[#4631e6] hover:bg-[#3a2ac4] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-[0_4px_20px_rgba(70,49,230,0.4)] transition-colors cursor-pointer">
                       {block.data.buttonText}
-                    </span>
+                    </div>
                   )}
                 </div>
-              </div>
-            ) : (
-              /* 3. General Banner Mockup (1단, 2단, 3단 통합 레이아웃) */
-              <div className="flex flex-col items-center justify-center w-full h-full relative group/canvas">
-                {block.data?.colType === '1단' ? (
-                  <div className={`relative bg-[#191b23] rounded-2xl overflow-hidden shadow-2xl border border-[#303340] flex flex-col transition-all duration-300 ${getPreviewClasses(block.type, block.data?.colType)}`}>
-                    <div className="w-full p-6 pb-2 text-left z-10 flex flex-col gap-2">
-                      <span className="text-[#7387ff] text-[10px] font-bold">1단 포스터형</span>
-                      <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.2] text-2xl tracking-tighter drop-shadow-md">
-                        {block.data?.copy || '메인 카피'}
-                      </p>
-                    </div>
-                    <div className="flex-1 w-full relative border-t border-white/5">
-                      <div className="absolute inset-0 bg-no-repeat bg-cover bg-center" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}>
-                        {!isActualUrl && <div className="absolute inset-0 bg-[#0a0a0f]"></div>}
-                        {hasImageText && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-4xl font-black select-none italic tracking-tighter px-4 text-center">{block.data.imageUrl}</div>}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={`relative bg-[#191b23] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#303340] flex transition-all duration-300 ${getPreviewClasses(block.type, block.data?.colType)}`}>
-                    <div className="absolute inset-0 bg-[#0a0a0f]"></div>
-                    <div className="absolute right-0 top-0 bottom-0 w-[55%] bg-no-repeat bg-cover bg-center transition-all z-0" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}>
-                      {hasImageText && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-[3rem] font-black select-none italic tracking-tighter text-center px-4">{block.data.imageUrl}</div>}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#191b23] via-[#191b23]/60 to-transparent"></div>
-                    </div>
-
-                    <div className="relative z-10 w-[60%] h-full flex flex-col justify-center items-start p-8 text-left gap-3">
-                      <span className="text-[#7387ff] text-[10px] font-bold">{block.data?.colType} 배너</span>
-                      <p className={`text-white font-extrabold whitespace-pre-wrap leading-[1.2] drop-shadow-xl tracking-tighter ${block.data?.colType === '3단' ? 'text-[2.5rem]' : 'text-[1.85rem]'}`}>
-                        {block.data?.copy || '기획 문구를\n입력하세요'}
-                      </p>
-                      {block.data?.buttonText && (
-                        <span className="mt-2 inline-flex items-center justify-center bg-[#4631e6] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-lg border border-white/10">
-                          {block.data.buttonText}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    };
-
-    // --- BannerHoverPreview (호버 오버레이 프리뷰) ---
-    const BannerHoverPreview = ({ block, position }) => {
-      // 일반 배너, 빅배너 모두 프리뷰를 렌더링하도록 조건 확장
-      if (!['GENERAL_BANNER', 'BIG_BANNER'].includes(block?.type)) return null;
-      
-      const isActualUrl = Boolean(block?.data?.imageUrl && typeof block.data.imageUrl === 'string' && block.data.imageUrl.startsWith('http'));
-
-      return (
-        <div 
-          className="fixed z-[100] p-6 bg-[#12141c] border border-[#303340] rounded-2xl shadow-2xl flex gap-6 w-[700px] animate-in fade-in duration-200 pointer-events-none"
-          style={{ top: position.y + 20, left: position.x + 20 }}
-        >
-          {/* Left: 텍스트 (텍스트 이미지처럼 보이게 렌더링) */}
-          <div className="flex-1 p-5 bg-[#1a1c26] rounded-xl flex flex-col items-center justify-center border border-[#262833] text-center">
-            <span className="text-[#7387ff] text-[10px] font-bold mb-2 uppercase">{block.type === 'BIG_BANNER' ? 'Big Banner' : `${block.data?.colType || '2단'}`}</span>
-            <p className="text-white text-2xl font-extrabold leading-tight whitespace-pre-wrap break-keep tracking-tighter italic">
-              {block.data.copy || '텍스트 입력'}
-            </p>
-          </div>
-
-          {/* Right: 배너 실제 이미지 */}
-          <div className="flex-1 relative aspect-[16/9] bg-[#0a0a0f] rounded-xl overflow-hidden border border-[#262833]">
-            <div 
-              className="absolute inset-0 bg-no-repeat bg-cover bg-center" 
-              style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}
-            >
-              {!isActualUrl && (
-                <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50 flex items-center justify-center text-white/10 text-xl font-black italic tracking-tighter">
-                  이미지 미지정
+                
+                <div className="absolute bottom-4 left-10 flex gap-1.5 opacity-50">
+                  <div className="w-6 h-1.5 bg-[#7387ff] rounded-full"></div>
+                  {[1,2,3,4].map(i => <div key={i} className="w-1.5 h-1.5 bg-white/40 rounded-full"></div>)}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : block.type === 'GENERAL_BANNER' ? (
+              /* 3. General Banner Mockup (프리뷰 + 배너 통합 세트) */
+              <div className="flex flex-col gap-10 items-center w-full max-w-[850px] mt-8 pb-10">
+                {/* 3-1. Preview Area (Top) */}
+                <div className="w-full flex flex-col items-start gap-2">
+                  <span className="text-[#7387ff] text-[10px] font-bold bg-[#7387ff]/10 px-2 py-1 rounded border border-[#7387ff]/20">TV 상단 프리뷰 노출 영역</span>
+                  <div className="w-full aspect-[21/9] bg-[#0a0a0f] rounded-2xl relative overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.6)] border border-[#262833]">
+                    <div 
+                      className="absolute right-0 top-0 bottom-0 w-[60%] bg-cover bg-center" 
+                      style={{backgroundImage: checkIsUrl(block.data?.previewImageUrl) ? `url(${block.data.previewImageUrl})` : 'none'}}
+                    >
+                      {!checkIsUrl(block.data?.previewImageUrl) && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-2xl font-black italic">{block.data?.previewImageUrl || '이미지 미지정'}</div>}
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent"></div>
+                    <div className="relative z-10 w-[55%] h-full p-8 flex flex-col justify-center">
+                      <p className="text-white text-3xl font-extrabold whitespace-pre-wrap leading-tight tracking-tight drop-shadow-lg">
+                        {block.data?.previewCopy || '프리뷰 좌측 문구'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3-2. Banner Area (Bottom) */}
+                <div className="w-full flex flex-col items-center gap-2 border-t border-[#1a1c26] pt-10">
+                  <span className="text-slate-400 text-[10px] font-bold px-2 py-1 rounded bg-[#1a1c26] border border-[#262833]">
+                    하단 실제 배너 포스터 ({block.data?.colType || '2단'})
+                  </span>
+                  
+                  <div className={`relative bg-[#191b23] rounded-xl overflow-hidden shadow-2xl border border-[#303340] transition-all duration-300 flex items-end
+                    ${block.data?.colType === '1단' ? 'aspect-[62/89] h-[260px]' : 
+                      block.data?.colType === '3단' ? 'aspect-[196/89] h-[200px]' : 
+                      'aspect-[129/89] h-[220px]'}`}
+                  >
+                    <div className="absolute inset-0 bg-cover bg-center" style={{backgroundImage: checkIsUrl(block.data?.bannerImageUrl) ? `url(${block.data.bannerImageUrl})` : 'none'}}>
+                      {!checkIsUrl(block.data?.bannerImageUrl) && <div className="absolute inset-0 bg-[#161820] flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
+                      {checkHasText(block.data?.bannerImageUrl) && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-xl font-black italic">{block.data.bannerImageUrl}</div>}
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent"></div>
+                    
+                    {block.data?.bannerCopy && (
+                      <div className="relative z-10 w-full p-4">
+                        <p className="text-white text-[15px] font-bold whitespace-pre-wrap leading-tight drop-shadow-md">
+                          {block.data.bannerCopy}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-[10px] text-slate-500 font-mono mt-2">
+                    Aspect Ratio: {block.data?.colType === '1단' ? '62:89' : block.data?.colType === '3단' ? '196:89' : '129:89'}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       );
@@ -381,20 +397,15 @@
         startDate: '2023-12-18', dueDate: '2023-12-31',
       });
 
-      // Default Assets - 통합 배너와 빅배너가 기본 포함되도록 수정
       const [assets, setAssets] = useState([
         { id: 'asset-1', type: 'TODAY_BTV', name: 'Today B tv', data: { ...DEFAULT_TODAY_BTV } },
         { id: 'asset-2', type: 'BIG_BANNER', name: '상단 빅배너', data: { ...DEFAULT_BIG_BANNER } },
-        { id: 'asset-3', type: 'GENERAL_BANNER', name: '하단 일반 배너', data: { ...DEFAULT_GENERAL_BANNER, colType: '2단', copy: 'B tv에선 Disney+ 매월 10% 할인!' } }
+        { id: 'asset-3', type: 'GENERAL_BANNER', name: '일반 다중 배너', data: { ...DEFAULT_GENERAL_BANNER } }
       ]);
 
       const [activeTabId, setActiveTabId] = useState('OVERVIEW');
       const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
       const [modalState, setModalState] = useState({ isOpen: false, step: 0, payloads: [] });
-
-      // Hover 상태
-      const [hoveredAssetId, setHoveredAssetId] = useState(null);
-      const [hoverMousePosition, setHoverMousePosition] = useState({ x: 0, y: 0 });
 
       const handleMetaChange = (e) => setCampaignMeta({ ...campaignMeta, [e.target.name]: e.target.value });
       
@@ -436,9 +447,9 @@
           if (asset.type === 'TODAY_BTV') {
             markdown += `* *상단 텍스트:* ${asset.data.topText}\n* *메인 타이틀:* ${asset.data.mainTitle.replace(/\n/g, ' ')}\n* *서브 텍스트:* ${asset.data.subText.replace(/\n/g, ' ')}\n* *버튼명:* 자세히 보기\n* *랜딩값:* ${asset.data.landingValue}\n`;
           } else if (asset.type === 'BIG_BANNER') {
-            markdown += `* *배너 타입:* 빅배너 (21:9)\n* *메인 타이틀:* ${asset.data.copy.replace(/\n/g, ' ')}\n* *상세 설명:* ${asset.data.desc.replace(/\n/g, ' ')}\n* *버튼명:* ${asset.data.buttonText}\n* *랜딩값:* ${asset.data.landingValue}\n`;
+            markdown += `* *타입:* 빅배너 (비율 21:9)\n* *텍스트:* ${asset.data.copy.replace(/\n/g, ' ')}\n* *버튼명:* ${asset.data.buttonText}\n* *랜딩값:* ${asset.data.landingValue}\n`;
           } else if (asset.type === 'GENERAL_BANNER') {
-            markdown += `* *배너 단수:* ${asset.data.colType}\n* *메인 카피:* ${asset.data.copy.replace(/\n/g, ' ')}\n* *버튼명:* ${asset.data.buttonText}\n* *랜딩값:* ${asset.data.landingValue}\n`;
+            markdown += `* *배너 단수:* ${asset.data.colType}\n* *[프리뷰] 좌측 문구:* ${asset.data.previewCopy.replace(/\n/g, ' ')}\n* *[프리뷰] 우측 이미지:* ${asset.data.previewImageUrl}\n* *[포스터] 배너 내 문구:* ${asset.data.bannerCopy.replace(/\n/g, ' ')}\n* *[포스터] 배너 이미지:* ${asset.data.bannerImageUrl}\n* *랜딩값:* ${asset.data.landingValue}\n`;
           }
 
           return {
@@ -564,12 +575,6 @@
                 <div className="flex-1 overflow-y-auto relative custom-scrollbar">
                   {activeTabId === 'OVERVIEW' && (
                     <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-300 relative">
-                      
-                      {/* 프리뷰 컴포넌트 렌더링 */}
-                      {hoveredAssetId && (
-                        <BannerHoverPreview block={assets.find(a => a.id === hoveredAssetId)} position={hoverMousePosition} />
-                      )}
-
                       <div className="bg-[#12141c] border border-[#262833] rounded-2xl overflow-hidden shadow-2xl">
                         <div className="p-6 border-b border-[#262833] bg-[#0f111a] flex justify-between items-center">
                           <div><h3 className="text-base font-bold text-white flex items-center gap-2"><ListTodo size={18} className="text-[#7387ff]" /> 생성 예정 티켓 (Sub-tasks)</h3></div>
@@ -588,8 +593,6 @@
                                   key={idx} 
                                   className="border-b border-[#262833] hover:bg-[#1a1c26] cursor-pointer group" 
                                   onClick={() => setActiveTabId(asset.id)}
-                                  onMouseEnter={(e) => { setHoveredAssetId(asset.id); setHoverMousePosition({ x: e.clientX, y: e.clientY }); }}
-                                  onMouseLeave={() => setHoveredAssetId(null)}
                                 >
                                   <td className="p-5 font-medium text-slate-300 flex items-center gap-3"><div className="p-2 bg-[#262833] rounded-lg text-slate-400 group-hover:text-[#7387ff]">{getAssetIcon(asset.type)}</div>{asset.name}</td>
                                   <td className="p-5 font-medium text-slate-400">{asset.type === 'GENERAL_BANNER' ? `${asset.data.colType} 배너` : asset.type === 'BIG_BANNER' ? '빅배너' : 'Today B tv'}</td>
@@ -623,7 +626,7 @@
                 <div className="p-8 bg-[#0a0812]">
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
                     {BANNER_SPECS.map((spec) => (
-                      <div key={spec.type} onClick={() => addAsset(spec.type, spec.name)} className="bg-[#1a1c26] border border-[#303340] rounded-xl p-5 cursor-pointer hover:border-[#7387ff] hover:-translate-y-1 transition-all group flex flex-col h-full">
+                      <div key={spec.type} onClick={() => { if(spec.type.includes('LONG') || spec.type.includes('BAND')) return alert('해당 템플릿은 준비 중입니다.'); addAsset(spec.type, spec.name); }} className={`bg-[#1a1c26] border border-[#303340] rounded-xl p-5 cursor-pointer hover:border-[#7387ff] hover:-translate-y-1 transition-all group flex flex-col h-full ${spec.type.includes('LONG') || spec.type.includes('BAND') ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}>
                         <div className="flex items-start justify-between mb-4"><div className="p-3 bg-[#262833] rounded-xl text-[#7387ff] group-hover:bg-[#7387ff] group-hover:text-white"><spec.icon size={24} /></div><span className="text-[10px] font-bold font-mono bg-slate-800 text-slate-300 px-2 py-1 rounded-md">{spec.ratio}</span></div>
                         <h4 className="text-lg font-bold text-white mb-2 group-hover:text-[#7387ff]">{spec.name}</h4>
                         <div className="flex flex-wrap gap-2 mb-4"><span className="text-[11px] font-mono bg-[#0a0812] border border-[#303340] text-slate-300 px-2 py-1 rounded-md">{spec.size}</span></div>
