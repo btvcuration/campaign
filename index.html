@@ -32,10 +32,13 @@
   <script type="text/babel" data-type="module">
     import React, { useState, useRef, useEffect } from 'react';
     import { createRoot } from 'react-dom/client';
+    
+    // [중요] 블랙아웃의 원인이었던 아이콘 Import 누락 완벽 해결
     import { 
-      Tv, LayoutTemplate, Send, ChevronRight, Copy, CheckCircle, 
-      Search, Mic, Menu, Home, Grid, Smile, Settings, Calendar, GitMerge, Plus, Trash2, Image as ImageIcon,
-      ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, ArrowRight, X, Target, Edit3, User, ExternalLink, Monitor
+      Tv, LayoutTemplate, Send, ChevronRight, ChevronDown, ChevronLeft, Copy, CheckCircle, 
+      Search, Mic, Menu, Home, Grid, Settings, Calendar, GitMerge, Plus, PlusCircle, Trash2, 
+      Image as ImageIcon, ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, 
+      X, User, ExternalLink, Monitor, Layout
     } from 'lucide-react';
 
     // --- Specifications & Templates ---
@@ -69,7 +72,7 @@
 
     // --- BlockRenderer (프리뷰 코어: 폼과 캔버스 분리 완벽 구현) ---
     const BlockRenderer = ({ block, onUpdate, readOnly = false }) => {
-      if (!block) return null; // 블랙아웃 방지
+      if (!block) return null; // 렌더링 에러 방지 안전망
       const [localShowSafeZone, setLocalShowSafeZone] = useState(true);
 
       const checkIsUrl = (str) => Boolean(str && typeof str === 'string' && str.startsWith('http'));
