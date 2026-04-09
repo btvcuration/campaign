@@ -157,14 +157,14 @@
             {/* 1. Today B tv Mockup (실제 UI 완벽 모사) */}
             {/* ========================================================= */}
             {block.type === 'TODAY_BTV' && (
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#000] rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a]">
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#000] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a]">
                 
-                {/* 배경 이미지 */}
-                <div className="absolute inset-0 bg-cover bg-center transition-all duration-500" style={{ backgroundImage: hasImage ? `url(${block.data.imageUrl})` : 'linear-gradient(135deg, #10152a 0%, #1e1b4b 50%, #000000 100%)' }}></div>
+                {/* 배경 이미지: bg-right-top으로 우상단 쏠림 적용 */}
+                <div className="absolute inset-0 bg-cover bg-right-top transition-all duration-500" style={{ backgroundImage: hasImage ? `url(${block.data.imageUrl})` : 'linear-gradient(135deg, #10152a 0%, #1e1b4b 50%, #000000 100%)' }}></div>
                 
-                {/* 텍스트 영역 그라데이션 (실제 UI처럼 좌측 진하게, 우측으로 퍼짐) */}
-                <div className="absolute inset-0 w-[60%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent z-10 pointer-events-none"></div>
-                <div className="absolute inset-0 top-[50%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/60 to-transparent z-10 pointer-events-none"></div>
+                {/* 텍스트 영역 그라데이션: 좌측을 더 넓고 진하게(w-[70%]) 퍼지도록 수정 */}
+                <div className="absolute inset-0 w-[70%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute inset-0 top-[40%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/70 to-transparent z-10 pointer-events-none"></div>
                 
                 {/* 전체 UI 래퍼 */}
                 <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white">
@@ -201,17 +201,17 @@
                     </div>
                   </div>
                   
-                  {/* 메인 텍스트 콘텐츠 영역 (실제 화면 규격에 맞게 배치) */}
-                  <div className="absolute left-[100px] top-[45%] -translate-y-1/2 w-[45%] pl-2">
-                    {block.data.topText && <h3 className="text-[#32d782] text-[1.35rem] font-bold mb-3 drop-shadow-md tracking-tight">{block.data.topText}</h3>}
-                    <h1 className="text-white text-[3.25rem] font-black mb-5 leading-[1.15] whitespace-pre-wrap break-keep drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
+                  {/* 메인 텍스트 콘텐츠 영역 (폰트 크기 축소 및 위치 조정) */}
+                  <div className="absolute left-[100px] top-[42%] -translate-y-1/4 w-[38%] pl-2">
+                    {block.data.topText && <h3 className="text-[#32d782] text-base font-bold mb-2 drop-shadow-md tracking-tight">{block.data.topText}</h3>}
+                    <h1 className="text-white text-[2rem] font-black mb-4 leading-[1.2] whitespace-pre-wrap break-keep drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
                       {block.data.mainTitle || '타이틀 입력'}
                     </h1>
-                    <p className="text-slate-200 text-[1.15rem] font-medium mb-8 leading-[1.6] whitespace-pre-wrap break-keep drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                    <p className="text-slate-200 text-sm font-medium mb-6 leading-[1.6] whitespace-pre-wrap break-keep drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                       {block.data.subText || '서브 텍스트 입력'}
                     </p>
                     {block.data.buttonText && (
-                      <div className="inline-flex w-fit bg-[#4631e6] hover:bg-[#5b4df6] border border-white/10 text-white px-7 py-3 rounded-[10px] font-bold text-[1.05rem] shadow-[0_4px_20px_rgba(70,49,230,0.6)]">
+                      <div className="inline-flex w-fit bg-[#4631e6] hover:bg-[#5b4df6] border border-white/10 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-[0_4px_20px_rgba(70,49,230,0.6)]">
                         {block.data.buttonText}
                       </div>
                     )}
@@ -238,27 +238,26 @@
                   </div>
                 </div>
 
-                {/* [안전 영역 오버레이] 가이드라인 이미지 기반 완벽 매핑 */}
+                {/* [안전 영역 오버레이] */}
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-30 pointer-events-none">
-                    
                     {/* 정중앙 십자 점선 가이드 */}
                     <div className="absolute left-[50%] top-0 bottom-0 w-px border-l-[1.5px] border-dashed border-white/50"></div>
                     <div className="absolute top-[45%] left-0 right-0 h-px border-t-[1.5px] border-dashed border-white/50"></div>
 
-                    {/* 우측 이미지 안전 영역 (청록색 박스) */}
+                    {/* 우측 이미지 안전 영역 */}
                     <div className="absolute right-[4%] top-[15%] bottom-[28%] left-[53%] bg-[#00bcd4]/20 border border-[#00bcd4]/50 flex items-center justify-center backdrop-blur-[1px]">
                       <span className="text-white font-black text-[1.5rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-tight bg-black/40 px-4 py-2 rounded-lg">
                         이미지 안전 영역
                       </span>
                     </div>
 
-                    {/* 좌측 텍스트 권장 영역 가이드 (핑크색 박스) */}
+                    {/* 좌측 텍스트 권장 영역 가이드 */}
                     <div className="absolute left-[100px] top-[22%] bottom-[40%] w-[38%] bg-pink-500/10 border border-dashed border-pink-500/50 flex items-start p-2">
                       <span className="text-pink-100 text-[10px] font-bold bg-pink-600/90 px-2 py-1 rounded shadow-sm">텍스트 최대 2줄</span>
                     </div>
 
-                    {/* 하단 썸네일 침범 금지 영역 (오렌지 점선) */}
+                    {/* 하단 썸네일 침범 금지 영역 */}
                     <div className="absolute left-0 right-0 bottom-0 h-[28%] border-t-2 border-dashed border-orange-500 bg-orange-500/10 flex items-end justify-center pb-6">
                       <span className="font-bold text-xs px-4 py-1.5 rounded-lg bg-orange-600/90 text-white shadow-lg backdrop-blur">
                         하단 메뉴/썸네일 침범 금지
@@ -383,12 +382,16 @@
         });
       };
 
+      // 2-1. 함수 수정
       const handleExportToExtension = () => {
         if (assets.length === 0) return alert('제작물이 없습니다.');
         const payloads = generateBatchPayloads();
+        
+        // 1. 모달 띄우기
         setModalState({ isOpen: true, step: 1, payloads });
-        setTimeout(() => setModalState(prev => ({ ...prev, step: 2 })), 1500);
-        setTimeout(() => setModalState(prev => ({ ...prev, step: 3 })), 3500);
+        
+        // 2. 백그라운드 확장프로그램이 대기중이라면 데이터를 쏴줌 (향후 연동용)
+        window.postMessage({ type: 'BTV_CAMPAIGN_DATA', payloads }, '*');
       };
 
       const copyToClipboard = () => {
@@ -552,48 +555,66 @@
             </div>
           )}
 
+          {/* 2-2. === MODALS: Jira 전송 워크플로우 가이드 === */}
           {modalState.isOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-              <div className="bg-[#12141c] w-[750px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+              <div className="bg-[#12141c] w-[650px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                 <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2"><Send size={20} className="text-[#4f3df6]" /> Jira 다중 일감 전송</h3>
-                  <button onClick={() => setModalState({ isOpen: false, step: 0, payloads: [] })} className="p-1.5 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white"><X size={18}/></button>
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <Send size={20} className="text-[#4f3df6]" /> Jira 다중 일감 전송 대기 중
+                  </h3>
+                  <button onClick={() => setModalState({ isOpen: false, step: 0, payloads: [] })} className="p-1.5 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors"><X size={18}/></button>
                 </div>
+                
                 <div className="p-8">
-                  <div className="flex items-center gap-3 mb-8 text-xs font-bold justify-center">
-                    <div className={`flex flex-col items-center gap-2 ${modalState.step >= 1 ? 'text-[#7387ff]' : 'text-slate-500'}`}><div className={`w-8 h-8 rounded-full flex items-center justify-center ${modalState.step >= 1 ? 'bg-[#7387ff] text-white' : 'bg-[#262833]'}`}>1</div><span>데이터 패킹</span></div>
-                    <div className={`w-16 h-px ${modalState.step >= 2 ? 'bg-[#7387ff]' : 'bg-[#262833]'} mb-5`}></div>
-                    <div className={`flex flex-col items-center gap-2 ${modalState.step >= 2 ? 'text-[#7387ff]' : 'text-slate-500'}`}><div className={`w-8 h-8 rounded-full flex items-center justify-center ${modalState.step >= 2 ? 'bg-[#7387ff] text-white' : 'bg-[#262833]'}`}>2</div><span>익스텐션 통신</span></div>
-                    <div className={`w-16 h-px ${modalState.step >= 3 ? 'bg-green-500' : 'bg-[#262833]'} mb-5`}></div>
-                    <div className={`flex flex-col items-center gap-2 ${modalState.step >= 3 ? 'text-green-500' : 'text-slate-500'}`}><div className={`w-8 h-8 rounded-full flex items-center justify-center ${modalState.step >= 3 ? 'bg-green-500 text-white' : 'bg-[#262833]'}`}>{modalState.step === 3 ? <CheckCircle size={16}/> : '3'}</div><span>Jira 자동화</span></div>
+                  {/* Step 1: 데이터 패킹 완료 (성공 메시지) */}
+                  <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                    <h4 className="text-blue-400 font-bold text-sm mb-1.5 flex items-center gap-2">
+                      <CheckCircle size={16}/> 1단계: 기획 데이터 패킹 완료
+                    </h4>
+                    <p className="text-xs text-slate-300 leading-relaxed pl-6">
+                      총 <strong className="text-white">{modalState.payloads.length}건</strong>의 배너 기획 데이터가 확장 프로그램으로 전송될 준비를 마쳤습니다.<br/>
+                      실제 지라(Jira) 티켓 생성을 위해 아래 절차를 진행해 주세요.
+                    </p>
                   </div>
-                  <div className="bg-[#06070a] border border-[#262833] rounded-xl p-5 font-mono text-[11px] h-[320px] overflow-y-auto relative custom-scrollbar group">
-                    <div className="sticky top-0 right-0 flex justify-end opacity-0 group-hover:opacity-100 z-10"><button onClick={copyToClipboard} className="bg-slate-800/90 hover:bg-slate-700 text-white p-2 rounded-lg border border-slate-600 flex items-center gap-1.5"><Copy size={14}/> 전체 마크다운 수동 복사</button></div>
-                    <div className="text-slate-400 mb-4">{'>'} Packing {modalState.payloads.length} assets into Jira payloads...</div>
-                    <pre className="text-[#89b4fa] whitespace-pre-wrap bg-[#12141c] p-4 rounded-lg border border-[#262833] mb-4">
-{`[
-${modalState.payloads.map((p) => `  {
-    "action": "CREATE_JIRA_ISSUE",
-    "issueTitle": "${p.data.issueTitle}",
-    "epicLink": "${p.data.epicLink}",
-    "fixVersion": "${p.data.fixVersion}",
-    "assignee": "${p.data.assignee}",
-    "description": "... (Markdown Payload Ready)"
-  }`).join(',\n')}
-]`}
-                    </pre>
-                    {modalState.step >= 2 && <div className="text-yellow-400 mt-5 flex items-center gap-2"><span className="w-2 h-2 bg-yellow-500 rounded-full animate-ping"></span>{'>'} [Extension API] window.postMessage() : Sending Payload...</div>}
-                    {modalState.step >= 3 && (
-                      <div className="text-green-400 mt-5 font-bold space-y-2 border-t border-[#262833] pt-4">
-                        <div className="flex items-center gap-2"><CheckCircle size={14} className="text-green-500"/>[Background Script] Array received successfully.</div>
-                        {modalState.payloads.map((p, i) => <div key={i} className="pl-6 text-green-300/80">{`-> [${i+1}/${modalState.payloads.length}] 🚀 Opening Jira tab for: ${p.data.issueTitle}`}</div>)}
-                      </div>
-                    )}
+
+                  {/* Step 2 & 3: 워크플로우 안내 */}
+                  <div className="space-y-6 relative">
+                    <div className="flex gap-4 items-start">
+                        <div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-slate-300 font-bold shrink-0 mt-0.5 border border-[#303340]">2</div>
+                        <div>
+                            <h4 className="text-sm font-bold text-white mb-1.5">Jira BTVEVT 프로젝트 열기</h4>
+                            <p className="text-xs text-slate-400 mb-3">티켓을 일괄 생성할 타겟 Jira 프로젝트 페이지를 엽니다.</p>
+                            {/* 사내망 주소 예시 */}
+                            <a href="#" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs bg-[#1a1c26] hover:bg-[#262833] text-white px-4 py-2 rounded-lg border border-[#303340] transition-colors shadow-sm">
+                                <ExternalLink size={14} className="text-[#7387ff]"/> BTVEVT 보드 열기
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div className="absolute left-4 top-10 bottom-12 w-px bg-[#262833]"></div>
+
+                    <div className="flex gap-4 items-start">
+                        <div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-slate-300 font-bold shrink-0 mt-0.5 border border-[#303340]">3</div>
+                        <div className="w-full">
+                            <h4 className="text-sm font-bold text-white mb-1.5">확장 프로그램 매크로 실행</h4>
+                            <p className="text-xs text-slate-400 mb-3">열린 Jira 화면에서 설치된 <strong className="text-slate-200">'B tv Campaign 매크로'</strong> 아이콘을 클릭하면 티켓이 순차적으로 자동 생성됩니다.</p>
+                            
+                            <div className="bg-[#06070a] border border-[#262833] rounded-lg p-3 flex items-center justify-between shadow-inner">
+                                <span className="text-[11px] text-slate-500 font-mono">생성 대기 중인 페이로드: {modalState.payloads.length} items</span>
+                                <button onClick={copyToClipboard} className="text-xs flex items-center gap-1 text-[#7387ff] hover:text-white transition-colors bg-[#7387ff]/10 px-2 py-1 rounded">
+                                    <Copy size={12}/> 마크다운 수동 복사
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                   </div>
-                  {modalState.step === 3 && <div className="mt-6 text-center p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm font-bold flex items-center justify-center gap-2"><CheckCircle size={18} />모든 제작물({modalState.payloads.length}건)의 Jira 티켓 자동 생성이 시작되었습니다.</div>}
                 </div>
+
                 <div className="p-5 bg-[#0f111a] border-t border-[#262833] flex justify-end">
-                  <button onClick={() => setModalState({ isOpen: false, step: 0, payloads: [] })} className="px-8 py-2.5 bg-[#262833] hover:bg-[#303340] text-white text-sm font-bold rounded-lg">{modalState.step === 3 ? '완료 및 닫기' : '취소'}</button>
+                  <button onClick={() => setModalState({ isOpen: false, step: 0, payloads: [] })} className="px-8 py-2.5 bg-[#262833] hover:bg-[#303340] text-white text-sm font-bold rounded-lg transition-colors">
+                    닫기
+                  </button>
                 </div>
               </div>
             </div>
