@@ -32,10 +32,11 @@
   <script type="text/babel" data-type="module">
     import React, { useState, useRef, useEffect } from 'react';
     import { createRoot } from 'react-dom/client';
+    // [해결] User 아이콘 추가
     import { 
       Tv, LayoutTemplate, Send, ChevronRight, Copy, CheckCircle, 
       Search, Mic, Menu, Home, Grid, Smile, Settings, Calendar, GitMerge, Plus, Trash2, Image as ImageIcon,
-      ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, ArrowRight, X, Target, Edit3
+      ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, ArrowRight, X, Target, Edit3, User
     } from 'lucide-react';
 
     // --- Specifications & Templates ---
@@ -66,7 +67,8 @@
     // --- BlockRenderer (배너 개별 렌더링 및 뷰어) ---
     const BlockRenderer = ({ block, onUpdate, onRemove, readOnly = false }) => {
       const [localShowSafeZone, setLocalShowSafeZone] = useState(true);
-      const hasImage = block.data.imageUrl && block.data.imageUrl.trim() !== '';
+      // 에러 방지 안전망 추가
+      const hasImage = Boolean(block?.data?.imageUrl && typeof block.data.imageUrl === 'string' && block.data.imageUrl.trim() !== '');
 
       const getPreviewClasses = (type) => {
         switch(type) {
@@ -96,22 +98,22 @@
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label>
-                    <input type="text" value={block.data.topText} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                    <input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
-                    <textarea value={block.data.mainTitle} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
+                    <textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
-                    <textarea value={block.data.subText} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
+                    <textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label>
-                    <textarea value={block.data.copy} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
+                    <textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
                   </div>
                 </div>
               )}
@@ -119,19 +121,19 @@
               <div className="pt-2 border-t border-[#262833] space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값 <span className="text-[10px] font-normal text-slate-500">(선택 시 동작)</span></label>
-                  <input type="text" value={block.data.landingValue} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} placeholder="예: UI_PATH: /join/monthly" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                  <input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} placeholder="예: UI_PATH: /join/monthly" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
                     버튼명 <span className="text-[10px] font-normal text-slate-500">옵션</span>
                   </label>
-                  <input type="text" value={block.data.buttonText} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                  <input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
                     배경 이미지 URL <span className="text-[10px] font-normal text-slate-500">옵션</span>
                   </label>
-                  <input type="text" value={block.data.imageUrl} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="미입력 시 기본 그라데이션 노출" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                  <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="미입력 시 기본 그라데이션 노출" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
                 </div>
               </div>
             </div>
@@ -179,7 +181,7 @@
                   {/* 상단바 (검색, 에이닷, 우측 OTT 아이콘들) */}
                   <div className="flex justify-between items-start pt-8 pl-[100px] pr-10">
                     <div className="flex gap-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-300/20 backdrop-blur border border-white/10 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-slate-300/20 backdrop-blur border border-white/10 flex items-center justify-center shadow-lg">
                         <User size={18} className="text-white/80"/>
                       </div>
                       <div className="flex items-center gap-2 bg-[#1a1a24]/60 backdrop-blur-md border border-white/10 rounded-full px-5 py-2">
@@ -282,9 +284,9 @@
 
                   <div className="relative z-10 p-8 flex flex-col items-center justify-center gap-5 w-full h-full">
                     <p className={`text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl ${block.type === 'BANNER_1_COL' ? 'text-2xl' : block.type === 'LONG_BANNER' ? 'text-2xl mt-auto pb-4' : 'text-3xl'} tracking-tight`}>
-                      {block.data.copy || '카피를 입력하세요'}
+                      {block.data?.copy || '카피를 입력하세요'}
                     </p>
-                    {block.data.buttonText && (
+                    {block.data?.buttonText && (
                       <span className={`inline-flex items-center justify-center bg-white text-black px-6 py-2.5 rounded-full font-bold shadow-lg ${block.type === 'LONG_BANNER' ? 'text-sm mb-4' : 'text-sm'}`}>
                         {block.data.buttonText}
                       </span>
