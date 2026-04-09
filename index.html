@@ -40,19 +40,20 @@
 
     // --- Specifications & Templates ---
     const BANNER_SPECS = [
-      { type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', size: '3840 x 2160', max: 'Max 4MB', desc: '홈 화면 최상단 대형 롤링 배너. 텍스트/인물 안전영역 준수 필수.' },
-      { type: 'BANNER_2_COL', name: '2단 배너', icon: ImageIcon, ratio: '16:9', size: '1920 x 1080', max: 'Max 2MB', desc: '주요 메뉴 하단에 노출되는 범용적인 가로형 배너.' },
-      { type: 'BANNER_1_COL', name: '1단 배너', icon: LayoutPanelLeft, ratio: '3:4', size: '1080 x 1440', max: 'Max 2MB', desc: '포스터 비율의 세로형 배너. 콘텐츠 강조에 적합.' },
-      { type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '1:2', size: '800 x 1600', max: 'Max 3MB', desc: '세로로 길게 노출되는 배너. 카피 가독성이 매우 중요함.' },
-      { type: 'BAND_BANNER', name: '띠배너', icon: ImageIcon, ratio: '8:1', size: '3840 x 480', max: 'Max 2MB', desc: '콘텐츠 블록 사이에 삽입되는 얇고 긴 형태의 프로모션 배너.' },
+      { type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', size: '3840 x 2160', max: 'Max 4MB', desc: '홈 최상단 대형 배너. 75% 이미지 배치 가이드 준수.' },
+      { type: 'BANNER_3_COL', name: '3단 배너', icon: LayoutPanelLeft, ratio: '3:1', size: '2880 x 960', max: 'Max 3MB', desc: '와이드 3칸 배너. 이미지형 위주 기획.' },
+      { type: 'BANNER_2_COL', name: '2단 배너', icon: ImageIcon, ratio: '16:9', size: '1920 x 1080', max: 'Max 2MB', desc: '가장 보편적인 2칸 배너.' },
+      { type: 'BANNER_1_COL', name: '1단 배너', icon: LayoutPanelLeft, ratio: '3:4', size: '1080 x 1440', max: 'Max 2MB', desc: '포스터형 1칸 배너.' },
+      { type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '1:2', size: '800 x 1600', max: 'Max 3MB', desc: '세로형 긴 배너.' },
+      { type: 'BAND_BANNER', name: '띠배너', icon: ImageIcon, ratio: '8:1', size: '3840 x 480', max: 'Max 2MB', desc: '블록 사이 슬림 배너.' },
     ];
 
     const DEFAULT_TODAY_BTV = {
-      topText: '상단 문구',
+      topText: '상단 카피',
       mainTitle: '메인 문구',
       subText: '서브 텍스트',
       landingValue: '가입 유도 랜딩',
-      buttonText: '자세히 보기', // Today B tv는 고정값
+      buttonText: '자세히 보기',
       imageUrl: '',
       gnb: '홈 최상단',
     };
@@ -60,16 +61,15 @@
     const DEFAULT_BANNER = {
       copy: '메인 문구',
       landingValue: '가입 유도 랜딩 (UI_PATH: /join)',
-      buttonText: '자세히 보기',
+      buttonText: '', 
       imageUrl: '',
       gnb: '영화',
     };
 
-    // --- BlockRenderer (배너 개별 렌더링 및 뷰어) ---
+    // --- BlockRenderer (프리뷰 개선 버전) ---
     const BlockRenderer = ({ block, onUpdate, onRemove, readOnly = false }) => {
       const [localShowSafeZone, setLocalShowSafeZone] = useState(true);
       
-      // 이미지 URL 여부 판별 로직 추가
       const isActualUrl = Boolean(block?.data?.imageUrl && typeof block.data.imageUrl === 'string' && block.data.imageUrl.startsWith('http'));
       const hasImageText = Boolean(block?.data?.imageUrl && !isActualUrl && block.data.imageUrl.trim() !== '');
 
@@ -77,8 +77,9 @@
         switch(type) {
           case 'BANNER_1_COL': return 'aspect-[3/4] w-[300px] max-w-full'; 
           case 'BANNER_2_COL': return 'aspect-[16/9] w-[500px] max-w-full'; 
+          case 'BANNER_3_COL': return 'aspect-[3/1] w-[850px] max-w-full'; 
           case 'LONG_BANNER': return 'aspect-[1/2] w-[240px] max-w-full'; 
-          case 'BAND_BANNER': return 'aspect-[8/1] w-[800px] max-w-full'; 
+          case 'BAND_BANNER': return 'aspect-[8/1] w-[850px] max-w-full'; 
           default: return 'aspect-[16/9] w-[500px] max-w-full';
         }
       };
@@ -98,316 +99,108 @@
               </div>
               
               <div className="space-y-4">
-                {/* 편성 GNB 필드 (Today B tv 제외) */}
                 {block.type !== 'TODAY_BTV' && (
                   <div>
-                    <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1">
-                      <Grid size={12}/> 편성 메뉴 (GNB)
-                    </label>
-                    <input 
-                      type="text" 
-                      value={block.data?.gnb || ''} 
-                      onChange={e => onUpdate(block.id, 'gnb', e.target.value)} 
-                      placeholder="예: 영화 > 신작"
-                      className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all shadow-sm" 
-                    />
+                    <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1"><Grid size={12}/> 편성 메뉴 (GNB)</label>
+                    <input type="text" value={block.data?.gnb || ''} onChange={e => onUpdate(block.id, 'gnb', e.target.value)} placeholder="예: 영화 > 신작" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" />
                   </div>
                 )}
 
                 {block.type === 'TODAY_BTV' ? (
                   <>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label>
-                      <input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
-                      <textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
-                      <textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
-                    </div>
+                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label><input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
+                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none" /></div>
+                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트</label><textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none" /></div>
                   </>
                 ) : (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label>
-                    <textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
-                  </div>
+                  <div><label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label><textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none resize-none" /></div>
                 )}
               </div>
               
               <div className="pt-2 border-t border-[#262833] space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값 <span className="text-[10px] font-normal text-slate-500">(선택 시 동작)</span></label>
-                  <input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} placeholder="예: UI_PATH: /join/monthly" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
-                </div>
-                
+                <div><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} placeholder="UI_PATH 등 입력" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
                 {block.type === 'TODAY_BTV' ? (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
-                      버튼명 <span className="text-[10px] font-normal text-[#7387ff]">고정</span>
-                    </label>
-                    <input type="text" value="자세히 보기" disabled className="w-full bg-[#1a1c26]/50 border border-[#303340] rounded-lg p-2.5 text-sm text-slate-500 cursor-not-allowed" />
-                  </div>
+                  <div><label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">버튼명 <span className="text-[10px] font-normal text-[#7387ff]">고정</span></label><input type="text" value="자세히 보기" disabled className="w-full bg-[#1a1c26]/50 border border-[#303340] rounded-lg p-2.5 text-sm text-slate-500 cursor-not-allowed" /></div>
                 ) : (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
-                      버튼명 <span className="text-[10px] font-normal text-slate-500">옵션</span>
-                    </label>
-                    <input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
-                  </div>
+                  !['BANNER_1_COL', 'BANNER_2_COL', 'BANNER_3_COL'].includes(block.type) && (
+                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">버튼명</label><input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
+                  )
                 )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
-                    배경 이미지 URL <span className="text-[10px] font-normal text-slate-500">단어 입력 시 텍스트로 노출</span>
-                  </label>
-                  <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="링크 입력 또는 키워드 입력 (예: 아바타)" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
-                </div>
+                <div><label className="block text-xs font-bold text-slate-400 mb-1.5">배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="링크 또는 '아바타' 등 키워드" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
               </div>
             </div>
-
-            {block.type === 'TODAY_BTV' && (
-              <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 shadow-xl">
-                <button onClick={() => setLocalShowSafeZone(!localShowSafeZone)} className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${localShowSafeZone ? 'bg-[#7387ff] text-white shadow-[#7387ff]/20' : 'bg-[#1a1c26] text-slate-400 border border-[#303340] hover:text-white hover:bg-[#262833]'}`}>
-                  <Grid size={18} /> TV 안전 영역(Safe Zone) {localShowSafeZone ? 'ON' : 'OFF'}
-                </button>
-                <p className="text-[11px] text-slate-500 mt-4 text-center leading-relaxed">
-                  가이드라인을 켜고 우측 캔버스에서 주요 시각 요소가 가려지지 않는지 확인하세요.
-                </p>
-              </div>
-            )}
+            {block.type === 'TODAY_BTV' && (<div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 shadow-xl"><button onClick={() => setLocalShowSafeZone(!localShowSafeZone)} className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${localShowSafeZone ? 'bg-[#7387ff] text-white' : 'bg-[#1a1c26] text-slate-400 border border-[#303340] hover:text-white'}`}><Grid size={18} /> TV 안전 영역 ON/OFF</button></div>)}
           </div>
 
           {/* Preview Column */}
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-hidden relative shadow-inner min-w-[600px]">
-            
-            {/* 1. Today B tv Mockup */}
-            {block.type === 'TODAY_BTV' && (
+            {block.type === 'TODAY_BTV' ? (
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a]">
-                
-                {/* [수정] 베이스 배경색 깔아주기 */}
-                <div className="absolute inset-0 bg-[#0a0a0f]"></div>
-
-                {/* [수정] 배경 이미지: 크기 75%, 우상단 배치 */}
-                <div 
-                  className="absolute inset-0 bg-no-repeat bg-right-top transition-all duration-500 flex items-center justify-center" 
-                  style={{ 
-                    backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none',
-                    backgroundSize: '75% 85%' 
-                  }}
-                >
-                  {/* [추가] 텍스트 입력 시 워터마크 노출 */}
-                  {hasImageText && (
-                    <div className="ml-[40%] text-white/20 text-[5rem] font-black select-none tracking-tighter italic">
-                      {block.data.imageUrl}
-                    </div>
-                  )}
-                  {!isActualUrl && !hasImageText && (
-                    <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>
-                  )}
+                <div className="absolute inset-0 bg-no-repeat bg-right-top transition-all duration-500" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none', backgroundSize: '75% 85%' }}>
+                  {hasImageText && <div className="ml-[40%] text-white/20 text-[5rem] font-black italic">{block.data.imageUrl}</div>}
+                  {!isActualUrl && !hasImageText && <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>}
                 </div>
-                
-                {/* [수정] 텍스트 영역 그라데이션: 이미지가 잘려보이지 않도록 중앙(via)까지 진하게 덮음 */}
-                <div className="absolute inset-0 w-[60%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f] to-transparent z-10 pointer-events-none"></div>
-                <div className="absolute inset-0 top-[55%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
-                
-                {/* 전체 UI 래퍼 */}
-                <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white">
-                  
-                  {/* 최좌측 GNB 네비게이션 아이콘들 */}
-                  <div className="absolute left-0 top-0 bottom-0 w-[80px] flex flex-col items-center pt-16 pb-8 gap-8 opacity-70 border-r border-white/5">
-                    <Menu size={22} className="opacity-50"/>
-                    <Tv size={22} className="opacity-50"/>
-                    <Home size={26} className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-100"/>
-                    <Grid size={22} className="opacity-50"/>
-                    <Settings size={22} className="mt-auto opacity-50"/>
-                  </div>
-
-                  {/* 상단바 */}
-                  <div className="flex justify-between items-start pt-8 pl-[100px] pr-10">
-                    <div className="flex gap-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-300/20 backdrop-blur border border-white/10 flex items-center justify-center shadow-lg">
-                        <User size={18} className="text-white/80"/>
-                      </div>
-                      <div className="flex items-center gap-2 bg-[#1a1a24]/60 backdrop-blur-md border border-white/10 rounded-full px-5 py-2">
-                        <Search size={16} className="text-white/70" /><span className="text-sm font-medium text-white/90">검색</span>
-                      </div>
-                      <div className="flex items-center gap-2 bg-[#1a1a24]/60 backdrop-blur-md border border-white/10 rounded-full px-5 py-2">
-                        <Mic size={16} className="text-[#8997ff]" /><span className="text-sm font-medium text-white/90">에이닷과 대화해요!</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 opacity-90">
-                      {['Btv+', 'OTT', 'NETFLIX', 'YouTube', 'Disney+', 'tv'].map((ott, i) => (
-                        <div key={i} className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[7px] font-black text-black tracking-tighter shadow-sm overflow-hidden">
-                          {ott}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* 메인 텍스트 콘텐츠 영역 */}
+                <div className="absolute inset-0 w-[65%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white p-6">
+                  <div className="absolute left-0 top-0 bottom-0 w-[80px] flex flex-col items-center pt-16 pb-8 gap-8 opacity-50 border-r border-white/5"><Menu size={22}/><Tv size={22}/><Home size={26}/><Grid size={22}/><Settings size={22} className="mt-auto"/></div>
                   <div className="absolute left-[100px] top-[42%] -translate-y-1/4 w-[38%] pl-2">
                     {block.data?.topText && <h3 className="text-[#32d782] text-base font-bold mb-2 drop-shadow-md tracking-tight">{block.data.topText}</h3>}
-                    <h1 className="text-white text-[2rem] font-black mb-4 leading-[1.2] whitespace-pre-wrap break-keep drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
-                      {block.data?.mainTitle || '타이틀 입력'}
-                    </h1>
-                    <p className="text-slate-200 text-sm font-medium mb-6 leading-[1.6] whitespace-pre-wrap break-keep drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                      {block.data?.subText || '서브 텍스트 입력'}
-                    </p>
-                    <div className="inline-flex w-fit bg-[#4631e6] border border-white/10 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-[0_4px_20px_rgba(70,49,230,0.6)]">
-                      자세히 보기
-                    </div>
-                  </div>
-                  
-                  {/* 하단 썸네일 및 페이징 */}
-                  <div className="absolute bottom-8 left-[100px] right-0 flex flex-col gap-4">
-                    <div className="flex gap-1.5 px-2">
-                      <div className="w-5 h-1.5 bg-white rounded-full shadow-sm"></div>
-                      {[1,2,3,4,5,6,7,8,9].map(i => <div key={i} className="w-1.5 h-1.5 bg-white/40 rounded-full shadow-sm"></div>)}
-                    </div>
-                    <div className="flex gap-4 overflow-hidden pr-8">
-                      {['아바타', '삼악도', '소년심판', '직장상사 길들이기', '주토피아2'].map((t, i) => (
-                        <div key={i} className="w-[185px] h-[104px] bg-[#1e2029]/80 backdrop-blur-md rounded-xl border border-white/10 shadow-lg relative overflow-hidden flex flex-col justify-end p-3">
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-                          {i < 3 && <span className="absolute top-2 left-2 bg-pink-600/90 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">이벤트</span>}
-                          <span className="relative z-10 text-white text-xs font-bold truncate">{t}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <h1 className="text-white text-[2rem] font-black mb-4 leading-[1.2] tracking-tight">{block.data?.mainTitle || '메인 문구'}</h1>
+                    <p className="text-slate-200 text-sm font-medium mb-6 leading-[1.6]">{block.data?.subText || '서브 텍스트'}</p>
+                    <div className="inline-flex bg-[#4631e6] text-white px-5 py-2 rounded-lg font-bold text-sm shadow-xl">자세히 보기</div>
                   </div>
                 </div>
-
-                {/* 안전 영역 오버레이 */}
                 {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none">
-                    <div className="absolute left-[50%] top-0 bottom-0 w-px border-l-[1.5px] border-dashed border-white/50"></div>
-                    <div className="absolute top-[45%] left-0 right-0 h-px border-t-[1.5px] border-dashed border-white/50"></div>
-                    <div className="absolute right-[4%] top-[15%] bottom-[28%] left-[53%] bg-[#00bcd4]/20 border border-[#00bcd4]/50 flex items-center justify-center backdrop-blur-[1px]">
-                      <span className="text-white font-black text-[1.5rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-tight bg-black/40 px-4 py-2 rounded-lg">
-                        이미지 안전 영역
-                      </span>
-                    </div>
-                    <div className="absolute left-[100px] top-[22%] bottom-[40%] w-[38%] bg-pink-500/10 border border-dashed border-pink-500/50 flex items-start p-2">
-                      <span className="text-pink-100 text-[10px] font-bold bg-pink-600/90 px-2 py-1 rounded shadow-sm">텍스트 최대 2줄</span>
-                    </div>
-                    <div className="absolute left-0 right-0 bottom-0 h-[28%] border-t-2 border-dashed border-orange-500 bg-orange-500/10 flex items-end justify-center pb-6">
-                      <span className="font-bold text-xs px-4 py-1.5 rounded-lg bg-orange-600/90 text-white shadow-lg backdrop-blur">
-                        하단 메뉴/썸네일 침범 금지
-                      </span>
-                    </div>
+                  <div className="absolute inset-0 z-30 pointer-events-none opacity-50">
+                    <div className="absolute left-[50%] top-0 bottom-0 w-px border-l border-dashed border-white/50"></div>
+                    <div className="absolute top-[45%] left-0 right-0 h-px border-t border-dashed border-white/50"></div>
+                    <div className="absolute right-[4%] top-[15%] bottom-[28%] left-[53%] border border-[#00bcd4]/40 bg-[#00bcd4]/5 flex items-center justify-center"><span className="text-[#00bcd4] font-black text-2xl">이미지 안전 영역</span></div>
                   </div>
                 )}
               </div>
-            )}
-
-            {/* 2. 일반 배너(1, 2, 3단) Mockup: 좌문구 우이미지 가이드 반영 개편 */}
-            {block.type !== 'TODAY_BTV' && (
-              <div className="flex flex-col items-center justify-center w-full h-full relative group/canvas">
-                
-                {/* 상단 편성 GNB 가이드 표시 */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-4 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-3 py-1 rounded-full border border-[#7387ff]/30">
-                  <Grid size={12}/>
-                  <span className="text-[11px] font-bold tracking-tight">편성 메뉴: {block.data?.gnb || '미지정'}</span>
-                </div>
-
-                <div 
-                  className={`relative bg-[#12141c] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#303340] flex transition-all duration-300 ${getPreviewClasses(block.type)}`}
-                >
-                  {/* 배경 베이스 (이미지 없을 때 노출되는 기본 색상) */}
-                  <div className="absolute inset-0 bg-[#0a0a0f]"></div>
-
-                  {/* [우측] 이미지 영역 (배너의 55% 차지) */}
-                  <div 
-                    className="absolute right-0 top-0 bottom-0 w-[55%] bg-no-repeat bg-cover bg-center transition-all z-0"
-                    style={{ 
-                      backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none',
-                    }}
-                  >
-                    {/* 이미지 영역 텍스트 워터마크 (URL 대신 단어 입력 시) */}
-                    {hasImageText && (
-                      <div className="absolute inset-0 flex items-center justify-center text-white/10 text-4xl font-black select-none italic tracking-tighter text-center px-4">
-                        {block.data.imageUrl}
-                      </div>
-                    )}
-                    
-                    {/* [핵심] 이미지와 좌측 문구 사이를 부드럽게 이어주는 그라데이션 */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#12141c] via-[#12141c]/40 to-transparent"></div>
-                  </div>
-
-                  {/* [좌측] 문구 영역: 실제 가이드라인의 폰트 크기와 정렬 반영 */}
-                  <div className="relative z-10 w-[60%] h-full flex flex-col justify-center items-start p-8 text-left gap-3">
-                    <p className={`text-white font-extrabold whitespace-pre-wrap leading-[1.2] drop-shadow-xl tracking-tighter
-                      ${block.type === 'BANNER_1_COL' ? 'text-xl' : 
-                        block.type === 'BANNER_3_COL' ? 'text-[2.5rem]' : 'text-[1.85rem]'}`}
-                    >
-                      {block.data?.copy || '메인 문구를\n입력하세요'}
+            ) : (
+              /* [중요] 일반 배너 (1, 2, 3단) 좌우 분할 프리뷰 */
+              <div className="flex flex-col items-center justify-center w-full h-full relative">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-4 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-3 py-1 rounded-full border border-[#7387ff]/30 text-[11px] font-bold">편성 위치: {block.data?.gnb || '미지정'}</div>
+                <div className={`relative bg-[#12141c] rounded-2xl overflow-hidden shadow-2xl border border-[#303340] flex transition-all duration-300 ${getPreviewClasses(block.type)}`}>
+                  {/* Left: Copy Area (45%) */}
+                  <div className="w-[45%] h-full flex flex-col justify-center items-start p-8 text-left z-10">
+                    <p className={`text-white font-extrabold whitespace-pre-wrap leading-[1.2] tracking-tighter ${block.type === 'BANNER_1_COL' ? 'text-xl' : block.type === 'BANNER_3_COL' ? 'text-[2.5rem]' : 'text-[1.85rem]'}`}>
+                      {block.data?.copy || '기획 문구를\n입력하세요'}
                     </p>
-                    
-                    {/* 버튼 가이드 (필요 시) */}
-                    {block.data?.buttonText && (
-                      <span className="mt-2 inline-flex items-center justify-center bg-[#4631e6] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-lg border border-white/10">
-                        {block.data.buttonText}
-                      </span>
-                    )}
+                    {block.data?.buttonText && <span className="mt-4 inline-flex bg-[#4631e6] text-white px-3 py-1 rounded-md font-bold text-[10px]">{block.data.buttonText}</span>}
                   </div>
-
-                  {/* 띠배너 전용 AD 마크 */}
-                  {block.type === 'BAND_BANNER' && (
-                    <div className="absolute bottom-3 right-4 text-[9px] font-bold text-white/40 bg-black/50 px-2 py-0.5 rounded backdrop-blur">AD</div>
-                  )}
-                </div>
-                
-                {/* 하단 비율 가이드 텍스트 */}
-                <div className="absolute bottom-10 text-slate-600 text-[10px] font-mono bg-[#161820]/50 px-4 py-2 rounded-full border border-[#2e3038] flex items-center gap-2">
-                  <ImageIcon size={12}/> 
-                  {block.type === 'BANNER_3_COL' ? '3단: 이미지형 위주 (문구 오버레이 가능)' : '1~2단: 좌측 문구 + 우측 이미지 조합'}
+                  {/* Right: Image Area (55%) */}
+                  <div className="w-[55%] h-full relative border-l border-white/5">
+                    <div className="absolute inset-0 bg-no-repeat bg-cover bg-center" style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}>
+                      {!isActualUrl && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0812]"></div>}
+                      {hasImageText && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-3xl font-black italic px-4 text-center select-none">{block.data.imageUrl}</div>}
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#12141c] via-transparent to-transparent opacity-80"></div>
+                    </div>
+                  </div>
+                  {block.type === 'BAND_BANNER' && <div className="absolute bottom-2 right-4 text-[9px] font-bold text-white/30 bg-black/50 px-2 py-0.5 rounded">AD</div>}
                 </div>
               </div>
             )}
-
           </div>
         </div>
       );
     };
 
-    // --- Main App Component ---
     function App() {
-      const [campaignMeta, setCampaignMeta] = useState({
-        campaignName: '프로모션명',
-        target: 'MASS',
-        toneAndManner: '타이틀 이미지 중심 활용',
-        assignee: '정은샘',
-        epicLink: 'BTVEVT-8000',
-        fixVersion: '23년_12월_3주차_정기배포',
-        startDate: '2023-12-18',
-        dueDate: '2023-12-31',
-      });
-
-      const [assets, setAssets] = useState([
-        { id: 'asset-1', type: 'TODAY_BTV', name: 'Today B tv', data: { ...DEFAULT_TODAY_BTV } },
-        { id: 'asset-2', type: 'BANNER_2_COL', name: 'OTT홈 2단 배너', data: { ...DEFAULT_BANNER, copy: 'B tv에선 Disney+ 매월 10% 할인!' } }
-      ]);
-
+      const [appView, setAppView] = useState('CAMPAIGN_MANAGER'); 
+      const [campaignMeta, setCampaignMeta] = useState({ campaignName: '신규 프로모션', target: '전체', toneAndManner: '심플', assignee: '담당자', epicLink: 'BTVEVT-0000', fixVersion: '26년_04월', startDate: '2026-04-01', dueDate: '2026-04-30' });
+      const [assets, setAssets] = useState([{ id: 'asset-1', type: 'TODAY_BTV', name: 'Today B tv', data: { ...DEFAULT_TODAY_BTV } }]);
       const [activeTabId, setActiveTabId] = useState('OVERVIEW');
       const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
       const [modalState, setModalState] = useState({ isOpen: false, step: 0, payloads: [] });
 
       const handleMetaChange = (e) => setCampaignMeta({ ...campaignMeta, [e.target.name]: e.target.value });
-      
-      const handleAssetChange = (id, field, value) => {
-        setAssets(assets.map(asset => {
-          if (asset.id === id) return { ...asset, data: { ...asset.data, [field]: value } };
-          return asset;
-        }));
-      };
+      const handleAssetChange = (id, field, value) => setAssets(assets.map(asset => asset.id === id ? { ...asset, data: { ...asset.data, [field]: value } } : asset));
 
       const addAsset = (type, name) => {
         const newId = `asset-${Date.now()}`;
-        const newData = type === 'TODAY_BTV' ? { ...DEFAULT_TODAY_BTV } : { ...DEFAULT_BANNER };
-        setAssets([...assets, { id: newId, type, name, data: newData }]);
+        setAssets([...assets, { id: newId, type, name, data: type === 'TODAY_BTV' ? { ...DEFAULT_TODAY_BTV } : { ...DEFAULT_BANNER } }]);
         setActiveTabId(newId);
         setIsAddAssetModalOpen(false);
       };
@@ -415,273 +208,104 @@
       const removeAsset = (id, e) => {
         e.stopPropagation();
         if (assets.length === 1) return alert('최소 1개의 제작물은 필요합니다.');
-        const newAssets = assets.filter(a => a.id !== id);
-        setAssets(newAssets);
+        setAssets(assets.filter(a => a.id !== id));
         if (activeTabId === id) setActiveTabId('OVERVIEW');
       };
 
-      const generateBatchPayloads = () => {
-        return assets.map(asset => {
-          const issueTitle = `[디자인요청] ${campaignMeta.campaignName} - ${asset.name}`;
+      const handleExport = () => {
+        const payloads = assets.map(asset => {
           const targetGnb = asset.type === 'TODAY_BTV' ? '홈 최상단' : (asset.data.gnb || '미지정');
-          
-          let markdown = `h3. 📌 캠페인 공통 정보\n|| 항목 || 내용 ||\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | *${targetGnb}* |\n| *편성 일정* | ${campaignMeta.startDate} ~ ${campaignMeta.dueDate} |\n| *타겟/톤앤매너* | ${campaignMeta.target} / ${campaignMeta.toneAndManner} |\n\n---\n\n`;
-          markdown += `h3. 🖼️ ${asset.name} 상세 기획\n`;
-          
-          if (asset.type === 'TODAY_BTV') {
-            markdown += `* *상단 텍스트:* ${asset.data.topText}\n* *메인 타이틀:* ${asset.data.mainTitle.replace(/\n/g, ' ')}\n* *서브 텍스트:* ${asset.data.subText.replace(/\n/g, ' ')}\n* *버튼명:* 자세히 보기\n* *랜딩값:* ${asset.data.landingValue}\n`;
-          } else {
-            markdown += `* *메인 카피:* ${asset.data.copy.replace(/\n/g, ' ')}\n* *버튼명:* ${asset.data.buttonText}\n* *랜딩값:* ${asset.data.landingValue}\n`;
-          }
-
-          return {
-            action: "CREATE_JIRA_ISSUE",
-            data: {
-              issueTitle,
-              epicLink: campaignMeta.epicLink,
-              fixVersion: campaignMeta.fixVersion,
-              startDate: campaignMeta.startDate,
-              dueDate: campaignMeta.dueDate,
-              assignee: campaignMeta.assignee,
-              description: markdown
-            }
-          };
+          const description = `h3. 📌 캠페인 공통 정보\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | ${targetGnb} |\n\n---\n\nh3. 🖼️ 상세 기획\n* ${asset.type === 'TODAY_BTV' ? `문구: ${asset.data.mainTitle}` : `카피: ${asset.data.copy}`}\n* 랜딩: ${asset.data.landingValue}`;
+          return { action: "CREATE_JIRA_ISSUE", data: { issueTitle: `[디자인] ${campaignMeta.campaignName} - ${asset.name}`, description } };
         });
-      };
-
-      const handleExportToExtension = () => {
-        if (assets.length === 0) return alert('제작물이 없습니다.');
-        const payloads = generateBatchPayloads();
-        setModalState({ isOpen: true, step: 1, payloads });
-        window.postMessage({ type: 'BTV_CAMPAIGN_DATA', payloads }, '*');
-      };
-
-      const copyToClipboard = () => {
-        const fullText = modalState.payloads.map(p => `[${p.data.issueTitle}]\n${p.data.description}`).join('\n\n====================\n\n');
-        navigator.clipboard.writeText(fullText);
-        alert('전체 마크다운이 클립보드에 복사되었습니다.');
-      };
-
-      const activeAsset = assets.find(a => a.id === activeTabId);
-
-      const getAssetIcon = (type) => {
-        const spec = BANNER_SPECS.find(s => s.type === type);
-        const IconComponent = spec ? spec.icon : ImageIcon;
-        return <IconComponent size={16} />;
+        setModalState({ isOpen: true, payloads });
       };
 
       return (
-        <div className="flex h-screen w-full bg-[#0a0812] text-slate-200 font-sans overflow-hidden">
-          
-          {/* --- GLOBAL THIN NAVIGATION BAR --- */}
-          <nav className="w-[72px] flex-shrink-0 bg-[#0f111a] border-r border-[#262833] flex flex-col items-center py-6 z-30">
-            <div className="w-11 h-11 bg-gradient-to-br from-[#7387ff] to-[#4631e6] rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-[#7387ff]/20">
+        <div className="flex h-screen w-full bg-[#0a0812] text-slate-200 overflow-hidden">
+          {/* Global Nav */}
+          <nav className="w-[72px] bg-[#0f111a] border-r border-[#262833] flex flex-col items-center py-6 z-30">
+            {/* [수정] 메인 로고: 버튼 형태 제거 */}
+            <div className="w-11 h-11 bg-gradient-to-br from-[#7387ff] to-[#4631e6] rounded-xl flex items-center justify-center mb-10 shadow-lg shadow-[#7387ff]/20">
               <Tv className="text-white" size={24} />
             </div>
-            <div className="flex flex-col gap-4 w-full px-3">
-              <button className="w-full aspect-square rounded-xl flex flex-col items-center justify-center transition-all bg-[#262833] text-[#7387ff] shadow-inner" title="캠페인 매니저">
-                <LayoutTemplate size={24} />
+            
+            <div className="flex flex-col gap-5 w-full px-3">
+              {/* [복구] AI 메뉴 아이콘 */}
+              <button onClick={() => setAppView('AI_COPILOT')} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${appView === 'AI_COPILOT' ? 'bg-[#262833] text-[#7387ff] shadow-inner' : 'text-slate-500 hover:text-white'}`} title="AI 코파일럿">
+                <Bot size={26} />
               </button>
-            </div>
-            <div className="mt-auto w-full px-3">
-              <button className="w-full aspect-square rounded-xl flex flex-col items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-[#1e2029] transition-all">
-                <Settings size={24} />
+              <button onClick={() => setAppView('CAMPAIGN_MANAGER')} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${appView === 'CAMPAIGN_MANAGER' ? 'bg-[#262833] text-[#7387ff] shadow-inner' : 'text-slate-500 hover:text-white'}`} title="캠페인 매니저">
+                <LayoutTemplate size={26} />
               </button>
             </div>
           </nav>
 
-          {/* === LEFT SIDEBAR: Global Campaign Meta === */}
-          <aside className="w-[340px] flex-shrink-0 bg-[#12141c] border-r border-[#262833] flex flex-col h-full z-10">
-            <div className="p-6 border-b border-[#262833] bg-[#0f111a]">
-              <h1 className="text-xl font-extrabold text-white flex items-center gap-2 tracking-tight">B tv Campaign</h1>
-              <p className="text-[11px] text-slate-400 mt-1.5 font-medium">에픽/릴리스 기반 다중 배너 기획</p>
+          {appView === 'AI_COPILOT' ? (
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0a0812] animate-in fade-in">
+              <Sparkles size={48} className="text-[#7387ff] mb-4 opacity-50" />
+              <h2 className="text-2xl font-bold text-slate-400">AI 프로모션 제안 기능 준비 중</h2>
+              <p className="text-slate-600 mt-2 text-sm">목적을 입력하면 배너 조합을 자동 구성하는 엔진이 개발 중입니다.</p>
+              <button onClick={() => setAppView('CAMPAIGN_MANAGER')} className="mt-8 px-6 py-2 bg-[#7387ff] text-white rounded-lg font-bold">캠페인 매니저로 가기</button>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative">
-              <div className="sticky top-0 z-10 bg-[#12141c] pb-4">
-                <button onClick={handleExportToExtension} className="w-full bg-gradient-to-r from-[#4f3df6] to-[#7387ff] hover:from-[#3a2ac4] hover:to-[#5b6dbf] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(79,61,246,0.3)] transition-transform transform hover:-translate-y-0.5">
-                  <Send size={16} /> Jira 다중 일감 전송 <span className="bg-white/20 px-2 py-0.5 rounded-md text-xs ml-1 backdrop-blur-sm">{assets.length}건</span>
-                </button>
-                <p className="text-[10px] text-slate-500 mt-2 text-center">우측에서 작성한 모든 배너 기획안이 전송됩니다.</p>
-              </div>
-
-              <div>
-                <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-1.5"><LayoutTemplate size={14} className="text-slate-400"/> 캠페인 공통 정보</h2>
-                <div className="space-y-4">
-                  <div><label className="block text-xs font-bold text-slate-300 mb-1.5">프로젝트(캠페인)명</label><input type="text" name="campaignName" value={campaignMeta.campaignName} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
-                  <div><label className="block text-xs font-bold text-slate-300 mb-1.5">타겟 대상</label><input type="text" name="target" value={campaignMeta.target} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
-                  <div><label className="block text-xs font-bold text-slate-300 mb-1.5">톤앤매너 (디자인 방향)</label><input type="text" name="toneAndManner" value={campaignMeta.toneAndManner} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <h2 className="text-[11px] font-bold text-[#7387ff] uppercase tracking-widest mb-4 flex items-center gap-1.5"><Calendar size={14}/> Jira 릴리스 및 담당자</h2>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="block text-[11px] font-bold text-slate-300 mb-1.5">상위 에픽</label><div className="flex items-center bg-[#1a1c26] border border-[#303340] rounded-lg px-2.5 py-2"><GitMerge size={14} className="text-slate-500 mr-2"/><input type="text" name="epicLink" value={campaignMeta.epicLink} onChange={handleMetaChange} className="w-full bg-transparent text-sm text-white outline-none font-mono" /></div></div>
-                    <div><label className="block text-[11px] font-bold text-slate-300 mb-1.5">릴리스(Fix)</label><input type="text" name="fixVersion" value={campaignMeta.fixVersion} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 bg-[#0a0812] p-4 rounded-xl border border-[#262833]">
-                    <div><label className="block text-[11px] text-slate-400 mb-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert outline-none" /></div>
-                    <div><label className="block text-[11px] text-slate-400 mb-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert outline-none" /></div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">지정 담당자 (Assignee)</label>
-                    <div className="flex items-center gap-3 bg-[#1a1c26] border border-[#303340] rounded-lg p-2">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-inner">{campaignMeta.assignee.charAt(0)}</div>
-                      <input type="text" name="assignee" value={campaignMeta.assignee} onChange={handleMetaChange} className="bg-transparent text-sm text-white outline-none flex-1" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* === RIGHT MAIN AREA === */}
-          <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
-            <header className="bg-[#12141c]/90 backdrop-blur z-20 sticky top-0 flex flex-col shadow-sm border-b border-[#262833]">
-              <div className="flex justify-between items-end px-6 pt-4">
-                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                  <div onClick={() => setActiveTabId('OVERVIEW')} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === 'OVERVIEW' ? 'bg-[#1e202c] text-[#7387ff] border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-[#1a1c26]'}`}>
-                    <ListTodo size={16}/><span>전체 배너 관리</span>
-                  </div>
-                  {assets.map(asset => (
-                    <div key={asset.id} onClick={() => setActiveTabId(asset.id)} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === asset.id ? 'bg-[#1e202c] text-white border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-[#1a1c26]'}`}>
-                      <span className={activeTabId === asset.id ? 'text-[#7387ff]' : 'text-slate-500'}>{getAssetIcon(asset.type)}</span><span>{asset.name}</span>
-                      <button onClick={(e) => removeAsset(asset.id, e)} className="opacity-0 group-hover:opacity-100 p-1 bg-transparent hover:bg-slate-700/50 rounded-full text-slate-400 hover:text-red-400 ml-2"><Trash2 size={14}/></button>
-                    </div>
-                  ))}
-                </div>
-                <div className="pb-3 flex-shrink-0 ml-4">
-                  <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-white rounded-xl text-sm font-bold border border-[#303340] shadow-sm hover:shadow-md"><Plus size={18} className="text-[#7387ff]"/> 배너 슬롯 추가</button>
-                </div>
-              </div>
-            </header>
-
-            <div className="flex-1 overflow-y-auto relative custom-scrollbar">
-              {activeTabId === 'OVERVIEW' && (
-                <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-300">
-                  <div className="bg-[#12141c] border border-[#262833] rounded-2xl overflow-hidden shadow-2xl">
-                    <div className="p-6 border-b border-[#262833] bg-[#0f111a] flex justify-between items-center">
-                      <div><h3 className="text-base font-bold text-white flex items-center gap-2"><ListTodo size={18} className="text-[#7387ff]" /> 생성 예정 티켓 (Sub-tasks)</h3><p className="text-xs text-slate-400 mt-1.5">좌측 전송 시 아래 리스트가 개별 Jira 티켓으로 생성되며 에픽({campaignMeta.epicLink})에 묶입니다.</p></div>
-                      <div className="bg-[#1a1c26] px-3 py-1.5 rounded-lg border border-[#303340] text-xs font-bold text-slate-300">총 <span className="text-[#7387ff] text-sm mx-1">{assets.length}</span>개</div>
-                    </div>
-                    {assets.length === 0 ? (
-                      <div className="p-16 flex flex-col items-center justify-center text-slate-500"><ImageIcon size={48} className="mb-4 opacity-20" /><p className="font-bold text-lg text-slate-400">등록된 배너가 없습니다.</p></div>
-                    ) : (
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-[#0a0812] text-xs text-slate-400 border-b border-[#262833]"><th className="p-4 font-bold">배너 구분</th><th className="p-4 font-bold">티켓 제목 (미리보기)</th><th className="p-4 font-bold text-center">상태</th></tr>
-                        </thead>
-                        <tbody className="text-sm text-slate-200">
-                          {assets.map((asset, idx) => (
-                            <tr key={idx} className="border-b border-[#262833] hover:bg-[#1a1c26] cursor-pointer group" onClick={() => setActiveTabId(asset.id)}>
-                              <td className="p-5 font-medium text-slate-300 flex items-center gap-3"><div className="p-2 bg-[#262833] rounded-lg text-slate-400 group-hover:text-[#7387ff]">{getAssetIcon(asset.type)}</div>{asset.name}</td>
-                              <td className="p-5 font-bold text-[#7387ff]">[디자인요청] {campaignMeta.campaignName || '캠페인명 미입력'} - {asset.name}</td>
-                              <td className="p-5 text-center"><span className="text-[11px] font-bold bg-[#1a1c26] border border-[#303340] text-slate-400 px-3 py-1.5 rounded-full">기획 작성중</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeAsset && activeTabId !== 'OVERVIEW' && (
-                <BlockRenderer block={activeAsset} onUpdate={handleAssetChange} />
-              )}
-            </div>
-          </main>
-
-          {/* === MODALS === */}
-          {isAddAssetModalOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-              <div className="bg-[#12141c] w-[900px] max-w-[90vw] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
-                  <div><h3 className="text-xl font-extrabold text-white flex items-center gap-2"><Plus size={24} className="text-[#7387ff]" /> 추가할 배너 슬롯 선택</h3><p className="text-sm text-slate-400 mt-1">캠페인에 필요한 매체 규격을 선택해주세요.</p></div>
-                  <button onClick={() => setIsAddAssetModalOpen(false)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white"><X size={20} /></button>
-                </div>
-                <div className="p-8 bg-[#0a0812]">
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
-                    {BANNER_SPECS.map((spec) => (
-                      <div key={spec.type} onClick={() => addAsset(spec.type, spec.name)} className="bg-[#1a1c26] border border-[#303340] rounded-xl p-5 cursor-pointer hover:border-[#7387ff] hover:-translate-y-1 transition-all group flex flex-col h-full">
-                        <div className="flex items-start justify-between mb-4"><div className="p-3 bg-[#262833] rounded-xl text-[#7387ff] group-hover:bg-[#7387ff] group-hover:text-white"><spec.icon size={24} /></div><span className="text-[10px] font-bold font-mono bg-slate-800 text-slate-300 px-2 py-1 rounded-md">{spec.ratio}</span></div>
-                        <h4 className="text-lg font-bold text-white mb-2 group-hover:text-[#7387ff]">{spec.name}</h4>
-                        <div className="flex flex-wrap gap-2 mb-4"><span className="text-[11px] font-mono bg-[#0a0812] border border-[#303340] text-slate-300 px-2 py-1 rounded-md">{spec.size}</span></div>
-                        <p className="text-xs text-slate-400 leading-relaxed mt-auto border-t border-[#262833] pt-4">{spec.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* === MODALS: Jira 전송 워크플로우 가이드 === */}
-          {modalState.isOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-              <div className="bg-[#12141c] w-[650px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                    <Send size={20} className="text-[#4f3df6]" /> Jira 다중 일감 전송 대기 중
-                  </h3>
-                  <button onClick={() => setModalState({ isOpen: false, step: 0, payloads: [] })} className="p-1.5 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors"><X size={18}/></button>
-                </div>
-                
-                <div className="p-8">
-                  {/* Step 1: 데이터 패킹 완료 */}
-                  <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                    <h4 className="text-blue-400 font-bold text-sm mb-1.5 flex items-center gap-2">
-                      <CheckCircle size={16}/> 1단계: 기획 데이터 패킹 완료
-                    </h4>
-                    <p className="text-xs text-slate-300 leading-relaxed pl-6">
-                      총 <strong className="text-white">{modalState.payloads.length}건</strong>의 배너 기획 데이터가 확장 프로그램으로 전송될 준비를 마쳤습니다.<br/>
-                      실제 지라(Jira) 티켓 생성을 위해 아래 절차를 진행해 주세요.
-                    </p>
-                  </div>
-
-                  {/* Step 2 & 3 */}
-                  <div className="space-y-6 relative">
-                    <div className="flex gap-4 items-start">
-                        <div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-slate-300 font-bold shrink-0 mt-0.5 border border-[#303340]">2</div>
-                        <div>
-                            <h4 className="text-sm font-bold text-white mb-1.5">Jira BTVEVT 프로젝트 열기</h4>
-                            <p className="text-xs text-slate-400 mb-3">티켓을 일괄 생성할 타겟 Jira 프로젝트 페이지를 엽니다.</p>
-                            <a href="#" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs bg-[#1a1c26] hover:bg-[#262833] text-white px-4 py-2 rounded-lg border border-[#303340] transition-colors shadow-sm">
-                                <ExternalLink size={14} className="text-[#7387ff]"/> BTVEVT 보드 열기
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div className="absolute left-4 top-10 bottom-12 w-px bg-[#262833]"></div>
-
-                    <div className="flex gap-4 items-start">
-                        <div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-slate-300 font-bold shrink-0 mt-0.5 border border-[#303340]">3</div>
-                        <div className="w-full">
-                            <h4 className="text-sm font-bold text-white mb-1.5">확장 프로그램 매크로 실행</h4>
-                            <p className="text-xs text-slate-400 mb-3">열린 Jira 화면에서 설치된 <strong className="text-slate-200">'B tv Campaign 매크로'</strong> 아이콘을 클릭하면 티켓이 순차적으로 자동 생성됩니다.</p>
-                            
-                            <div className="bg-[#06070a] border border-[#262833] rounded-lg p-3 flex items-center justify-between shadow-inner">
-                                <span className="text-[11px] text-slate-500 font-mono">생성 대기 중인 페이로드: {modalState.payloads.length} items</span>
-                                <button onClick={copyToClipboard} className="text-xs flex items-center gap-1 text-[#7387ff] hover:text-white transition-colors bg-[#7387ff]/10 px-2 py-1 rounded">
-                                    <Copy size={12}/> 마크다운 수동 복사
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 bg-[#0f111a] border-t border-[#262833] flex justify-end">
-                  <button onClick={() => setModalState({ isOpen: false, step: 0, payloads: [] })} className="px-8 py-2.5 bg-[#262833] hover:bg-[#303340] text-white text-sm font-bold rounded-lg transition-colors">
-                    닫기
+          ) : (
+            <>
+              <aside className="w-[340px] bg-[#12141c] border-r border-[#262833] flex flex-col h-full z-10 animate-in slide-in-from-left-4">
+                <div className="p-6 border-b border-[#262833] bg-[#0f111a]"><h1 className="text-xl font-black text-white">B tv Campaign</h1><p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest font-bold">Promotion Orchestrator</p></div>
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                  <button onClick={handleExport} className="w-full bg-gradient-to-r from-[#4f3df6] to-[#7387ff] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:brightness-110 transition-all">
+                    <Send size={16} /> Jira 다중 일감 전송 <span className="bg-white/20 px-2 py-0.5 rounded-md text-xs">{assets.length}</span>
                   </button>
+                  <div className="space-y-4">
+                    <h2 className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-2"><LayoutTemplate size={12}/> 캠페인 기본 정보</h2>
+                    <div><label className="block text-[10px] font-bold text-slate-400 mb-1">캠페인명</label><input type="text" name="campaignName" value={campaignMeta.campaignName} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none" /></div>
+                    <div className="grid grid-cols-2 gap-3 bg-[#0a0812] p-3 rounded-xl border border-[#262833]">
+                      <div><label className="block text-[10px] text-slate-500 mb-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none" /></div>
+                      <div><label className="block text-[10px] text-slate-500 mb-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none" /></div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </aside>
+
+              <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
+                <header className="bg-[#12141c]/90 backdrop-blur z-20 sticky top-0 flex flex-col shadow-sm border-b border-[#262833]">
+                  <div className="flex justify-between items-end px-6 pt-4">
+                    <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                      <div onClick={() => setActiveTabId('OVERVIEW')} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === 'OVERVIEW' ? 'bg-[#1e202c] text-[#7387ff] border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-white'}`}><ListTodo size={16}/><span>관리 목록</span></div>
+                      {assets.map(asset => (
+                        <div key={asset.id} onClick={() => setActiveTabId(asset.id)} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === asset.id ? 'bg-[#1e202c] text-white border-[#7387ff]' : 'text-slate-400 border-transparent'}`}>
+                          <span className={activeTabId === asset.id ? 'text-[#7387ff]' : 'text-slate-500'}>{getAssetIcon(asset.type)}</span><span className="truncate max-w-[80px]">{asset.name}</span>
+                          <button onClick={(e) => removeAsset(asset.id, e)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all"><Trash2 size={12}/></button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pb-3 ml-4"><button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1a1c26] text-white rounded-xl text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={16} className="text-[#7387ff]"/> 슬롯 추가</button></div>
+                  </div>
+                </header>
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  {activeTabId === 'OVERVIEW' ? (
+                    <div className="p-8 max-w-5xl mx-auto"><div className="bg-[#12141c] border border-[#262833] rounded-2xl overflow-hidden shadow-2xl"><div className="p-6 border-b border-[#262833] bg-[#0f111a] flex justify-between items-center"><div><h3 className="text-base font-bold text-white flex items-center gap-2"><ListTodo size={18} className="text-[#7387ff]" /> 일감 생성 리스트</h3></div></div><table className="w-full text-left border-collapse"><tbody className="text-sm text-slate-200">{assets.map((asset, idx) => (<tr key={idx} className="border-b border-[#262833] hover:bg-[#1a1c26] cursor-pointer group" onClick={() => setActiveTabId(asset.id)}><td className="p-5 font-medium text-slate-300 flex items-center gap-3"><div className="p-2 bg-[#262833] rounded-lg text-slate-400 group-hover:text-[#7387ff]">{getAssetIcon(asset.type)}</div>{asset.name}</td><td className="p-5 font-bold text-[#7387ff] truncate">[디자인] {campaignMeta.campaignName} - {asset.name}</td><td className="p-5 text-center"><span className="text-[10px] font-bold bg-[#1a1c26] border border-[#303340] text-slate-500 px-3 py-1.5 rounded-full uppercase">Waiting</span></td></tr>))}</tbody></table></div></div>
+                  ) : (
+                    <BlockRenderer block={activeAsset} onUpdate={handleAssetChange} />
+                  )}
+                </div>
+              </main>
+            </>
+          )}
+
+          {/* Add Asset Modal */}
+          {isAddAssetModalOpen && (
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95">
+              <div className="bg-[#12141c] w-[900px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col"><div className="p-6 border-b border-[#262833] flex justify-between items-center"><div><h3 className="text-xl font-bold text-white">매체 규격 선택</h3></div><button onClick={() => setIsAddAssetModalOpen(false)}><X size={20}/></button></div><div className="p-8 grid grid-cols-2 lg:grid-cols-3 gap-5 max-h-[70vh] overflow-y-auto">{BANNER_SPECS.map((spec) => (<div key={spec.type} onClick={() => addAsset(spec.type, spec.name)} className="bg-[#1a1c26] border border-[#303340] rounded-xl p-5 cursor-pointer hover:border-[#7387ff] transition-all flex flex-col h-full"><div className="flex items-start justify-between mb-4"><div className="p-3 bg-[#262833] rounded-xl text-[#7387ff]"><spec.icon size={24} /></div><span className="text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-1 rounded-md">{spec.ratio}</span></div><h4 className="text-lg font-bold text-white mb-2">{spec.name}</h4><div className="text-[11px] text-slate-500 font-mono mb-4">{spec.size}</div><p className="text-xs text-slate-400 leading-relaxed mt-auto pt-4 border-t border-[#262833]">{spec.desc}</p></div>))}</div></div>
             </div>
           )}
 
+          {/* Jira Guide Modal */}
+          {modalState.isOpen && (
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-[#12141c] w-[650px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col"><div className="p-5 border-b border-[#262833] flex justify-between items-center"><h3 className="text-base font-bold text-white flex items-center gap-2"><Send size={20} className="text-[#4f3df6]" /> Jira 전송 대기 중</h3><button onClick={() => setModalState({ isOpen: false })}><X size={18}/></button></div><div className="p-8"><div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center gap-3"><CheckCircle size={20} className="text-blue-400"/><p className="text-xs text-slate-300">총 <strong className="text-white">{modalState.payloads.length}건</strong>의 기획 데이터 패킹 완료. 확장을 실행해 주세요.</p></div><div className="space-y-6 relative"><div className="flex gap-4 items-start"><div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-xs font-bold border border-[#303340]">2</div><div><h4 className="text-sm font-bold text-white mb-1">Jira BTVEVT 열기</h4><a href="#" target="_blank" className="inline-flex items-center gap-1.5 text-[11px] bg-[#1a1c26] text-white px-3 py-1.5 rounded-lg border border-[#303340] mt-1"><ExternalLink size={12} className="text-[#7387ff]"/> 프로젝트 보드 바로가기</a></div></div><div className="flex gap-4 items-start"><div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-xs font-bold border border-[#303340]">3</div><div className="w-full"><h4 className="text-sm font-bold text-white mb-1">B tv 매크로 실행</h4><p className="text-xs text-slate-400">지라 페이지에서 확장 프로그램을 클릭하면 티켓이 순차 생성됩니다.</p><div className="bg-[#06070a] border border-[#262833] rounded-lg p-3 mt-3 flex items-center justify-between"><span className="text-[10px] text-slate-600 font-mono">Payloads: {modalState.payloads.length}</span><button onClick={copyToClipboard} className="text-[10px] text-[#7387ff] font-bold uppercase tracking-wider hover:text-white transition-all"><Copy size={12} className="inline mr-1"/> Copy Markdown</button></div></div></div></div></div><div className="p-5 bg-[#0f111a] border-t border-[#262833] flex justify-end"><button onClick={() => setModalState({ isOpen: false })} className="px-8 py-2 bg-[#262833] text-white text-xs font-bold rounded-lg transition-colors">닫기</button></div></div>
+            </div>
+          )}
         </div>
       );
     }
