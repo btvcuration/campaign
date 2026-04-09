@@ -157,14 +157,23 @@
             {/* 1. Today B tv Mockup (실제 UI 완벽 모사) */}
             {/* ========================================================= */}
             {block.type === 'TODAY_BTV' && (
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#000] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a]">
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a]">
                 
-                {/* 배경 이미지: bg-right-top으로 우상단 쏠림 적용 */}
-                <div className="absolute inset-0 bg-cover bg-right-top transition-all duration-500" style={{ backgroundImage: hasImage ? `url(${block.data.imageUrl})` : 'linear-gradient(135deg, #10152a 0%, #1e1b4b 50%, #000000 100%)' }}></div>
+                {/* [수정 1] 빈 공간을 덮을 베이스 어두운 배경 */}
+                <div className="absolute inset-0 bg-[#0a0a0f]"></div>
+
+                {/* [수정 2] 배경 이미지: 크기를 줄이고(가로 75%, 세로 85%) 우상단으로 고정 */}
+                <div 
+                  className="absolute inset-0 bg-no-repeat bg-right-top transition-all duration-500" 
+                  style={{ 
+                    backgroundImage: hasImage ? `url(${block.data.imageUrl})` : 'linear-gradient(135deg, #10152a 0%, #1e1b4b 50%, #000000 100%)',
+                    backgroundSize: '75% 85%' 
+                  }}
+                ></div>
                 
-                {/* 텍스트 영역 그라데이션: 좌측을 더 넓고 진하게(w-[70%]) 퍼지도록 수정 */}
-                <div className="absolute inset-0 w-[70%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
-                <div className="absolute inset-0 top-[40%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/70 to-transparent z-10 pointer-events-none"></div>
+                {/* [수정 3] 그라데이션: 작아진 이미지의 직선 경계가 안 보이도록 솔리드(단색) 구간 확장 */}
+                <div className="absolute inset-0 w-[60%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f] to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute inset-0 top-[55%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
                 
                 {/* 전체 UI 래퍼 */}
                 <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white">
