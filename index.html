@@ -32,11 +32,10 @@
   <script type="text/babel" data-type="module">
     import React, { useState, useRef, useEffect } from 'react';
     import { createRoot } from 'react-dom/client';
-    // [해결] User 아이콘 추가
     import { 
       Tv, LayoutTemplate, Send, ChevronRight, Copy, CheckCircle, 
       Search, Mic, Menu, Home, Grid, Smile, Settings, Calendar, GitMerge, Plus, Trash2, Image as ImageIcon,
-      ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, ArrowRight, X, Target, Edit3, User
+      ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, ArrowRight, X, Target, Edit3, User, ExternalLink
     } from 'lucide-react';
 
     // --- Specifications & Templates ---
@@ -50,25 +49,29 @@
 
     const DEFAULT_TODAY_BTV = {
       topText: '디즈니+ 런칭',
-      mainTitle: '원작의 느낌 그대로.\n리메이크 콘텐츠 특집',
-      subText: '지금 가입하고 디즈니+의\n최신 콘텐츠를 감상하세요',
+      mainTitle: '메인 문구',
+      subText: '서브 텍스트',
       landingValue: '가입 유도 랜딩',
-      buttonText: '바로 보기',
+      buttonText: '자세히 보기', // Today B tv는 고정값
       imageUrl: '',
+      gnb: '홈 최상단',
     };
 
     const DEFAULT_BANNER = {
-      copy: '지금 10%할인 쿠폰받고\n디즈니+의 최신 콘텐츠를 감상하세요',
+      copy: '메인 문구',
       landingValue: '가입 유도 랜딩 (UI_PATH: /join)',
       buttonText: '자세히 보기',
       imageUrl: '',
+      gnb: '영화',
     };
 
     // --- BlockRenderer (배너 개별 렌더링 및 뷰어) ---
     const BlockRenderer = ({ block, onUpdate, onRemove, readOnly = false }) => {
       const [localShowSafeZone, setLocalShowSafeZone] = useState(true);
-      // 에러 방지 안전망 추가
-      const hasImage = Boolean(block?.data?.imageUrl && typeof block.data.imageUrl === 'string' && block.data.imageUrl.trim() !== '');
+      
+      // 이미지 URL 여부 판별 로직 추가
+      const isActualUrl = Boolean(block?.data?.imageUrl && typeof block.data.imageUrl === 'string' && block.data.imageUrl.startsWith('http'));
+      const hasImageText = Boolean(block?.data?.imageUrl && !isActualUrl && block.data.imageUrl.trim() !== '');
 
       const getPreviewClasses = (type) => {
         switch(type) {
@@ -94,46 +97,73 @@
                 </h3>
               </div>
               
-              {block.type === 'TODAY_BTV' ? (
-                <div className="space-y-4">
+              <div className="space-y-4">
+                {/* 편성 GNB 필드 (Today B tv 제외) */}
+                {block.type !== 'TODAY_BTV' && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label>
-                    <input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                    <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1">
+                      <Grid size={12}/> 편성 메뉴 (GNB)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={block.data?.gnb || ''} 
+                      onChange={e => onUpdate(block.id, 'gnb', e.target.value)} 
+                      placeholder="예: 영화 > 신작"
+                      className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all shadow-sm" 
+                    />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
-                    <textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
-                    <textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
+                )}
+
+                {block.type === 'TODAY_BTV' ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label>
+                      <input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
+                      <textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label>
+                      <textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
+                    </div>
+                  </>
+                ) : (
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label>
                     <textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none resize-none transition-all shadow-sm leading-relaxed" />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
               
               <div className="pt-2 border-t border-[#262833] space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값 <span className="text-[10px] font-normal text-slate-500">(선택 시 동작)</span></label>
                   <input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} placeholder="예: UI_PATH: /join/monthly" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
                 </div>
+                
+                {block.type === 'TODAY_BTV' ? (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
+                      버튼명 <span className="text-[10px] font-normal text-[#7387ff]">고정</span>
+                    </label>
+                    <input type="text" value="자세히 보기" disabled className="w-full bg-[#1a1c26]/50 border border-[#303340] rounded-lg p-2.5 text-sm text-slate-500 cursor-not-allowed" />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
+                      버튼명 <span className="text-[10px] font-normal text-slate-500">옵션</span>
+                    </label>
+                    <input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
-                    버튼명 <span className="text-[10px] font-normal text-slate-500">옵션</span>
+                    배경 이미지 URL <span className="text-[10px] font-normal text-slate-500">단어 입력 시 텍스트로 노출</span>
                   </label>
-                  <input type="text" value={block.data?.buttonText || ''} onChange={e => onUpdate(block.id, 'buttonText', e.target.value)} placeholder="예: 바로 보기" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1.5 flex justify-between">
-                    배경 이미지 URL <span className="text-[10px] font-normal text-slate-500">옵션</span>
-                  </label>
-                  <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="미입력 시 기본 그라데이션 노출" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
+                  <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} placeholder="링크 입력 또는 키워드 입력 (예: 아바타)" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] focus:ring-1 focus:ring-[#7387ff]/50 outline-none transition-all shadow-sm" />
                 </div>
               </div>
             </div>
@@ -153,25 +183,33 @@
           {/* Preview Column */}
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-hidden relative shadow-inner min-w-[600px]">
             
-            {/* ========================================================= */}
-            {/* 1. Today B tv Mockup (실제 UI 완벽 모사) */}
-            {/* ========================================================= */}
+            {/* 1. Today B tv Mockup */}
             {block.type === 'TODAY_BTV' && (
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a]">
                 
-                {/* [수정 1] 빈 공간을 덮을 베이스 어두운 배경 */}
+                {/* [수정] 베이스 배경색 깔아주기 */}
                 <div className="absolute inset-0 bg-[#0a0a0f]"></div>
 
-                {/* [수정 2] 배경 이미지: 크기를 줄이고(가로 75%, 세로 85%) 우상단으로 고정 */}
+                {/* [수정] 배경 이미지: 크기 75%, 우상단 배치 */}
                 <div 
-                  className="absolute inset-0 bg-no-repeat bg-right-top transition-all duration-500" 
+                  className="absolute inset-0 bg-no-repeat bg-right-top transition-all duration-500 flex items-center justify-center" 
                   style={{ 
-                    backgroundImage: hasImage ? `url(${block.data.imageUrl})` : 'linear-gradient(135deg, #10152a 0%, #1e1b4b 50%, #000000 100%)',
+                    backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none',
                     backgroundSize: '75% 85%' 
                   }}
-                ></div>
+                >
+                  {/* [추가] 텍스트 입력 시 워터마크 노출 */}
+                  {hasImageText && (
+                    <div className="ml-[40%] text-white/20 text-[5rem] font-black select-none tracking-tighter italic">
+                      {block.data.imageUrl}
+                    </div>
+                  )}
+                  {!isActualUrl && !hasImageText && (
+                    <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>
+                  )}
+                </div>
                 
-                {/* [수정 3] 그라데이션: 작아진 이미지의 직선 경계가 안 보이도록 솔리드(단색) 구간 확장 */}
+                {/* [수정] 텍스트 영역 그라데이션: 이미지가 잘려보이지 않도록 중앙(via)까지 진하게 덮음 */}
                 <div className="absolute inset-0 w-[60%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f] to-transparent z-10 pointer-events-none"></div>
                 <div className="absolute inset-0 top-[55%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
                 
@@ -187,7 +225,7 @@
                     <Settings size={22} className="mt-auto opacity-50"/>
                   </div>
 
-                  {/* 상단바 (검색, 에이닷, 우측 OTT 아이콘들) */}
+                  {/* 상단바 */}
                   <div className="flex justify-between items-start pt-8 pl-[100px] pr-10">
                     <div className="flex gap-3">
                       <div className="w-9 h-9 rounded-full bg-slate-300/20 backdrop-blur border border-white/10 flex items-center justify-center shadow-lg">
@@ -210,31 +248,26 @@
                     </div>
                   </div>
                   
-                  {/* 메인 텍스트 콘텐츠 영역 (폰트 크기 축소 및 위치 조정) */}
+                  {/* 메인 텍스트 콘텐츠 영역 */}
                   <div className="absolute left-[100px] top-[42%] -translate-y-1/4 w-[38%] pl-2">
-                    {block.data.topText && <h3 className="text-[#32d782] text-base font-bold mb-2 drop-shadow-md tracking-tight">{block.data.topText}</h3>}
+                    {block.data?.topText && <h3 className="text-[#32d782] text-base font-bold mb-2 drop-shadow-md tracking-tight">{block.data.topText}</h3>}
                     <h1 className="text-white text-[2rem] font-black mb-4 leading-[1.2] whitespace-pre-wrap break-keep drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight">
-                      {block.data.mainTitle || '타이틀 입력'}
+                      {block.data?.mainTitle || '타이틀 입력'}
                     </h1>
                     <p className="text-slate-200 text-sm font-medium mb-6 leading-[1.6] whitespace-pre-wrap break-keep drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                      {block.data.subText || '서브 텍스트 입력'}
+                      {block.data?.subText || '서브 텍스트 입력'}
                     </p>
-                    {block.data.buttonText && (
-                      <div className="inline-flex w-fit bg-[#4631e6] hover:bg-[#5b4df6] border border-white/10 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-[0_4px_20px_rgba(70,49,230,0.6)]">
-                        {block.data.buttonText}
-                      </div>
-                    )}
+                    <div className="inline-flex w-fit bg-[#4631e6] border border-white/10 text-white px-5 py-2 rounded-lg font-bold text-sm shadow-[0_4px_20px_rgba(70,49,230,0.6)]">
+                      자세히 보기
+                    </div>
                   </div>
                   
                   {/* 하단 썸네일 및 페이징 */}
                   <div className="absolute bottom-8 left-[100px] right-0 flex flex-col gap-4">
-                    {/* 페이징 인디케이터 */}
                     <div className="flex gap-1.5 px-2">
                       <div className="w-5 h-1.5 bg-white rounded-full shadow-sm"></div>
                       {[1,2,3,4,5,6,7,8,9].map(i => <div key={i} className="w-1.5 h-1.5 bg-white/40 rounded-full shadow-sm"></div>)}
                     </div>
-
-                    {/* 썸네일 리스트 */}
                     <div className="flex gap-4 overflow-hidden pr-8">
                       {['아바타', '삼악도', '소년심판', '직장상사 길들이기', '주토피아2'].map((t, i) => (
                         <div key={i} className="w-[185px] h-[104px] bg-[#1e2029]/80 backdrop-blur-md rounded-xl border border-white/10 shadow-lg relative overflow-hidden flex flex-col justify-end p-3">
@@ -247,26 +280,19 @@
                   </div>
                 </div>
 
-                {/* [안전 영역 오버레이] */}
+                {/* 안전 영역 오버레이 */}
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-30 pointer-events-none">
-                    {/* 정중앙 십자 점선 가이드 */}
                     <div className="absolute left-[50%] top-0 bottom-0 w-px border-l-[1.5px] border-dashed border-white/50"></div>
                     <div className="absolute top-[45%] left-0 right-0 h-px border-t-[1.5px] border-dashed border-white/50"></div>
-
-                    {/* 우측 이미지 안전 영역 */}
                     <div className="absolute right-[4%] top-[15%] bottom-[28%] left-[53%] bg-[#00bcd4]/20 border border-[#00bcd4]/50 flex items-center justify-center backdrop-blur-[1px]">
                       <span className="text-white font-black text-[1.5rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-tight bg-black/40 px-4 py-2 rounded-lg">
                         이미지 안전 영역
                       </span>
                     </div>
-
-                    {/* 좌측 텍스트 권장 영역 가이드 */}
                     <div className="absolute left-[100px] top-[22%] bottom-[40%] w-[38%] bg-pink-500/10 border border-dashed border-pink-500/50 flex items-start p-2">
                       <span className="text-pink-100 text-[10px] font-bold bg-pink-600/90 px-2 py-1 rounded shadow-sm">텍스트 최대 2줄</span>
                     </div>
-
-                    {/* 하단 썸네일 침범 금지 영역 */}
                     <div className="absolute left-0 right-0 bottom-0 h-[28%] border-t-2 border-dashed border-orange-500 bg-orange-500/10 flex items-end justify-center pb-6">
                       <span className="font-bold text-xs px-4 py-1.5 rounded-lg bg-orange-600/90 text-white shadow-lg backdrop-blur">
                         하단 메뉴/썸네일 침범 금지
@@ -277,17 +303,22 @@
               </div>
             )}
 
-            {/* ========================================================= */}
             {/* 2. Generic Banner Mockups */}
-            {/* ========================================================= */}
             {block.type !== 'TODAY_BTV' && (
               <div className="flex flex-col items-center justify-center w-full h-full relative">
                 <div 
                   className={`relative bg-[#12141c] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center transition-all duration-300 ${getPreviewClasses(block.type)}`} 
-                  style={{ backgroundImage: hasImage ? `url(${block.data.imageUrl})` : 'none' }}
+                  style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}
                 >
-                  {!hasImage && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
+                  {!isActualUrl && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
                   
+                  {/* [추가] 텍스트 입력 시 워터마크 노출 */}
+                  {hasImageText && (
+                    <div className="absolute inset-0 flex items-center justify-center text-white/10 text-4xl font-black select-none italic tracking-tighter">
+                      {block.data.imageUrl}
+                    </div>
+                  )}
+
                   {block.type === 'LONG_BANNER' && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>}
 
                   <div className="relative z-10 p-8 flex flex-col items-center justify-center gap-5 w-full h-full">
@@ -301,7 +332,6 @@
                     )}
                   </div>
 
-                  {/* Ad Indicator for Band Banner */}
                   {block.type === 'BAND_BANNER' && <div className="absolute bottom-3 right-5 text-[10px] font-bold text-white/60 bg-black/60 px-2 py-1 rounded-md backdrop-blur">AD</div>}
                 </div>
                 
@@ -366,12 +396,13 @@
       const generateBatchPayloads = () => {
         return assets.map(asset => {
           const issueTitle = `[디자인요청] ${campaignMeta.campaignName} - ${asset.name}`;
+          const targetGnb = asset.type === 'TODAY_BTV' ? '홈 최상단' : (asset.data.gnb || '미지정');
           
-          let markdown = `h3. 📌 캠페인 공통 정보\n|| 항목 || 내용 ||\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 일정* | ${campaignMeta.startDate} ~ ${campaignMeta.dueDate} |\n| *타겟/톤앤매너* | ${campaignMeta.target} / ${campaignMeta.toneAndManner} |\n\n---\n\n`;
+          let markdown = `h3. 📌 캠페인 공통 정보\n|| 항목 || 내용 ||\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | *${targetGnb}* |\n| *편성 일정* | ${campaignMeta.startDate} ~ ${campaignMeta.dueDate} |\n| *타겟/톤앤매너* | ${campaignMeta.target} / ${campaignMeta.toneAndManner} |\n\n---\n\n`;
           markdown += `h3. 🖼️ ${asset.name} 상세 기획\n`;
           
           if (asset.type === 'TODAY_BTV') {
-            markdown += `* *상단 텍스트:* ${asset.data.topText}\n* *메인 타이틀:* ${asset.data.mainTitle.replace(/\n/g, ' ')}\n* *서브 텍스트:* ${asset.data.subText.replace(/\n/g, ' ')}\n* *버튼명:* ${asset.data.buttonText}\n* *랜딩값:* ${asset.data.landingValue}\n`;
+            markdown += `* *상단 텍스트:* ${asset.data.topText}\n* *메인 타이틀:* ${asset.data.mainTitle.replace(/\n/g, ' ')}\n* *서브 텍스트:* ${asset.data.subText.replace(/\n/g, ' ')}\n* *버튼명:* 자세히 보기\n* *랜딩값:* ${asset.data.landingValue}\n`;
           } else {
             markdown += `* *메인 카피:* ${asset.data.copy.replace(/\n/g, ' ')}\n* *버튼명:* ${asset.data.buttonText}\n* *랜딩값:* ${asset.data.landingValue}\n`;
           }
@@ -391,15 +422,10 @@
         });
       };
 
-      // 2-1. 함수 수정
       const handleExportToExtension = () => {
         if (assets.length === 0) return alert('제작물이 없습니다.');
         const payloads = generateBatchPayloads();
-        
-        // 1. 모달 띄우기
         setModalState({ isOpen: true, step: 1, payloads });
-        
-        // 2. 백그라운드 확장프로그램이 대기중이라면 데이터를 쏴줌 (향후 연동용)
         window.postMessage({ type: 'BTV_CAMPAIGN_DATA', payloads }, '*');
       };
 
@@ -449,6 +475,7 @@
                 <button onClick={handleExportToExtension} className="w-full bg-gradient-to-r from-[#4f3df6] to-[#7387ff] hover:from-[#3a2ac4] hover:to-[#5b6dbf] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(79,61,246,0.3)] transition-transform transform hover:-translate-y-0.5">
                   <Send size={16} /> Jira 다중 일감 전송 <span className="bg-white/20 px-2 py-0.5 rounded-md text-xs ml-1 backdrop-blur-sm">{assets.length}건</span>
                 </button>
+                <p className="text-[10px] text-slate-500 mt-2 text-center">우측에서 작성한 모든 배너 기획안이 전송됩니다.</p>
               </div>
 
               <div>
@@ -564,7 +591,7 @@
             </div>
           )}
 
-          {/* 2-2. === MODALS: Jira 전송 워크플로우 가이드 === */}
+          {/* === MODALS: Jira 전송 워크플로우 가이드 === */}
           {modalState.isOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
               <div className="bg-[#12141c] w-[650px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
@@ -576,7 +603,7 @@
                 </div>
                 
                 <div className="p-8">
-                  {/* Step 1: 데이터 패킹 완료 (성공 메시지) */}
+                  {/* Step 1: 데이터 패킹 완료 */}
                   <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                     <h4 className="text-blue-400 font-bold text-sm mb-1.5 flex items-center gap-2">
                       <CheckCircle size={16}/> 1단계: 기획 데이터 패킹 완료
@@ -587,14 +614,13 @@
                     </p>
                   </div>
 
-                  {/* Step 2 & 3: 워크플로우 안내 */}
+                  {/* Step 2 & 3 */}
                   <div className="space-y-6 relative">
                     <div className="flex gap-4 items-start">
                         <div className="w-8 h-8 rounded-full bg-[#262833] flex items-center justify-center text-slate-300 font-bold shrink-0 mt-0.5 border border-[#303340]">2</div>
                         <div>
                             <h4 className="text-sm font-bold text-white mb-1.5">Jira BTVEVT 프로젝트 열기</h4>
                             <p className="text-xs text-slate-400 mb-3">티켓을 일괄 생성할 타겟 Jira 프로젝트 페이지를 엽니다.</p>
-                            {/* 사내망 주소 예시 */}
                             <a href="#" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs bg-[#1a1c26] hover:bg-[#262833] text-white px-4 py-2 rounded-lg border border-[#303340] transition-colors shadow-sm">
                                 <ExternalLink size={14} className="text-[#7387ff]"/> BTVEVT 보드 열기
                             </a>
@@ -628,6 +654,7 @@
               </div>
             </div>
           )}
+
         </div>
       );
     }
