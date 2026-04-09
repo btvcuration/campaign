@@ -9,6 +9,16 @@
   
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0?external=react"
+      }
+    }
+  </script>
+
   <style>
     body { margin: 0; padding: 0; background-color: #0a0812; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -21,14 +31,14 @@
   <div id="root"></div>
 
   <script type="text/babel" data-type="module">
-    // CDN을 통해 React와 필수 아이콘들을 브라우저로 직접 불러옵니다.
-    import React, { useState } from 'https://esm.sh/react@18';
-    import { createRoot } from 'https://esm.sh/react-dom@18/client';
+    // 이제 Import Map을 통해 짧은 이름(react)으로 깔끔하게 불러옵니다.
+    import React, { useState } from 'react';
+    import { createRoot } from 'react-dom/client';
     import { 
       Tv, LayoutTemplate, Send, ChevronRight, Copy, CheckCircle, 
       Search, Mic, Menu, Home, Grid, Smile, Settings, Calendar, GitMerge, Plus, Trash2, Image as ImageIcon,
       ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, ArrowRight, X
-    } from 'https://esm.sh/lucide-react@0.292.0?external=react';
+    } from 'lucide-react';
 
     // --- Specifications & Templates ---
     const BANNER_SPECS = [
@@ -311,8 +321,8 @@
               <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
                 
                 {/* Dynamic Tabs Header */}
-                <header className="bg-[#12141c]/90 backdrop-blur z-20 sticky top-0 flex flex-col shadow-sm">
-                  <div className="flex justify-between items-end px-6 pt-4 border-b border-[#262833]">
+                <header className="bg-[#12141c]/90 backdrop-blur z-20 sticky top-0 flex flex-col shadow-sm border-b border-[#262833]">
+                  <div className="flex justify-between items-end px-6 pt-4">
                     <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
                       {/* Overview Tab */}
                       <div 
@@ -340,16 +350,16 @@
                           </button>
                         </div>
                       ))}
+                    </div>
 
-                      {/* Add Asset Button (Opens Modal now) */}
-                      <div className="pb-2 ml-2 flex-shrink-0">
-                        <button 
-                          onClick={() => setIsAddAssetModalOpen(true)} 
-                          className="flex items-center gap-1.5 px-4 py-2 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 rounded-lg text-xs font-bold border border-[#303340] transition-colors shadow-sm hover:shadow-md"
-                        >
-                          <Plus size={16}/> 배너 슬롯 추가
-                        </button>
-                      </div>
+                    {/* 배너 슬롯 추가 버튼 */}
+                    <div className="pb-3 flex-shrink-0 ml-4">
+                      <button 
+                        onClick={() => setIsAddAssetModalOpen(true)} 
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-white rounded-xl text-sm font-bold border border-[#303340] transition-colors shadow-sm hover:shadow-md"
+                      >
+                        <Plus size={18} className="text-[#7387ff]"/> 배너 슬롯 추가
+                      </button>
                     </div>
                   </div>
                 </header>
