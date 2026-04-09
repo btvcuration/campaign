@@ -48,7 +48,7 @@
     ];
 
     const DEFAULT_TODAY_BTV = {
-      topText: '디즈니+ 런칭',
+      topText: '상단 문구',
       mainTitle: '메인 문구',
       subText: '서브 텍스트',
       landingValue: '가입 유도 랜딩',
@@ -303,40 +303,67 @@
               </div>
             )}
 
-            {/* 2. Generic Banner Mockups */}
+            {/* 2. 일반 배너(1, 2, 3단) Mockup: 좌문구 우이미지 가이드 반영 개편 */}
             {block.type !== 'TODAY_BTV' && (
-              <div className="flex flex-col items-center justify-center w-full h-full relative">
+              <div className="flex flex-col items-center justify-center w-full h-full relative group/canvas">
+                
+                {/* 상단 편성 GNB 가이드 표시 */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-4 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-3 py-1 rounded-full border border-[#7387ff]/30">
+                  <Grid size={12}/>
+                  <span className="text-[11px] font-bold tracking-tight">편성 메뉴: {block.data?.gnb || '미지정'}</span>
+                </div>
+
                 <div 
-                  className={`relative bg-[#12141c] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center transition-all duration-300 ${getPreviewClasses(block.type)}`} 
-                  style={{ backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none' }}
+                  className={`relative bg-[#12141c] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-[#303340] flex transition-all duration-300 ${getPreviewClasses(block.type)}`}
                 >
-                  {!isActualUrl && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
-                  
-                  {/* [추가] 텍스트 입력 시 워터마크 노출 */}
-                  {hasImageText && (
-                    <div className="absolute inset-0 flex items-center justify-center text-white/10 text-4xl font-black select-none italic tracking-tighter">
-                      {block.data.imageUrl}
-                    </div>
-                  )}
+                  {/* 배경 베이스 (이미지 없을 때 노출되는 기본 색상) */}
+                  <div className="absolute inset-0 bg-[#0a0a0f]"></div>
 
-                  {block.type === 'LONG_BANNER' && <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>}
+                  {/* [우측] 이미지 영역 (배너의 55% 차지) */}
+                  <div 
+                    className="absolute right-0 top-0 bottom-0 w-[55%] bg-no-repeat bg-cover bg-center transition-all z-0"
+                    style={{ 
+                      backgroundImage: isActualUrl ? `url(${block.data.imageUrl})` : 'none',
+                    }}
+                  >
+                    {/* 이미지 영역 텍스트 워터마크 (URL 대신 단어 입력 시) */}
+                    {hasImageText && (
+                      <div className="absolute inset-0 flex items-center justify-center text-white/10 text-4xl font-black select-none italic tracking-tighter text-center px-4">
+                        {block.data.imageUrl}
+                      </div>
+                    )}
+                    
+                    {/* [핵심] 이미지와 좌측 문구 사이를 부드럽게 이어주는 그라데이션 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#12141c] via-[#12141c]/40 to-transparent"></div>
+                  </div>
 
-                  <div className="relative z-10 p-8 flex flex-col items-center justify-center gap-5 w-full h-full">
-                    <p className={`text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl ${block.type === 'BANNER_1_COL' ? 'text-2xl' : block.type === 'LONG_BANNER' ? 'text-2xl mt-auto pb-4' : 'text-3xl'} tracking-tight`}>
-                      {block.data?.copy || '카피를 입력하세요'}
+                  {/* [좌측] 문구 영역: 실제 가이드라인의 폰트 크기와 정렬 반영 */}
+                  <div className="relative z-10 w-[60%] h-full flex flex-col justify-center items-start p-8 text-left gap-3">
+                    <p className={`text-white font-extrabold whitespace-pre-wrap leading-[1.2] drop-shadow-xl tracking-tighter
+                      ${block.type === 'BANNER_1_COL' ? 'text-xl' : 
+                        block.type === 'BANNER_3_COL' ? 'text-[2.5rem]' : 'text-[1.85rem]'}`}
+                    >
+                      {block.data?.copy || '메인 문구를\n입력하세요'}
                     </p>
+                    
+                    {/* 버튼 가이드 (필요 시) */}
                     {block.data?.buttonText && (
-                      <span className={`inline-flex items-center justify-center bg-white text-black px-6 py-2.5 rounded-full font-bold shadow-lg ${block.type === 'LONG_BANNER' ? 'text-sm mb-4' : 'text-sm'}`}>
+                      <span className="mt-2 inline-flex items-center justify-center bg-[#4631e6] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-lg border border-white/10">
                         {block.data.buttonText}
                       </span>
                     )}
                   </div>
 
-                  {block.type === 'BAND_BANNER' && <div className="absolute bottom-3 right-5 text-[10px] font-bold text-white/60 bg-black/60 px-2 py-1 rounded-md backdrop-blur">AD</div>}
+                  {/* 띠배너 전용 AD 마크 */}
+                  {block.type === 'BAND_BANNER' && (
+                    <div className="absolute bottom-3 right-4 text-[9px] font-bold text-white/40 bg-black/50 px-2 py-0.5 rounded backdrop-blur">AD</div>
+                  )}
                 </div>
                 
-                <div className="absolute bottom-10 text-slate-500 text-xs font-mono bg-[#161820] px-4 py-2 rounded-full border border-[#2e3038] shadow-lg flex items-center gap-2">
-                  <ImageIcon size={14}/> 매체별 권장 비율 기반 캔버스 적용 중
+                {/* 하단 비율 가이드 텍스트 */}
+                <div className="absolute bottom-10 text-slate-600 text-[10px] font-mono bg-[#161820]/50 px-4 py-2 rounded-full border border-[#2e3038] flex items-center gap-2">
+                  <ImageIcon size={12}/> 
+                  {block.type === 'BANNER_3_COL' ? '3단: 이미지형 위주 (문구 오버레이 가능)' : '1~2단: 좌측 문구 + 우측 이미지 조합'}
                 </div>
               </div>
             )}
@@ -349,9 +376,9 @@
     // --- Main App Component ---
     function App() {
       const [campaignMeta, setCampaignMeta] = useState({
-        campaignName: '디즈니플러스 런칭 프로모션',
-        target: '5.5.2 이상 MASS',
-        toneAndManner: '‘메이드인코리아’ 타이틀 이미지 중심 활용',
+        campaignName: '프로모션명',
+        target: 'MASS',
+        toneAndManner: '타이틀 이미지 중심 활용',
         assignee: '정은샘',
         epicLink: 'BTVEVT-8000',
         fixVersion: '23년_12월_3주차_정기배포',
