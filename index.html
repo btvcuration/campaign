@@ -224,12 +224,12 @@
                   </div>
                 </div>
 
-                {/* 2. 하단 배너 카드 영역 */}
-                <div className="absolute bottom-[8%] left-[80px] right-0 flex items-end gap-5 z-20 overflow-hidden pr-8">
-                  {/* 2-1. 메인 포커스된 배너 카드 */}
-                  <div className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-white ring-[5px] ring-[#7387ff]/40 transition-all flex bg-[#1a1c26] shrink-0
-                    ${block.data?.colType === '1단' ? 'w-[170px] aspect-[62/89] flex-col' : 
-                      block.data?.colType === '3단' ? 'w-[680px] aspect-[196/89]' : 'w-[400px] aspect-[129/89]'}`}
+                {/* 2. 하단 배너 카드 영역 (컨테이너의 높이를 고정하고 자식 요소들이 이 높이를 따르도록 수정) */}
+                <div className="absolute bottom-[8%] left-[80px] right-0 flex items-center gap-5 z-20 overflow-hidden pr-8 h-[220px]">
+                  {/* 2-1. 메인 포커스된 배너 카드 (너비 대신 h-full 적용) */}
+                  <div className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-white ring-[5px] ring-[#7387ff]/40 transition-all flex bg-[#1a1c26] shrink-0 h-full
+                    ${block.data?.colType === '1단' ? 'aspect-[62/89] flex-col' : 
+                      block.data?.colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'}`}
                   >
                     {block.data?.colType === '1단' ? (
                       /* 1단 배너: 상하 분할 구조 */
@@ -264,9 +264,9 @@
                     )}
                   </div>
                   
-                  {/* 2-2. 우측 더미 카드들 */}
-                  <div className="w-[280px] aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
-                  <div className="w-[280px] aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
+                  {/* 2-2. 우측 더미 카드들 (역시 h-full을 적용해 앞의 카드와 높이를 완벽하게 일치시킴) */}
+                  <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
+                  <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
                 </div>
 
                 {/* TV 가이드라인 오버레이 */}
