@@ -171,158 +171,160 @@
       };
 
       return (
-        <div className="p-6 flex flex-col xl:flex-row gap-6 min-h-[calc(100vh-80px)] animate-in fade-in duration-300">
+        <div className="absolute inset-0 p-6 flex flex-col xl:flex-row gap-6 animate-in fade-in duration-300">
           
           {/* ========================================================= */}
           {/* 1. 입력 폼 영역 (Left Column) */}
           {/* ========================================================= */}
-          <div className="w-full xl:w-[400px] flex-shrink-0 space-y-6 h-full overflow-y-auto custom-scrollbar pr-4 pb-8">
-            <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 space-y-5 shadow-2xl">
-              <div className="flex justify-between items-center border-b border-[#262833] pb-4 mb-2">
-                <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                  <span className="p-1.5 bg-[#7387ff]/20 text-[#7387ff] rounded-lg">
-                    {block.type === 'TODAY_BTV' ? <MonitorPlay size={16}/> : block.type === 'FULL_PROMO_BANNER' ? <LayoutTemplate size={16}/> : block.type === 'BIG_BANNER' ? <Monitor size={16}/> : block.type === 'STRIP_BANNER' ? <RectangleHorizontal size={16}/> : <LayoutPanelLeft size={16}/>}
-                  </span>
-                  {block.name} 기획
-                </h3>
-              </div>
-              
-              <div className="space-y-4">
-                {block.type !== 'TODAY_BTV' && (
-                  <div>
-                    <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1"><Grid size={12}/> 편성 메뉴 (GNB)</label>
-                    <input type="text" value={block.data?.gnb || ''} onChange={e => onUpdate(block.id, 'gnb', e.target.value)} placeholder="예: 영화 > 신작" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
-                  </div>
-                )}
-
-                {block.type === 'TODAY_BTV' && (
-                  <>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label><input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label><textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label><textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">우상단 배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                  </>
-                )}
-
-                {block.type === 'FULL_PROMO_BANNER' && (
-                  <>
-                    <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
-                      <div className="text-xs font-bold text-[#7387ff] mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 공통 배경 및 텍스트</div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1">전체 배경 이미지 URL</label><input type="text" value={block.data?.bgImg || ''} onChange={e => onUpdate(block.id, 'bgImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1">상단 타이틀 (로고 대체)</label><input type="text" value={block.data?.topLogo || ''} onChange={e => onUpdate(block.id, 'topLogo', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                      <div><label className="block text-[10px] font-bold text-cyan-400 mb-1">메인 하이라이트 문구</label><input type="text" value={block.data?.mainCopy || ''} onChange={e => onUpdate(block.id, 'mainCopy', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                      <div><label className="block text-[10px] font-bold text-purple-400 mb-1">서브 라인 문구</label><input type="text" value={block.data?.subCopy || ''} onChange={e => onUpdate(block.id, 'subCopy', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                    </div>
-
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
-                        <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5"><LayoutPanelLeft size={14}/> 세트 카드 {i}</div>
-                        <div className="flex gap-2">
-                          <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1">카드 타이틀</label><input type="text" value={block.data?.[`card${i}Title`] || ''} onChange={e => onUpdate(block.id, `card${i}Title`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                          <div className="flex-1"><label className="block text-[10px] font-bold text-yellow-400 mb-1">서브 텍스트 (노란색)</label><input type="text" value={block.data?.[`card${i}Sub`] || ''} onChange={e => onUpdate(block.id, `card${i}Sub`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                        </div>
-                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">이미지 URL</label><input type="text" value={block.data?.[`card${i}Img`] || ''} onChange={e => onUpdate(block.id, `card${i}Img`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">랜딩값</label><input type="text" value={block.data?.[`card${i}Landing`] || ''} onChange={e => onUpdate(block.id, `card${i}Landing`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                      </div>
-                    ))}
-                  </>
-                )}
-
-                {block.type === 'BIG_BANNER' && (
-                  <>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div className="flex gap-2">
-                      <div className="flex-1"><label className="block text-[10px] font-bold text-orange-400 mb-1.5">서브 타이틀 (강조)</label><input type="text" value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                      <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1.5">상세 설명글</label><input type="text" value={block.data?.desc || ''} onChange={e => onUpdate(block.id, 'desc', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    </div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">우측 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div className="flex gap-2">
-                      <div className="flex-1"><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    </div>
-                  </>
-                )}
-
-                {block.type === 'GENERAL_BANNER' && (
-                  <>
+          <div className="w-full xl:w-[400px] flex-shrink-0 h-full overflow-y-auto custom-scrollbar pr-4">
+            <div className="space-y-6 pb-8">
+              <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 space-y-5 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-[#262833] pb-4 mb-2">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <span className="p-1.5 bg-[#7387ff]/20 text-[#7387ff] rounded-lg">
+                      {block.type === 'TODAY_BTV' ? <MonitorPlay size={16}/> : block.type === 'FULL_PROMO_BANNER' ? <LayoutTemplate size={16}/> : block.type === 'BIG_BANNER' ? <Monitor size={16}/> : block.type === 'STRIP_BANNER' ? <RectangleHorizontal size={16}/> : <LayoutPanelLeft size={16}/>}
+                    </span>
+                    {block.name} 기획
+                  </h3>
+                </div>
+                
+                <div className="space-y-4">
+                  {block.type !== 'TODAY_BTV' && (
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1.5">배너 단수 (크기)</label>
-                      <select value={block.data?.colType || '2단'} onChange={e => onUpdate(block.id, 'colType', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-sm text-white outline-none">
-                        <option value="1단">1단 배너 (세로형)</option>
-                        <option value="2단">2단 배너 (기본 가로형)</option>
-                        <option value="3단">3단 배너 (와이드형)</option>
-                      </select>
+                      <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1"><Grid size={12}/> 편성 메뉴 (GNB)</label>
+                      <input type="text" value={block.data?.gnb || ''} onChange={e => onUpdate(block.id, 'gnb', e.target.value)} placeholder="예: 영화 > 신작" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
                     </div>
-
-                    <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
-                      <div className="text-xs font-bold text-pink-400 mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 1. 배경 프리뷰 영역 (TV 전체)</div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 텍스트 (1줄) <Type size={10}/></label><input type="text" value={block.data?.previewTitle || ''} onChange={e => onUpdate(block.id, 'previewTitle', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none" placeholder="메인 타이틀 입력" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 서브글 (2~3줄) <Type size={10}/></label><textarea value={block.data?.previewSub || ''} onChange={e => onUpdate(block.id, 'previewSub', e.target.value)} rows={3} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="서브 설명글 영역&#10;2줄에서 3줄 정도 작성 요망&#10;예시입니다" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 우상단 이미지 <ImageIcon size={10}/></label><input type="text" value={block.data?.previewImg || ''} onChange={e => onUpdate(block.id, 'previewImg', e.target.value)} placeholder="이미지 URL 또는 대체 단어" className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                  )}
+  
+                  {block.type === 'TODAY_BTV' && (
+                    <>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label><input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 타이틀 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label><textarea value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 텍스트 <span className="text-[10px] font-normal text-slate-500">(최대 2줄)</span></label><textarea value={block.data?.subText || ''} onChange={e => onUpdate(block.id, 'subText', e.target.value)} rows={3} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">우상단 배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                    </>
+                  )}
+  
+                  {block.type === 'FULL_PROMO_BANNER' && (
+                    <>
+                      <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
+                        <div className="text-xs font-bold text-[#7387ff] mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 공통 배경 및 텍스트</div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">전체 배경 이미지 URL</label><input type="text" value={block.data?.bgImg || ''} onChange={e => onUpdate(block.id, 'bgImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">상단 타이틀 (로고 대체)</label><input type="text" value={block.data?.topLogo || ''} onChange={e => onUpdate(block.id, 'topLogo', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                        <div><label className="block text-[10px] font-bold text-cyan-400 mb-1">메인 하이라이트 문구</label><input type="text" value={block.data?.mainCopy || ''} onChange={e => onUpdate(block.id, 'mainCopy', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                        <div><label className="block text-[10px] font-bold text-purple-400 mb-1">서브 라인 문구</label><input type="text" value={block.data?.subCopy || ''} onChange={e => onUpdate(block.id, 'subCopy', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                      </div>
+  
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
+                          <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5"><LayoutPanelLeft size={14}/> 세트 카드 {i}</div>
+                          <div className="flex gap-2">
+                            <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1">카드 타이틀</label><input type="text" value={block.data?.[`card${i}Title`] || ''} onChange={e => onUpdate(block.id, `card${i}Title`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                            <div className="flex-1"><label className="block text-[10px] font-bold text-yellow-400 mb-1">서브 텍스트 (노란색)</label><input type="text" value={block.data?.[`card${i}Sub`] || ''} onChange={e => onUpdate(block.id, `card${i}Sub`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                          </div>
+                          <div><label className="block text-[10px] font-bold text-slate-400 mb-1">이미지 URL</label><input type="text" value={block.data?.[`card${i}Img`] || ''} onChange={e => onUpdate(block.id, `card${i}Img`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                          <div><label className="block text-[10px] font-bold text-slate-400 mb-1">랜딩값</label><input type="text" value={block.data?.[`card${i}Landing`] || ''} onChange={e => onUpdate(block.id, `card${i}Landing`, e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+  
+                  {block.type === 'BIG_BANNER' && (
+                    <>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div className="flex gap-2">
+                        <div className="flex-1"><label className="block text-[10px] font-bold text-orange-400 mb-1.5">서브 타이틀 (강조)</label><input type="text" value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                        <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1.5">상세 설명글</label><input type="text" value={block.data?.desc || ''} onChange={e => onUpdate(block.id, 'desc', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      </div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">우측 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div className="flex gap-2">
+                        <div className="flex-1"><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      </div>
+                    </>
+                  )}
+  
+                  {block.type === 'GENERAL_BANNER' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1.5">배너 단수 (크기)</label>
+                        <select value={block.data?.colType || '2단'} onChange={e => onUpdate(block.id, 'colType', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-sm text-white outline-none">
+                          <option value="1단">1단 배너 (세로형)</option>
+                          <option value="2단">2단 배너 (기본 가로형)</option>
+                          <option value="3단">3단 배너 (와이드형)</option>
+                        </select>
+                      </div>
+  
+                      <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
+                        <div className="text-xs font-bold text-pink-400 mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 1. 배경 프리뷰 영역 (TV 전체)</div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 텍스트 (1줄) <Type size={10}/></label><input type="text" value={block.data?.previewTitle || ''} onChange={e => onUpdate(block.id, 'previewTitle', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none" placeholder="메인 타이틀 입력" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 서브글 (2~3줄) <Type size={10}/></label><textarea value={block.data?.previewSub || ''} onChange={e => onUpdate(block.id, 'previewSub', e.target.value)} rows={3} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="서브 설명글 영역&#10;2줄에서 3줄 정도 작성 요망&#10;예시입니다" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 우상단 이미지 <ImageIcon size={10}/></label><input type="text" value={block.data?.previewImg || ''} onChange={e => onUpdate(block.id, 'previewImg', e.target.value)} placeholder="이미지 URL 또는 대체 단어" className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                      </div>
+  
+                      <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3 mt-4">
+                        <div className="text-xs font-bold text-[#7387ff] mb-2 flex items-center gap-1.5"><LayoutPanelLeft size={14}/> 2. 배너 카드 영역 (하단 썸네일)</div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배너 내 텍스트 (생략 가능) <Type size={10}/></label><textarea value={block.data?.bannerCopy || ''} onChange={e => onUpdate(block.id, 'bannerCopy', e.target.value)} rows={2} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none resize-none" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배너 내 이미지 <ImageIcon size={10}/></label><input type="text" value={block.data?.bannerImg || ''} onChange={e => onUpdate(block.id, 'bannerImg', e.target.value)} placeholder="이미지 URL 또는 대체 단어" className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                      </div>
+                    </>
+                  )}
+  
+                  {block.type === 'LONG_BANNER' && (
+                    <>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label><textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                    </>
+                  )}
+  
+                  {block.type === 'STRIP_BANNER' && (
+                    <>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 문구</label><input type="text" value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">우측 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                    </>
+                  )}
+  
+                  {/* 공통 부가 설정 (일정 및 메모) */}
+                  <div className="pt-5 mt-3 border-t border-[#262833] space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-2 flex items-center gap-1.5"><CalendarDays size={12}/> 개별 편성 일정</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><input type="date" value={block.data?.startDate || ''} onChange={e => onUpdate(block.id, 'startDate', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
+                        <div><input type="date" value={block.data?.dueDate || ''} onChange={e => onUpdate(block.id, 'dueDate', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
+                      </div>
                     </div>
-
-                    <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3 mt-4">
-                      <div className="text-xs font-bold text-[#7387ff] mb-2 flex items-center gap-1.5"><LayoutPanelLeft size={14}/> 2. 배너 카드 영역 (하단 썸네일)</div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배너 내 텍스트 (생략 가능) <Type size={10}/></label><textarea value={block.data?.bannerCopy || ''} onChange={e => onUpdate(block.id, 'bannerCopy', e.target.value)} rows={2} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none resize-none" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배너 내 이미지 <ImageIcon size={10}/></label><input type="text" value={block.data?.bannerImg || ''} onChange={e => onUpdate(block.id, 'bannerImg', e.target.value)} placeholder="이미지 URL 또는 대체 단어" className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                    <div>
+                      <label className="block text-xs font-bold text-yellow-500 mb-1.5 flex items-center gap-1.5"><MessageSquare size={12}/> 시안 오버레이 메모</label>
+                      <textarea value={block.data?.overlayMemo || ''} onChange={e => onUpdate(block.id, 'overlayMemo', e.target.value)} rows={2} className="w-full bg-[#2a2415] border border-[#4a3e20] rounded-lg p-2.5 text-sm text-yellow-100 outline-none resize-none focus:border-yellow-500 transition-colors" placeholder="디자인 시안 위에 띄울 텍스트 상자입니다." />
                     </div>
-                  </>
-                )}
-
-                {block.type === 'LONG_BANNER' && (
-                  <>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label><textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                  </>
-                )}
-
-                {block.type === 'STRIP_BANNER' && (
-                  <>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 문구</label><input type="text" value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">우측 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                    <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
-                  </>
-                )}
-
-                {/* 공통 부가 설정 (일정 및 메모) */}
-                <div className="pt-5 mt-3 border-t border-[#262833] space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-2 flex items-center gap-1.5"><CalendarDays size={12}/> 개별 편성 일정</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><input type="date" value={block.data?.startDate || ''} onChange={e => onUpdate(block.id, 'startDate', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
-                      <div><input type="date" value={block.data?.dueDate || ''} onChange={e => onUpdate(block.id, 'dueDate', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-1.5 flex items-center gap-1.5"><FileText size={12}/> 비고 (선택 사항)</label>
+                      <textarea value={block.data?.note || ''} onChange={e => onUpdate(block.id, 'note', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" placeholder="추가 전달 사항이나 메모를 입력하세요." />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-yellow-500 mb-1.5 flex items-center gap-1.5"><MessageSquare size={12}/> 시안 오버레이 메모</label>
-                    <textarea value={block.data?.overlayMemo || ''} onChange={e => onUpdate(block.id, 'overlayMemo', e.target.value)} rows={2} className="w-full bg-[#2a2415] border border-[#4a3e20] rounded-lg p-2.5 text-sm text-yellow-100 outline-none resize-none focus:border-yellow-500 transition-colors" placeholder="디자인 시안 위에 띄울 텍스트 상자입니다." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1.5 flex items-center gap-1.5"><FileText size={12}/> 비고 (선택 사항)</label>
-                    <textarea value={block.data?.note || ''} onChange={e => onUpdate(block.id, 'note', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" placeholder="추가 전달 사항이나 메모를 입력하세요." />
+  
+                </div>
+              </div>
+  
+              {['TODAY_BTV', 'GENERAL_BANNER'].includes(block.type) && (
+                <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-5 shadow-xl flex justify-between items-center cursor-pointer hover:bg-[#1a1c26] transition-colors" onClick={() => setLocalShowSafeZone(!localShowSafeZone)}>
+                  <span className="text-sm font-bold text-slate-300 flex items-center gap-2"><Grid size={16} className="text-[#7387ff]"/> TV 화면 가이드라인</span>
+                  <div className={`w-10 h-5 rounded-full relative transition-colors ${localShowSafeZone ? 'bg-[#7387ff]' : 'bg-slate-700'}`}>
+                    <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${localShowSafeZone ? 'left-[22px]' : 'left-[3px]'}`}></div>
                   </div>
                 </div>
-
-              </div>
+              )}
             </div>
-
-            {['TODAY_BTV', 'GENERAL_BANNER'].includes(block.type) && (
-              <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-5 shadow-xl flex justify-between items-center cursor-pointer hover:bg-[#1a1c26] transition-colors" onClick={() => setLocalShowSafeZone(!localShowSafeZone)}>
-                <span className="text-sm font-bold text-slate-300 flex items-center gap-2"><Grid size={16} className="text-[#7387ff]"/> TV 화면 가이드라인</span>
-                <div className={`w-10 h-5 rounded-full relative transition-colors ${localShowSafeZone ? 'bg-[#7387ff]' : 'bg-slate-700'}`}>
-                  <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${localShowSafeZone ? 'left-[22px]' : 'left-[3px]'}`}></div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* ========================================================= */}
           {/* 2. 시뮬레이터 프리뷰 영역 (Right Column) */}
           {/* ========================================================= */}
-          <div className="flex-1 flex flex-col items-center justify-start pt-24 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar">
+          <div className="flex-1 flex flex-col items-center justify-start pt-24 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar h-full">
             
             <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-6 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-4 py-1.5 rounded-full border border-[#7387ff]/30 z-20 shadow-md">
               <Grid size={14}/>
@@ -692,7 +694,7 @@
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-hidden relative">
+                <div className="flex-1 overflow-hidden relative w-full h-full">
                   {activeTabId === 'OVERVIEW' ? (
                     <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-300 h-full overflow-y-auto custom-scrollbar w-full">
                       <div className="bg-[#12141c] border border-[#262833] rounded-2xl overflow-hidden shadow-2xl">
