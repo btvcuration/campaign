@@ -49,7 +49,6 @@
       { type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '397:65.5', size: '가변', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' }
     ];
 
-    // 데이터 모델에 note(비고) 항목 추가
     const DEFAULT_TODAY_BTV = {
       topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', 
       landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈 최상단', note: ''
@@ -63,7 +62,7 @@
     };
 
     const DEFAULT_BIG_BANNER = {
-      mainTitle: '히든싱어8', subTitle: '음악 인생을 건 모창 능력자들의 대결', desc: '레전드 원조가수 무대서 직접 만난다!', 
+      mainTitle: '메인 문구', subTitle: '서브 타이틀', desc: '상세 설명글을 입력해주세요.', 
       buttonText: '바로가기', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: ''
     };
 
@@ -82,6 +81,20 @@
 
       const checkIsUrl = (str) => Boolean(str && typeof str === 'string' && str.startsWith('http'));
       const checkHasText = (str) => Boolean(str && !checkIsUrl(str) && str.trim() !== '');
+
+      // 텍스트 대체 UI 일괄 적용을 위한 헬퍼 컴포넌트
+      const FallbackText = ({ text, alignClass = 'justify-center items-center text-center px-4' }) => {
+        if (!checkHasText(text) || checkIsUrl(text)) return null;
+        return (
+          <div className={`absolute inset-0 flex flex-col sm:flex-row gap-2 ${alignClass} text-white font-black select-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] z-20`}>
+            <div className="flex items-center text-white/90 shrink-0 bg-black/20 px-2 py-1 rounded-lg backdrop-blur-sm">
+              <ImageIcon size={22} className="mr-1.5 opacity-90" />
+              <span className="text-sm font-bold tracking-tight">요청 이미지</span>
+            </div>
+            <span className="text-xl sm:text-2xl truncate leading-tight">{text}</span>
+          </div>
+        );
+      };
 
       return (
         <div className="p-6 flex flex-col xl:flex-row gap-6 min-h-[calc(100vh-80px)] animate-in fade-in duration-300">
@@ -210,21 +223,17 @@
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a] shrink-0 mt-8">
                 <div className="absolute inset-0 bg-[#0a0a0f]"></div>
                 
-                {/* 배경 이미지: 우상단 기준, 텍스트 대체시 가독성 강화 */}
-                <div className="absolute right-0 top-0 w-[60%] h-[90%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                {/* 배경 이미지: 우상단 축소 배치 및 대체 텍스트 통일 */}
+                <div className="absolute right-[2%] top-[2%] w-[55%] h-[85%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>}
-                  {checkHasText(block.data?.imageUrl) && (
-                    <div className="absolute inset-0 flex items-start justify-end pt-12 pr-12 text-white/90 text-3xl font-black select-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]">
-                      <ImageIcon size={32} className="mr-2 opacity-80" /> 요청 이미지: {block.data.imageUrl}
-                    </div>
-                  )}
+                  <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-start pt-10 pr-8" />
                 </div>
 
-                <div className="absolute inset-0 w-[60%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
-                <div className="absolute inset-0 top-[55%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent z-10 pointer-events-none"></div>
+                {/* 그라데이션 복구 (이미지 위를 자연스럽게 덮음) */}
+                <div className="absolute inset-0 w-[65%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+                <div className="absolute inset-0 top-[50%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
                 
                 <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white">
-                  {/* 좌측 네비게이션 아이콘 영역 제거됨 */}
                   <div className="absolute left-[80px] top-[42%] -translate-y-1/4 w-[45%] pl-2">
                     <h3 className="text-[#32d782] text-sm font-bold mb-2 tracking-tight">{block.data?.topText || '상단 카피'}</h3>
                     <h1 className="text-white text-3xl font-black mb-3 leading-[1.15] whitespace-pre-wrap tracking-tighter drop-shadow-lg">{block.data?.mainTitle || '타이틀 입력'}</h1>
@@ -249,57 +258,52 @@
             ) : block.type === 'GENERAL_BANNER' ? (
               /* --- 일반 배너 (1/2/3단) Mockup --- */
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-[#222] shrink-0 mt-8">
-                <div className="absolute inset-0 h-[80%] z-0">
-                  {/* 우상단 배경 이미지: 크기 축소 및 가독성 패치 */}
-                  <div className="absolute right-0 top-0 bottom-0 w-[55%] bg-no-repeat bg-contain bg-right-top transition-all duration-500" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
+                <div className="absolute inset-0 h-[80%] bg-[#0a0a0f] z-0">
+                  {/* 우상단 배경 이미지: 크기 대폭 축소 (그라데이션에 안가리게) */}
+                  <div className="absolute right-[2%] top-[5%] bottom-0 w-[45%] h-[75%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
                     {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
-                    {checkHasText(block.data?.previewImg) && (
-                      <div className="absolute inset-0 flex items-start justify-end pt-10 pr-10 text-white/90 text-2xl font-black select-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]">
-                        <ImageIcon size={28} className="mr-2 opacity-80" /> 요청 이미지: {block.data.previewImg}
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent"></div>
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0f]"></div>
+                    <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-6 pr-6" />
                   </div>
                   
-                  <div className="absolute left-[80px] top-[15%] w-[45%] z-10 flex flex-col gap-2">
+                  {/* 그라데이션 커버 */}
+                  <div className="absolute inset-0 w-[70%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute inset-0 top-[60%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+
+                  <div className="absolute left-[80px] top-[15%] w-[45%] z-20 flex flex-col gap-2">
                     <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-pre-wrap tracking-tighter drop-shadow-xl">{block.data?.previewTitle || '프리뷰 좌상단 텍스트'}</h1>
                     <p className="text-slate-300 text-sm font-medium leading-[1.6] whitespace-pre-wrap mt-2">{block.data?.previewSub || '서브 설명글 영역'}</p>
                   </div>
                 </div>
 
-                <div className="absolute bottom-[8%] left-[80px] right-0 flex items-center gap-5 z-20 overflow-hidden pr-8 h-[220px]">
+                <div className="absolute bottom-[8%] left-[80px] right-0 flex items-center gap-5 z-30 overflow-hidden pr-8 h-[220px]">
                   <div className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-white ring-[5px] ring-[#7387ff]/40 transition-all flex bg-[#1a1c26] shrink-0 h-full
                     ${block.data?.colType === '1단' ? 'aspect-[62/89] flex-col' : block.data?.colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'}`}
                   >
                     {block.data?.colType === '1단' ? (
-                      /* 1단 배너: 선 제거 및 그라데이션, 텍스트 크기 통일(text-xl) */
                       <>
                         {block.data?.bannerCopy && (
-                          <div className="w-full h-[45%] p-5 pb-2 text-left z-10 flex items-start bg-gradient-to-b from-[#1a1c26] to-transparent">
-                            <p className="text-white font-extrabold text-xl leading-tight tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p>
+                          <div className="w-full h-[45%] p-5 pb-2 text-left z-20 flex items-start bg-gradient-to-b from-[#1a1c26] to-transparent">
+                            <p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p>
                           </div>
                         )}
-                        <div className="absolute inset-0 w-full h-full bg-cover bg-center z-0" style={{ backgroundImage: checkIsUrl(block.data?.bannerImg) ? `url(${block.data.bannerImg})` : 'none' }}>
-                          {!checkIsUrl(block.data?.bannerImg) && <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
-                          {checkHasText(block.data?.bannerImg) && <div className="absolute inset-0 flex items-center justify-center text-white/20 text-xl font-black italic px-2 text-center">{block.data.bannerImg}</div>}
+                        <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10" style={{ backgroundImage: checkIsUrl(block.data?.bannerImg) ? `url(${block.data.bannerImg})` : 'none' }}>
+                          {!checkIsUrl(block.data?.bannerImg) && !checkHasText(block.data?.bannerImg) && <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
+                          <FallbackText text={block.data?.bannerImg} />
                         </div>
                       </>
                     ) : (
-                      /* 2, 3단 배너: 선 제거 및 그라데이션, 텍스트 크기 통일(text-xl) */
                       <>
                         {block.data?.bannerCopy && (
-                          <div className="w-[50%] h-full flex flex-col justify-center items-start p-6 z-10 bg-gradient-to-r from-[#1a1c26] to-transparent">
+                          <div className="w-[50%] h-full flex flex-col justify-center items-start p-6 z-20 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/90 to-transparent">
                             <p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">
                               {block.data.bannerCopy}
                             </p>
                           </div>
                         )}
-                        <div className="absolute inset-0 w-full h-full bg-cover bg-center z-0 bg-[#0a0a0f]" style={{ backgroundImage: checkIsUrl(block.data?.bannerImg) ? `url(${block.data.bannerImg})` : 'none' }}>
-                          {!checkIsUrl(block.data?.bannerImg) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
-                          {checkHasText(block.data?.bannerImg) && <div className="absolute inset-0 flex items-center justify-center text-white/20 text-3xl font-black italic px-4 text-center">{block.data.bannerImg}</div>}
-                          {/* 텍스트 가독성을 위한 그라데이션 */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/60 to-transparent w-[60%]"></div>
+                        <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f]" style={{ backgroundImage: checkIsUrl(block.data?.bannerImg) ? `url(${block.data.bannerImg})` : 'none' }}>
+                          {!checkIsUrl(block.data?.bannerImg) && !checkHasText(block.data?.bannerImg) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
+                          <FallbackText text={block.data?.bannerImg} />
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/50 to-transparent w-[60%] pointer-events-none"></div>
                         </div>
                       </>
                     )}
@@ -309,51 +313,51 @@
                 </div>
 
                 {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
+                  <div className="absolute inset-0 z-40 pointer-events-none opacity-60">
                     <div className="absolute right-[4%] top-[10%] bottom-[45%] left-[50%] border-2 border-[#00bcd4] bg-[#00bcd4]/10 flex items-center justify-center"><span className="text-[#00bcd4] font-black text-xl bg-black/40 px-2 py-1 rounded">배경 이미지 권장 영역</span></div>
                     <div className="absolute left-[80px] top-[10%] bottom-[45%] w-[40%] border-2 border-pink-500 bg-pink-500/10 flex items-start p-2"><span className="text-pink-300 text-xs font-bold bg-black/60 px-2 py-1 rounded">배경 텍스트 권장 영역</span></div>
                   </div>
                 )}
               </div>
             ) : block.type === 'BIG_BANNER' ? (
-              /* --- 빅배너 Mockup: 24.5:8.3 비율, 모서리 덜 둥글게(rounded-2xl) 직사각형 형태 --- */
-              <div className="w-full max-w-[850px] aspect-[24.5/8.3] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8">
+              /* --- 빅배너 Mockup: 높이 감소(250px) 및 이미지 영역 24.5:8.3 비율 유지(rounded-2xl) --- */
+              <div className="w-full max-w-[850px] h-[250px] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8">
                 
                 {/* 좌측 텍스트 영역 */}
                 <div className="w-[45%] h-full flex flex-col justify-center items-start pl-10 pr-4 text-left z-10 shrink-0">
                   <h2 className="text-white font-black whitespace-pre-wrap leading-[1.1] text-[2.2rem] tracking-tight drop-shadow-xl">
                     {block.data?.mainTitle || '타이틀 입력'}
                   </h2>
-                  <div className="mt-2.5 flex flex-col gap-1">
+                  <div className="mt-2 flex flex-col gap-1">
                     <p className="text-[#ff5e3a] font-bold text-sm tracking-tight">{block.data?.subTitle || '서브 타이틀 입력'}</p>
                     <p className="text-slate-300 font-medium text-[13px] tracking-tight">{block.data?.desc || '상세 설명글을 입력해주세요.'}</p>
                   </div>
 
                   {block.data?.buttonText && (
-                    <div className="inline-flex items-center justify-center bg-[#4f3df6] hover:bg-[#6252ff] text-white px-5 py-2.5 rounded-full font-bold text-xs shadow-lg transition-colors mt-5">
+                    <div className="inline-flex items-center justify-center bg-[#4f3df6] hover:bg-[#6252ff] text-white px-5 py-2 rounded-full font-bold text-xs shadow-lg transition-colors mt-4">
                       {block.data.buttonText}
                     </div>
                   )}
                 </div>
 
-                {/* 우측 이미지 영역 (조금만 둥근 형태 rounded-2xl 적용) */}
-                <div className="flex-1 h-full py-4 pr-4 pl-2 relative">
-                  <div className="w-full h-full rounded-2xl overflow-hidden border border-[#ff5e3a]/30 bg-[#1a1c26] relative shadow-inner">
+                {/* 우측 이미지 영역 (직사각형 베이스에 약간 둥근 모서리 적용, 24.5:8.3 비율 고정) */}
+                <div className="flex-1 h-full py-4 pr-5 pl-2 flex items-center justify-end relative">
+                  <div className="w-full max-w-[500px] aspect-[24.5/8.3] rounded-2xl overflow-hidden border border-[#ff5e3a]/30 bg-[#1a1c26] relative shadow-inner">
                     <div className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-all" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                      {!checkIsUrl(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={48} className="text-white/10"/></div>}
-                      {checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-[2rem] font-black select-none italic tracking-tighter text-center px-4">{block.data.imageUrl}</div>}
+                      {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={48} className="text-white/10"/></div>}
+                      <FallbackText text={block.data?.imageUrl} />
                     </div>
                   </div>
                 </div>
               </div>
             ) : block.type === 'STRIP_BANNER' ? (
-              /* --- 띠배너 Mockup (397:65.5 비율, 우측 리사이징 정렬) --- */
+              /* --- 띠배너 Mockup: 리사이징 및 우측 정렬 --- */
               <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-2xl relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
                 
-                {/* 우측 메인 이미지 영역 (높이에 맞춰 리사이징 & 우측 끝 정렬) */}
+                {/* 우측 메인 이미지 영역 (bg-contain bg-right) */}
                 <div className="absolute right-0 top-0 bottom-0 w-[60%] bg-contain bg-right bg-no-repeat z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                  {!checkIsUrl(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-10 bg-[#12141c]"><ImageIcon size={32} className="text-white/10"/></div>}
-                  {checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end text-white/20 text-[1.5rem] font-black italic pr-10">{block.data.imageUrl}</div>}
+                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-10 bg-[#12141c]"><ImageIcon size={32} className="text-white/10"/></div>}
+                  <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-10" />
                   
                   {/* 왼쪽 텍스트 영역과 부드럽게 섞이는 그라데이션 */}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/80 to-transparent"></div>
@@ -366,12 +370,12 @@
                 </div>
               </div>
             ) : (
-              /* --- 롱배너 Mockup (2단 배너 너비 수준 유지, 129:181.5 비율) --- */
+              /* --- 롱배너 Mockup --- */
               <div className="w-[320px] aspect-[129/181.5] bg-[#12141c] rounded-2xl relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center shrink-0 mt-8" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                {!checkIsUrl(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
-                {checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center text-white/10 text-4xl font-black italic">{block.data.imageUrl}</div>}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
-                <div className="relative z-10 p-8 flex flex-col items-center justify-center gap-5 w-full h-full">
+                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
+                <FallbackText text={block.data?.imageUrl} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none"></div>
+                <div className="relative z-10 p-8 flex flex-col items-center justify-center gap-5 w-full h-full pointer-events-none">
                   <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl tracking-tight text-2xl mt-auto pb-4">{block.data?.copy || '카피 입력'}</p>
                 </div>
               </div>
