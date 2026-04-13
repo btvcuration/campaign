@@ -54,10 +54,10 @@
       landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈 최상단', note: ''
     };
 
-    // 3번 요청 반영: 좌상단 타이틀 1줄, 서브글 2~3줄로 규격 변경
+    // 3번 요청 반영: 서브글 기본 문구 수정
     const DEFAULT_GENERAL_BANNER = {
       colType: '2단', 
-      previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역\n두 줄에서 세 줄 정도 작성하는 것이 통상적입니다.\n예시입니다.', previewImg: '',
+      previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역\n2줄에서 3줄 정도 작성 요망\n예시입니다', previewImg: '',
       bannerCopy: '배너 내 텍스트\n(생략 가능)', bannerImg: '',
       landingValue: 'UI_PATH: /join', gnb: '영화 > 신작', note: ''
     };
@@ -100,9 +100,9 @@
       return (
         <div className="p-6 flex flex-col xl:flex-row gap-6 min-h-[calc(100vh-80px)] animate-in fade-in duration-300">
           
-          {/* ================== */}
-          {/* 1. 입력 폼 영역 */}
-          {/* ================== */}
+          {/* ========================================================= */}
+          {/* 1. 입력 폼 영역 (Left Column) */}
+          {/* ========================================================= */}
           <div className="w-full xl:w-[400px] flex-shrink-0 space-y-6">
             <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 space-y-5 shadow-2xl">
               <div className="flex justify-between items-center border-b border-[#262833] pb-4 mb-2">
@@ -160,10 +160,9 @@
 
                     <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
                       <div className="text-xs font-bold text-pink-400 mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 1. 배경 프리뷰 영역 (TV 전체)</div>
-                      {/* 3번 요청 반영: 타이틀 1줄 */}
                       <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 텍스트 (1줄) <Type size={10}/></label><input type="text" value={block.data?.previewTitle || ''} onChange={e => onUpdate(block.id, 'previewTitle', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none" placeholder="메인 타이틀 입력" /></div>
-                      {/* 3번 요청 반영: 서브글 2~3줄 */}
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 서브글 (2~3줄) <Type size={10}/></label><textarea value={block.data?.previewSub || ''} onChange={e => onUpdate(block.id, 'previewSub', e.target.value)} rows={3} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="서브 설명글 입력" /></div>
+                      {/* 3번 요청 반영: 서브글 폼 업데이트 */}
+                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 서브글 (2~3줄) <Type size={10}/></label><textarea value={block.data?.previewSub || ''} onChange={e => onUpdate(block.id, 'previewSub', e.target.value)} rows={3} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="서브 설명글 영역&#10;2줄에서 3줄 정도 작성 요망&#10;예시입니다" /></div>
                       <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 우상단 이미지 <ImageIcon size={10}/></label><input type="text" value={block.data?.previewImg || ''} onChange={e => onUpdate(block.id, 'previewImg', e.target.value)} placeholder="이미지 URL 또는 대체 단어" className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
                     </div>
 
@@ -210,9 +209,9 @@
             )}
           </div>
 
-          {/* ===================== */}
-          {/* 2. 시뮬레이터 프리뷰 영역 */}
-          {/* ===================== */}
+          {/* ========================================================= */}
+          {/* 2. 시뮬레이터 프리뷰 영역 (Right Column) */}
+          {/* ========================================================= */}
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar">
             
             <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-6 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-4 py-1.5 rounded-full border border-[#7387ff]/30 z-20 shadow-md">
@@ -225,8 +224,7 @@
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.9)] border-[8px] border-[#1a1a1a] shrink-0 mt-8">
                 <div className="absolute inset-0 bg-[#0a0a0f]"></div>
                 
-                {/* 2번 요청 반영: 배경 이미지 크기 1.5배 확대 및 드롭섀도우 Fallback 적용 */}
-                <div className="absolute right-0 top-0 w-[75%] h-[90%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                <div className="absolute right-[0%] top-[0%] w-[75%] h-[90%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>}
                   <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-start pt-10 pr-10" />
                 </div>
@@ -258,24 +256,23 @@
               </div>
             ) : block.type === 'GENERAL_BANNER' ? (
               /* --- 일반 배너 (1/2/3단) Mockup --- */
-              /* 4번 요청 반영: 상단 간격 mt-8 -> mt-4로 축소 */
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-[#222] shrink-0 mt-4">
-                <div className="absolute inset-0 h-[80%] bg-[#0a0a0f] z-0 px-10">
-                  {/* 2번 요청 반영: 배경 이미지 크기 1.5배 확대 및 드롭섀도우 Fallback 적용 */}
-                  <div className="absolute right-0 top-0 bottom-0 w-[60%] h-[90%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
+              /* 4번 요청 반영: 다른 배너와 동일하게 mt-8 상단 마진 적용, 내부 패딩으로 여백 축소 */
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-[#222] shrink-0 mt-8">
+                <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
+                  
+                  {/* 2번 요청 반영: 배경 이미지 크기 1.5배 확대 및 자연스러운 그라데이션 적용 */}
+                  <div className="absolute right-0 top-0 w-[65%] h-[85%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
                     {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
                     <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-10 pr-10" />
                   </div>
                   
-                  {/* 그라데이션 커버 */}
-                  <div className="absolute inset-0 w-[70%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent z-10 pointer-events-none"></div>
-                  <div className="absolute inset-0 top-[50%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+                  {/* 2번 요청 반영: 그라데이션 강도 대폭 상향 (이미지 경계선 완벽 차단) */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[35%] via-[#0a0a0f]/95 via-[55%] to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[30%] via-[#0a0a0f]/95 via-[60%] to-transparent z-10 pointer-events-none"></div>
 
-                  <div className="absolute left-[80px] top-[15%] w-[45%] z-20 flex flex-col gap-2">
-                    {/* 3번 요청 반영: 타이틀 1줄 */}
+                  <div className="absolute left-[80px] top-[12%] w-[45%] z-20 flex flex-col gap-2">
                     <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{block.data?.previewTitle || '프리뷰 좌상단 텍스트 (1줄)'}</h1>
-                    {/* 3번 요청 반영: 서브글 2~3줄 */}
-                    <p className="text-slate-300 text-sm font-medium leading-[1.6] whitespace-pre-wrap mt-2">{block.data?.previewSub || '서브 설명글 영역'}</p>
+                    <p className="text-slate-300 text-sm font-medium leading-[1.6] whitespace-pre-wrap mt-2">{block.data?.previewSub || '서브 설명글 영역\n2줄에서 3줄 정도 작성 요망\n예시입니다'}</p>
                   </div>
                 </div>
 
@@ -324,16 +321,15 @@
                 )}
               </div>
             ) : block.type === 'BIG_BANNER' ? (
-              /* --- 빅배너 Mockup: 높이 감소(250px) 및 이미지 영역 파란색 박스 크기(500px)로 확대, 폰트크기 조정 --- */
+              /* --- 1번 요청 반영: 빅배너 이미지 영역 확장 및 폰트 크기 증대 --- */
               <div className="w-full max-w-[850px] h-[250px] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8">
                 
-                {/* 좌측 텍스트 영역 */}
-                <div className="w-[45%] h-full flex flex-col justify-center items-start pl-10 pr-4 text-left z-10 shrink-0">
+                <div className="w-[40%] h-full flex flex-col justify-center items-start pl-10 pr-2 text-left z-10 shrink-0">
                   <h2 className="text-white font-black whitespace-pre-wrap leading-[1.1] text-[2.2rem] tracking-tight drop-shadow-xl">
                     {block.data?.mainTitle || '메인 문구 입력'}
                   </h2>
                   <div className="mt-2.5 flex flex-col gap-1.5">
-                    {/* 1번 요청 반영: 서브타이틀 폰트 크기 text-sm -> text-base 확대 */}
+                    {/* 서브 타이틀 폰트 크기 확대 (text-base) */}
                     <p className="text-[#ff5e3a] font-bold text-base tracking-tight">{block.data?.subTitle || '서브 타이틀 입력'}</p>
                     <p className="text-slate-300 font-medium text-[13px] tracking-tight whitespace-pre-wrap">{block.data?.desc || '상세 설명글을 입력해주세요.'}</p>
                   </div>
@@ -345,9 +341,9 @@
                   )}
                 </div>
 
-                {/* 우측 이미지 영역 (1번 요청 반영: 파란색 박스 크기 약 500px로 확대, 비율 유지, rounded-xl) */}
-                <div className="flex-1 h-full py-4 pr-5 pl-2 flex items-center justify-end relative z-0">
-                  <div className="w-full max-w-[500px] h-full rounded-xl overflow-hidden border border-[#ff5e3a]/40 bg-[#1a1c26] relative shadow-inner">
+                {/* 이미지 영역 폭 최대치로 확대 (max-w 늘림) 및 24.5:8.3 비율 적용 */}
+                <div className="flex-1 h-full py-4 pr-5 flex items-center justify-end relative z-0">
+                  <div className="w-full max-w-[550px] aspect-[24.5/8.3] rounded-xl overflow-hidden border border-[#ff5e3a]/40 bg-[#1a1c26] relative shadow-inner">
                     <div className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-all" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                       {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={64} className="text-white/10"/></div>}
                       <FallbackText text={block.data?.imageUrl} />
@@ -359,16 +355,13 @@
               /* --- 띠배너 Mockup: 리사이징 및 우측 정렬 --- */
               <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-2xl relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
                 
-                {/* 우측 메인 이미지 영역 (bg-contain bg-right) */}
                 <div className="absolute right-0 top-0 bottom-0 w-[60%] bg-contain bg-right bg-no-repeat z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-10 bg-[#12141c]"><ImageIcon size={32} className="text-white/10"/></div>}
                   <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-10" />
                   
-                  {/* 왼쪽 텍스트 영역과 부드럽게 섞이는 그라데이션 */}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/85 to-transparent"></div>
                 </div>
 
-                {/* 좌측 텍스트 영역 */}
                 <div className="w-[60%] flex flex-col justify-center pl-10 pr-4 z-10 relative">
                   <h2 className="text-white font-extrabold text-[1.6rem] tracking-tight mb-1 truncate drop-shadow-md">{block.data?.mainTitle || '메인 문구 입력'}</h2>
                   <p className="text-slate-400 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
