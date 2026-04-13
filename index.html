@@ -104,7 +104,7 @@
         );
       };
 
-      // 공통: 시안 오버레이 메모 컴포넌트 (드래그 기능 추가)
+      // 공통: 시안 오버레이 메모 컴포넌트 (가로/세로 이동 완벽 대응 및 브라우저 간섭 방지)
       const OverlayMemo = () => {
         if (!block.data?.overlayMemo) return null;
 
@@ -125,6 +125,10 @@
         }, [block.data.memoX, block.data.memoY]);
 
         const handleMouseDown = (e) => {
+          // 브라우저 기본 드래그(스와이프, 텍스트 선택 등) 방지
+          e.preventDefault();
+          e.stopPropagation();
+
           isDragging.current = true;
           startPos.current = {
             mouseX: e.clientX,
@@ -135,6 +139,8 @@
           
           const handleMouseMove = (moveEvent) => {
             if (!isDragging.current) return;
+            moveEvent.preventDefault(); // 가로 이동 시 브라우저 뒤로가기 등 방지
+            
             const dx = moveEvent.clientX - startPos.current.mouseX;
             const dy = moveEvent.clientY - startPos.current.mouseY;
             setPosition({
@@ -147,7 +153,7 @@
             if (!isDragging.current) return;
             isDragging.current = false;
             
-            // 드래그 종료 시 최종 위치를 데이터에 저장하여 탭 전환 시에도 유지
+            // 드래그 종료 시 최종 위치를 데이터에 저장
             const dx = upEvent.clientX - startPos.current.mouseX;
             const dy = upEvent.clientY - startPos.current.mouseY;
             onUpdate(block.id, 'memoX', startPos.current.boxX + dx);
@@ -157,7 +163,7 @@
             document.removeEventListener('mouseup', handleMouseUp);
           };
 
-          document.addEventListener('mousemove', handleMouseMove);
+          document.addEventListener('mousemove', handleMouseMove, { passive: false });
           document.addEventListener('mouseup', handleMouseUp);
         };
 
@@ -165,7 +171,12 @@
           <div 
             onMouseDown={handleMouseDown}
             className="absolute bg-yellow-300/95 backdrop-blur-sm text-yellow-900 px-4 py-3 rounded-xl shadow-2xl font-bold text-xs z-50 whitespace-pre-wrap max-w-[280px] border border-yellow-400 break-keep cursor-move select-none transition-shadow hover:shadow-[0_0_20px_rgba(250,204,21,0.6)]"
-            style={{ left: `${position.x}px`, top: `${position.y}px` }}
+            style={{ 
+              transform: `translate3d(${position.x}px, ${position.y}px, 0)`, // left 대신 transform 사용 (끊김 방지)
+              left: 0, 
+              top: 0,
+              willChange: 'transform' // 부드러운 이동을 위한 브라우저 가속
+            }}
           >
             <div className="flex items-center justify-between gap-4 mb-1.5 pointer-events-none">
               <div className="flex items-center gap-1.5 text-yellow-700 opacity-80"><MessageSquare size={12}/> 메모</div>
