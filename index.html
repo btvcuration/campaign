@@ -82,6 +82,72 @@
     const DEFAULT_STRIP_BANNER = {
       mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', overlayMemo: '', startDate: '', dueDate: ''
     };
+    // --- [여기에 붙여넣기] ---
+    const OverlayMemo = ({ block, onUpdate }) => {
+      if (!block.data?.overlayMemo) return null;
+    
+      // x: 550으로 주어 초기 생성 시 우측에 뜨도록 변경
+      const [position, setPosition] = useState({ 
+        x: block.data.memoX !== undefined ? block.data.memoX : 550, 
+        y: block.data.memoY !== undefined ? block.data.memoY : 20 
+      });
+      
+      const isDragging = useRef(false);
+      const startPos = useRef({ x: 0, y: 0 });
+    
+      useEffect(() => {
+        setPosition({
+          x: block.data.memoX !== undefined ? block.data.memoX : 550,
+          y: block.data.memoY !== undefined ? block.data.memoY : 20
+        });
+      }, [block.data.memoX, block.data.memoY]);
+    
+      const handleMouseDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging.current = true;
+        startPos.current = { mouseX: e.clientX, mouseY: e.clientY, boxX: position.x, boxY: position.y };
+        
+        const handleMouseMove = (moveEvent) => {
+          if (!isDragging.current) return;
+          moveEvent.preventDefault();
+          const dx = moveEvent.clientX - startPos.current.mouseX;
+          const dy = moveEvent.clientY - startPos.current.mouseY;
+          setPosition({ x: startPos.current.boxX + dx, y: startPos.current.boxY + dy });
+        };
+    
+        const handleMouseUp = (upEvent) => {
+          if (!isDragging.current) return;
+          isDragging.current = false;
+          const dx = upEvent.clientX - startPos.current.mouseX;
+          const dy = upEvent.clientY - startPos.current.mouseY;
+          onUpdate(block.id, 'memoX', startPos.current.boxX + dx);
+          onUpdate(block.id, 'memoY', startPos.current.boxY + dy);
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+    
+        document.addEventListener('mousemove', handleMouseMove, { passive: false });
+        document.addEventListener('mouseup', handleMouseUp);
+      };
+    
+      return (
+        <div 
+          onMouseDown={handleMouseDown}
+          className="absolute bg-yellow-300/95 backdrop-blur-sm text-yellow-900 px-4 py-3 rounded-xl shadow-2xl font-bold text-xs z-50 whitespace-pre-wrap max-w-[280px] border border-yellow-400 break-keep cursor-move select-none transition-shadow hover:shadow-[0_0_20px_rgba(250,204,21,0.6)]"
+          style={{ 
+            transform: `translate3d(${position.x}px, ${position.y}px, 0)`, 
+            left: 0, top: 0, willChange: 'transform' 
+          }}
+        >
+          <div className="flex items-center justify-between gap-4 mb-1.5 pointer-events-none">
+            <div className="flex items-center gap-1.5 text-yellow-700 opacity-80"><MessageSquare size={12}/> 메모</div>
+            <span className="text-[9px] bg-yellow-400/50 px-1.5 py-0.5 rounded text-yellow-800">드래그 이동</span>
+          </div>
+          <div className="pointer-events-none">{block.data.overlayMemo}</div>
+        </div>
+      );
+    };
 
     // --- BlockRenderer (프리뷰 및 폼 구성 코어) ---
     const BlockRenderer = ({ block, onUpdate, readOnly = false }) => {
@@ -100,89 +166,6 @@
               <span className="text-sm font-bold tracking-tight">요청 이미지</span>
             </div>
             <span className="text-xl sm:text-2xl truncate leading-tight">{text}</span>
-          </div>
-        );
-      };
-
-      // 공통: 시안 오버레이 메모 컴포넌트 (가로/세로 이동 완벽 대응 및 브라우저 간섭 방지)
-      const OverlayMemo = () => {
-        if (!block.data?.overlayMemo) return null;
-
-        const [position, setPosition] = useState({ 
-          x: block.data.memoX !== undefined ? block.data.memoX : 20, 
-          y: block.data.memoY !== undefined ? block.data.memoY : 20 
-        });
-        
-        const isDragging = useRef(false);
-        const startPos = useRef({ x: 0, y: 0 });
-
-        // 데이터가 변경되면 로컬 위치 업데이트
-        useEffect(() => {
-          setPosition({
-            x: block.data.memoX !== undefined ? block.data.memoX : 20,
-            y: block.data.memoY !== undefined ? block.data.memoY : 20
-          });
-        }, [block.data.memoX, block.data.memoY]);
-
-        const handleMouseDown = (e) => {
-          // 브라우저 기본 드래그(스와이프, 텍스트 선택 등) 방지
-          e.preventDefault();
-          e.stopPropagation();
-
-          isDragging.current = true;
-          startPos.current = {
-            mouseX: e.clientX,
-            mouseY: e.clientY,
-            boxX: position.x,
-            boxY: position.y
-          };
-          
-          const handleMouseMove = (moveEvent) => {
-            if (!isDragging.current) return;
-            moveEvent.preventDefault(); // 가로 이동 시 브라우저 뒤로가기 등 방지
-            
-            const dx = moveEvent.clientX - startPos.current.mouseX;
-            const dy = moveEvent.clientY - startPos.current.mouseY;
-            setPosition({
-              x: startPos.current.boxX + dx,
-              y: startPos.current.boxY + dy
-            });
-          };
-
-          const handleMouseUp = (upEvent) => {
-            if (!isDragging.current) return;
-            isDragging.current = false;
-            
-            // 드래그 종료 시 최종 위치를 데이터에 저장
-            const dx = upEvent.clientX - startPos.current.mouseX;
-            const dy = upEvent.clientY - startPos.current.mouseY;
-            onUpdate(block.id, 'memoX', startPos.current.boxX + dx);
-            onUpdate(block.id, 'memoY', startPos.current.boxY + dy);
-            
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-          };
-
-          document.addEventListener('mousemove', handleMouseMove, { passive: false });
-          document.addEventListener('mouseup', handleMouseUp);
-        };
-
-        return (
-          <div 
-            onMouseDown={handleMouseDown}
-            className="absolute bg-yellow-300/95 backdrop-blur-sm text-yellow-900 px-4 py-3 rounded-xl shadow-2xl font-bold text-xs z-50 whitespace-pre-wrap max-w-[280px] border border-yellow-400 break-keep cursor-move select-none transition-shadow hover:shadow-[0_0_20px_rgba(250,204,21,0.6)]"
-            style={{ 
-              transform: `translate3d(${position.x}px, ${position.y}px, 0)`, // left 대신 transform 사용 (끊김 방지)
-              left: 0, 
-              top: 0,
-              willChange: 'transform' // 부드러운 이동을 위한 브라우저 가속
-            }}
-          >
-            <div className="flex items-center justify-between gap-4 mb-1.5 pointer-events-none">
-              <div className="flex items-center gap-1.5 text-yellow-700 opacity-80"><MessageSquare size={12}/> 메모</div>
-              <span className="text-[9px] bg-yellow-400/50 px-1.5 py-0.5 rounded text-yellow-800">드래그 이동</span>
-            </div>
-            <div className="pointer-events-none">{block.data.overlayMemo}</div>
           </div>
         );
       };
@@ -367,7 +350,7 @@
                     {['1','2','3'].map(i => <div key={i} className="w-[185px] h-[104px] bg-[#1e2029]/80 rounded-xl border border-white/10 shadow-lg"></div>)}
                   </div>
                 </div>
-                <OverlayMemo />
+                <OverlayMemo block={block} onUpdate={onUpdate} />
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
@@ -417,7 +400,7 @@
                     </div>
                   ))}
                 </div>
-                <OverlayMemo />
+                <OverlayMemo block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'GENERAL_BANNER' ? (
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0 mt-8">
@@ -471,7 +454,7 @@
                   <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
                   <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
                 </div>
-                <OverlayMemo />
+                <OverlayMemo block={block} onUpdate={onUpdate} />
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-40 pointer-events-none opacity-60 px-10">
@@ -502,7 +485,7 @@
                     </div>
                   </div>
                 </div>
-                <OverlayMemo />
+                <OverlayMemo block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'STRIP_BANNER' ? (
               <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
@@ -515,7 +498,7 @@
                   <h2 className="text-white font-extrabold text-[1.6rem] tracking-tight mb-1 truncate drop-shadow-md">{block.data?.mainTitle || '메인 문구 입력'}</h2>
                   <p className="text-slate-400 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
                 </div>
-                <OverlayMemo />
+                <OverlayMemo block={block} onUpdate={onUpdate} />
               </div>
             ) : (
               <div className="w-[320px] aspect-[129/181.5] bg-[#12141c] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center shrink-0 mt-8" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
@@ -525,7 +508,7 @@
                 <div className="relative z-20 p-8 flex flex-col items-center justify-center gap-5 w-full h-full pointer-events-none">
                   <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl tracking-tight text-2xl mt-auto pb-4">{block.data?.copy || '세로형 배너 카피 입력'}</p>
                 </div>
-                <OverlayMemo />
+                <OverlayMemo block={block} onUpdate={onUpdate} />
               </div>
             )}
 
