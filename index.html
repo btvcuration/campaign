@@ -40,6 +40,11 @@
       X, User, ExternalLink, Monitor, Layout, Type, RectangleHorizontal, FileText, CalendarDays, MessageSquare
     } from 'lucide-react';
 
+    const GNB_OPTIONS = [
+      '홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', 
+      '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널'
+    ];
+
     // --- Specifications & Templates ---
     const BANNER_SPECS = [
       { type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', size: '3840 x 2160', desc: '홈 최상단 대형 배너. 75% 이미지 배치.' },
@@ -52,99 +57,69 @@
 
     const DEFAULT_TODAY_BTV = {
       topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', 
-      landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈 최상단', note: '', overlayMemo: '', startDate: '', dueDate: ''
+      landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈', note: '', memos: [], startDate: '', dueDate: ''
     };
 
     const DEFAULT_GENERAL_BANNER = {
       colType: '2단', 
       previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역\n2줄에서 3줄 정도 작성 요망\n예시입니다', previewImg: '',
       bannerCopy: '배너 내 텍스트\n(생략 가능)', bannerImg: '',
-      landingValue: 'UI_PATH: /join', gnb: '영화 > 신작', note: '', overlayMemo: '', startDate: '', dueDate: ''
+      landingValue: 'UI_PATH: /join', gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: ''
     };
 
     const DEFAULT_FULL_PROMO_BANNER = {
-      bgImg: '', topLogo: 'BLUM HOUSE', mainCopy: '메인 하이라이트 문구를 입력하세요', subCopy: '서브 텍스트 라인을 입력하세요',
+      bgImg: '', topLogo: '상단 타이틀', mainCopy: '메인 하이라이트 문구를 입력하세요', subCopy: '서브 텍스트 라인을 입력하세요',
       card1Title: '블룸 하우스', card1Sub: '카드 1 설명', card1Img: '', card1Landing: '',
       card2Title: '블룸 하우스', card2Sub: '카드 2 설명', card2Img: '', card2Landing: '',
       card3Title: '블룸 하우스', card3Sub: '카드 3 설명', card3Img: '', card3Landing: '',
-      landingValue: 'UI_PATH: /join', gnb: '홈', note: '', overlayMemo: '', startDate: '', dueDate: ''
+      landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: ''
     };
 
     const DEFAULT_BIG_BANNER = {
       mainTitle: '메인 문구', subTitle: '서브 타이틀', desc: '상세 설명글을 입력해주세요.', 
-      buttonText: '바로가기', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', overlayMemo: '', startDate: '', dueDate: ''
+      buttonText: '바로가기', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: ''
     };
 
     const DEFAULT_LONG_BANNER = {
-      copy: '세로형 배너 카피', imageUrl: '', landingValue: 'UI_PATH: /join', note: '', overlayMemo: '', startDate: '', dueDate: ''
+      copy: '세로형 배너 카피', imageUrl: '', landingValue: 'UI_PATH: /join', note: '', memos: [], startDate: '', dueDate: ''
     };
 
     const DEFAULT_STRIP_BANNER = {
-      mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', overlayMemo: '', startDate: '', dueDate: ''
+      mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', memos: [], startDate: '', dueDate: ''
     };
-    // --- [여기에 붙여넣기] ---
-    const OverlayMemo = ({ block, onUpdate }) => {
-      if (!block.data?.overlayMemo) return null;
-    
-      // x: 550으로 주어 초기 생성 시 우측에 뜨도록 변경
-      const [position, setPosition] = useState({ 
-        x: block.data.memoX !== undefined ? block.data.memoX : 550, 
-        y: block.data.memoY !== undefined ? block.data.memoY : 20 
-      });
-      
-      const isDragging = useRef(false);
-      const startPos = useRef({ x: 0, y: 0 });
-    
-      useEffect(() => {
-        setPosition({
-          x: block.data.memoX !== undefined ? block.data.memoX : 550,
-          y: block.data.memoY !== undefined ? block.data.memoY : 20
-        });
-      }, [block.data.memoX, block.data.memoY]);
-    
-      const handleMouseDown = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        isDragging.current = true;
-        startPos.current = { mouseX: e.clientX, mouseY: e.clientY, boxX: position.x, boxY: position.y };
-        
-        const handleMouseMove = (moveEvent) => {
-          if (!isDragging.current) return;
-          moveEvent.preventDefault();
-          const dx = moveEvent.clientX - startPos.current.mouseX;
-          const dy = moveEvent.clientY - startPos.current.mouseY;
-          setPosition({ x: startPos.current.boxX + dx, y: startPos.current.boxY + dy });
-        };
-    
-        const handleMouseUp = (upEvent) => {
-          if (!isDragging.current) return;
-          isDragging.current = false;
-          const dx = upEvent.clientX - startPos.current.mouseX;
-          const dy = upEvent.clientY - startPos.current.mouseY;
-          onUpdate(block.id, 'memoX', startPos.current.boxX + dx);
-          onUpdate(block.id, 'memoY', startPos.current.boxY + dy);
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-        };
-    
-        document.addEventListener('mousemove', handleMouseMove, { passive: false });
-        document.addEventListener('mouseup', handleMouseUp);
+
+
+    // --- 다중 메모 오버레이 컴포넌트 ---
+    const OverlayMemos = ({ block, onUpdate }) => {
+      const memos = block.data?.memos || [];
+      if (memos.length === 0) return null;
+
+      const handleMemoChange = (id, newText) => {
+        const updatedMemos = memos.map(memo => memo.id === id ? { ...memo, text: newText } : memo);
+        onUpdate(block.id, 'memos', updatedMemos);
       };
-    
+
+      const removeMemo = (id) => {
+        const updatedMemos = memos.filter(memo => memo.id !== id);
+        onUpdate(block.id, 'memos', updatedMemos);
+      };
+
       return (
-        <div 
-          onMouseDown={handleMouseDown}
-          className="absolute bg-yellow-300/95 backdrop-blur-sm text-yellow-900 px-4 py-3 rounded-xl shadow-2xl font-bold text-xs z-50 whitespace-pre-wrap max-w-[280px] border border-yellow-400 break-keep cursor-move select-none transition-shadow hover:shadow-[0_0_20px_rgba(250,204,21,0.6)]"
-          style={{ 
-            transform: `translate3d(${position.x}px, ${position.y}px, 0)`, 
-            left: 0, top: 0, willChange: 'transform' 
-          }}
-        >
-          <div className="flex items-center justify-between gap-4 mb-1.5 pointer-events-none">
-            <div className="flex items-center gap-1.5 text-yellow-700 opacity-80"><MessageSquare size={12}/> 메모</div>
-            <span className="text-[9px] bg-yellow-400/50 px-1.5 py-0.5 rounded text-yellow-800">드래그 이동</span>
-          </div>
-          <div className="pointer-events-none">{block.data.overlayMemo}</div>
+        <div className="absolute inset-0 pointer-events-none z-50 overflow-visible flex flex-col items-center justify-center gap-4">
+          {memos.map((memo) => (
+            <div key={memo.id} className="pointer-events-auto bg-yellow-300/95 backdrop-blur-sm px-4 py-3 rounded-xl shadow-2xl border border-yellow-400 min-w-[200px] max-w-[300px] transition-all hover:scale-105 focus-within:scale-105">
+              <div className="flex items-center justify-between gap-4 mb-2">
+                <div className="flex items-center gap-1.5 text-yellow-800 font-bold text-[10px]"><MessageSquare size={12}/> 시안 메모</div>
+                <button onClick={() => removeMemo(memo.id)} className="text-yellow-700 hover:text-red-600 hover:bg-yellow-400 p-1 rounded-full transition-colors"><X size={12}/></button>
+              </div>
+              <textarea 
+                value={memo.text} 
+                onChange={(e) => handleMemoChange(memo.id, e.target.value)}
+                className="w-full bg-yellow-100/50 border border-yellow-400/30 rounded p-2 text-xs text-yellow-900 font-bold outline-none resize-none focus:bg-white focus:ring-1 focus:ring-yellow-500 custom-scrollbar h-[60px]"
+                placeholder="여기에 메모를 입력하세요..."
+              />
+            </div>
+          ))}
         </div>
       );
     };
@@ -170,6 +145,12 @@
         );
       };
 
+      const handleAddMemo = () => {
+        const newMemo = { id: `memo-${Date.now()}`, text: '' };
+        const currentMemos = block.data?.memos || [];
+        onUpdate(block.id, 'memos', [...currentMemos, newMemo]);
+      };
+
       return (
         <div className="absolute inset-0 p-6 flex flex-col xl:flex-row gap-6 animate-in fade-in duration-300">
           
@@ -189,13 +170,24 @@
                 </div>
                 
                 <div className="space-y-4">
-                  {block.type !== 'TODAY_BTV' && (
+                  {/* 편성 메뉴 공통 영역 (GNB) - 셀렉트 박스로 변경 */}
+                  {block.type !== 'LONG_BANNER' && block.type !== 'STRIP_BANNER' && (
                     <div>
                       <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1"><Grid size={12}/> 편성 메뉴 (GNB)</label>
-                      <input type="text" value={block.data?.gnb || ''} onChange={e => onUpdate(block.id, 'gnb', e.target.value)} placeholder="예: 영화 > 신작" className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" />
+                      <select 
+                        value={block.data?.gnb || '홈'} 
+                        onChange={e => onUpdate(block.id, 'gnb', e.target.value)} 
+                        disabled={block.type === 'TODAY_BTV'}
+                        className={`w-full border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all ${block.type === 'TODAY_BTV' ? 'bg-[#12141c] text-slate-500 cursor-not-allowed' : 'bg-[#1a1c26]'}`}
+                      >
+                        {GNB_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      {block.type === 'TODAY_BTV' && <p className="text-[10px] text-slate-500 mt-1.5 ml-1">* Today B tv는 '홈' 메뉴로 고정됩니다.</p>}
                     </div>
                   )}
-  
+
                   {block.type === 'TODAY_BTV' && (
                     <>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">상단 텍스트</label><input type="text" value={block.data?.topText || ''} onChange={e => onUpdate(block.id, 'topText', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
@@ -205,17 +197,17 @@
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                     </>
                   )}
-  
+
                   {block.type === 'FULL_PROMO_BANNER' && (
                     <>
                       <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
                         <div className="text-xs font-bold text-[#7387ff] mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 공통 배경 및 텍스트</div>
                         <div><label className="block text-[10px] font-bold text-slate-400 mb-1">전체 배경 이미지 URL</label><input type="text" value={block.data?.bgImg || ''} onChange={e => onUpdate(block.id, 'bgImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
-                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">상단 타이틀 (로고 대체)</label><input type="text" value={block.data?.topLogo || ''} onChange={e => onUpdate(block.id, 'topLogo', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
+                        <div><label className="block text-[10px] font-bold text-slate-400 mb-1">상단 타이틀</label><input type="text" value={block.data?.topLogo || ''} onChange={e => onUpdate(block.id, 'topLogo', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
                         <div><label className="block text-[10px] font-bold text-cyan-400 mb-1">메인 하이라이트 문구</label><input type="text" value={block.data?.mainCopy || ''} onChange={e => onUpdate(block.id, 'mainCopy', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
                         <div><label className="block text-[10px] font-bold text-purple-400 mb-1">서브 라인 문구</label><input type="text" value={block.data?.subCopy || ''} onChange={e => onUpdate(block.id, 'subCopy', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
                       </div>
-  
+
                       {[1, 2, 3].map(i => (
                         <div key={i} className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
                           <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5"><LayoutPanelLeft size={14}/> 세트 카드 {i}</div>
@@ -229,7 +221,7 @@
                       ))}
                     </>
                   )}
-  
+
                   {block.type === 'BIG_BANNER' && (
                     <>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
@@ -243,7 +235,7 @@
                       </div>
                     </>
                   )}
-  
+
                   {block.type === 'GENERAL_BANNER' && (
                     <>
                       <div>
@@ -254,14 +246,14 @@
                           <option value="3단">3단 배너 (와이드형)</option>
                         </select>
                       </div>
-  
+
                       <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3">
                         <div className="text-xs font-bold text-pink-400 mb-2 flex items-center gap-1.5"><MonitorPlay size={14}/> 1. 배경 프리뷰 영역 (TV 전체)</div>
                         <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 텍스트 (1줄) <Type size={10}/></label><input type="text" value={block.data?.previewTitle || ''} onChange={e => onUpdate(block.id, 'previewTitle', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none" placeholder="메인 타이틀 입력" /></div>
                         <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 좌상단 서브글 (2~3줄) <Type size={10}/></label><textarea value={block.data?.previewSub || ''} onChange={e => onUpdate(block.id, 'previewSub', e.target.value)} rows={3} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="서브 설명글 영역&#10;2줄에서 3줄 정도 작성 요망&#10;예시입니다" /></div>
                         <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배경 우상단 이미지 <ImageIcon size={10}/></label><input type="text" value={block.data?.previewImg || ''} onChange={e => onUpdate(block.id, 'previewImg', e.target.value)} placeholder="이미지 URL 또는 대체 단어" className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none" /></div>
                       </div>
-  
+
                       <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#303340] space-y-3 mt-4">
                         <div className="text-xs font-bold text-[#7387ff] mb-2 flex items-center gap-1.5"><LayoutPanelLeft size={14}/> 2. 배너 카드 영역 (하단 썸네일)</div>
                         <div><label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">배너 내 텍스트 (생략 가능) <Type size={10}/></label><textarea value={block.data?.bannerCopy || ''} onChange={e => onUpdate(block.id, 'bannerCopy', e.target.value)} rows={2} className="w-full bg-[#12141c] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none resize-none" /></div>
@@ -270,7 +262,7 @@
                       </div>
                     </>
                   )}
-  
+
                   {block.type === 'LONG_BANNER' && (
                     <>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label><textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
@@ -278,7 +270,7 @@
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                     </>
                   )}
-  
+
                   {block.type === 'STRIP_BANNER' && (
                     <>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
@@ -287,8 +279,7 @@
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                     </>
                   )}
-  
-                  {/* 공통 부가 설정 (일정 및 메모) */}
+
                   <div className="pt-5 mt-3 border-t border-[#262833] space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-400 mb-2 flex items-center gap-1.5"><CalendarDays size={12}/> 개별 편성 일정</label>
@@ -298,18 +289,14 @@
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-yellow-500 mb-1.5 flex items-center gap-1.5"><MessageSquare size={12}/> 시안 오버레이 메모</label>
-                      <textarea value={block.data?.overlayMemo || ''} onChange={e => onUpdate(block.id, 'overlayMemo', e.target.value)} rows={2} className="w-full bg-[#2a2415] border border-[#4a3e20] rounded-lg p-2.5 text-sm text-yellow-100 outline-none resize-none focus:border-yellow-500 transition-colors" placeholder="디자인 시안 위에 띄울 텍스트 상자입니다." />
-                    </div>
-                    <div>
                       <label className="block text-xs font-bold text-slate-400 mb-1.5 flex items-center gap-1.5"><FileText size={12}/> 비고 (선택 사항)</label>
                       <textarea value={block.data?.note || ''} onChange={e => onUpdate(block.id, 'note', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" placeholder="추가 전달 사항이나 메모를 입력하세요." />
                     </div>
                   </div>
-  
+
                 </div>
               </div>
-  
+
               {['TODAY_BTV', 'GENERAL_BANNER'].includes(block.type) && (
                 <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-5 shadow-xl flex justify-between items-center cursor-pointer hover:bg-[#1a1c26] transition-colors" onClick={() => setLocalShowSafeZone(!localShowSafeZone)}>
                   <span className="text-sm font-bold text-slate-300 flex items-center gap-2"><Grid size={16} className="text-[#7387ff]"/> TV 화면 가이드라인</span>
@@ -324,15 +311,21 @@
           {/* ========================================================= */}
           {/* 2. 시뮬레이터 프리뷰 영역 (Right Column) */}
           {/* ========================================================= */}
-          <div className="flex-1 flex flex-col items-center justify-start pt-24 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar h-full">
+          <div className="flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar h-full">
             
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-6 flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-4 py-1.5 rounded-full border border-[#7387ff]/30 z-20 shadow-md">
-              <Grid size={14}/>
-              <span className="text-xs font-bold tracking-tight">편성 메뉴: {block.data?.gnb || '미지정'}</span>
+            {/* 상단 툴바 영역 (GNB & 메모 추가 버튼) */}
+            <div className="w-full max-w-[1000px] flex justify-between items-center mb-4 mt-2">
+              <div className="flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-4 py-1.5 rounded-full border border-[#7387ff]/30 shadow-md">
+                <Grid size={14}/>
+                <span className="text-xs font-bold tracking-tight">편성 메뉴: {block.data?.gnb || '미지정'}</span>
+              </div>
+              <button onClick={handleAddMemo} className="flex items-center gap-2 px-4 py-1.5 bg-yellow-400/10 hover:bg-yellow-400/20 text-yellow-500 border border-yellow-400/50 rounded-full text-xs font-bold transition-colors shadow-lg">
+                <MessageSquare size={14}/> + 메모 추가
+              </button>
             </div>
 
             {block.type === 'TODAY_BTV' ? (
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0 mt-8">
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0">
                 <div className="absolute inset-0 bg-[#0a0a0f]"></div>
                 <div className="absolute right-[0%] top-[0%] w-[75%] h-[90%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>}
@@ -352,7 +345,6 @@
                     {['1','2','3'].map(i => <div key={i} className="w-[185px] h-[104px] bg-[#1e2029]/80 rounded-xl border border-white/10 shadow-lg"></div>)}
                   </div>
                 </div>
-                <OverlayMemo block={block} onUpdate={onUpdate} />
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
@@ -363,26 +355,27 @@
                     <div className="absolute left-0 right-0 bottom-0 h-[28%] border-t-[1.5px] border-dashed border-orange-500 bg-orange-500/10 flex items-end justify-center pb-4"><span className="font-bold text-[10px] px-3 py-1 rounded bg-orange-600/90 text-white">하단 썸네일 침범 금지</span></div>
                   </div>
                 )}
+                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'FULL_PROMO_BANNER' ? (
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0 mt-8">
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0">
                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.bgImg) ? `url(${block.data.bgImg})` : 'none'}}>
                   {!checkIsUrl(block.data?.bgImg) && !checkHasText(block.data?.bgImg) && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]"></div>}
                   <FallbackText text={block.data?.bgImg} />
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
                 </div>
 
-                <div className="relative z-10 flex flex-col items-center pt-[8%] px-10 gap-3">
-                  <h2 className="text-white text-[1.8rem] font-serif tracking-[0.3em] font-black drop-shadow-lg">{block.data?.topLogo || 'TOP LOGO'}</h2>
-                  <div className="w-1/2 h-px bg-white/30 my-2"></div>
+                <div className="relative z-10 flex flex-col items-center pt-[8%] px-10 gap-4">
+                  <h2 className="text-white text-[1.8rem] font-black drop-shadow-lg">{block.data?.topLogo || '상단 타이틀'}</h2>
+                  <div className="w-[10%] h-0.5 bg-white/50 rounded-full mb-2"></div>
                   
                   {block.data?.mainCopy && (
-                    <div className="bg-[#4fb8b9] text-[#0a0812] px-6 py-1.5 text-xl font-black leading-snug whitespace-pre-wrap text-center max-w-[85%] shadow-lg">
+                    <div className="text-cyan-300 px-6 py-1.5 text-2xl font-black leading-snug whitespace-pre-wrap text-center max-w-[85%] drop-shadow-xl">
                       {block.data.mainCopy}
                     </div>
                   )}
                   {block.data?.subCopy && (
-                    <div className="bg-[#382d5a] text-[#d4cbf2] px-5 py-1.5 text-sm font-bold leading-snug whitespace-pre-wrap text-center max-w-[80%] shadow-lg border border-[#d4cbf2]/20">
+                    <div className="text-purple-300 px-5 py-1 text-sm font-bold leading-snug whitespace-pre-wrap text-center max-w-[80%] drop-shadow-md">
                       {block.data.subCopy}
                     </div>
                   )}
@@ -402,10 +395,10 @@
                     </div>
                   ))}
                 </div>
-                <OverlayMemo block={block} onUpdate={onUpdate} />
+                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'GENERAL_BANNER' ? (
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0 mt-8">
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0">
                 <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
                   <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
                     {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
@@ -456,7 +449,6 @@
                   <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
                   <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
                 </div>
-                <OverlayMemo block={block} onUpdate={onUpdate} />
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-40 pointer-events-none opacity-60 px-10">
@@ -464,9 +456,10 @@
                     <div className="absolute left-[80px] top-[10%] bottom-[45%] w-[40%] border-2 border-pink-500 bg-pink-500/10 flex items-start p-2"><span className="text-pink-300 text-xs font-bold bg-black/60 px-2 py-1 rounded">배경 텍스트 권장 영역</span></div>
                   </div>
                 )}
+                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'BIG_BANNER' ? (
-              <div className="w-full max-w-[850px] h-[250px] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8">
+              <div className="w-full max-w-[850px] h-[250px] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0">
                 <div className="w-[40%] h-full flex flex-col justify-center items-start pl-10 pr-2 text-left z-10 shrink-0">
                   <h2 className="text-white font-black whitespace-pre-wrap leading-[1.1] text-[2.2rem] tracking-tight drop-shadow-xl">
                     {block.data?.mainTitle || '메인 문구 입력'}
@@ -487,10 +480,10 @@
                     </div>
                   </div>
                 </div>
-                <OverlayMemo block={block} onUpdate={onUpdate} />
+                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'STRIP_BANNER' ? (
-              <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
+              <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
                 <div className="absolute right-0 top-0 bottom-0 w-[60%] bg-contain bg-right bg-no-repeat z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-10 bg-[#12141c]"><ImageIcon size={32} className="text-white/10"/></div>}
                   <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-10" />
@@ -500,21 +493,21 @@
                   <h2 className="text-white font-extrabold text-[1.6rem] tracking-tight mb-1 truncate drop-shadow-md">{block.data?.mainTitle || '메인 문구 입력'}</h2>
                   <p className="text-slate-400 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
                 </div>
-                <OverlayMemo block={block} onUpdate={onUpdate} />
+                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : (
-              <div className="w-[320px] aspect-[129/181.5] bg-[#12141c] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center shrink-0 mt-8" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+              <div className="w-[320px] aspect-[129/181.5] bg-[#12141c] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center shrink-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                 {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
                 <FallbackText text={block.data?.imageUrl} alignClass="justify-center items-center text-center px-4" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none z-10"></div>
                 <div className="relative z-20 p-8 flex flex-col items-center justify-center gap-5 w-full h-full pointer-events-none">
                   <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl tracking-tight text-2xl mt-auto pb-4">{block.data?.copy || '세로형 배너 카피 입력'}</p>
                 </div>
-                <OverlayMemo block={block} onUpdate={onUpdate} />
+                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             )}
 
-            <div className="mt-6 text-slate-500 text-[10px] font-mono bg-[#161820]/50 px-4 py-2 rounded-full border border-[#2e3038] flex items-center gap-2">
+            <div className="mt-6 text-slate-500 text-[10px] font-mono bg-[#161820]/50 px-4 py-2 rounded-full border border-[#2e3038] flex items-center gap-2 mb-8">
               <ImageIcon size={12}/> 
               {block.type === 'GENERAL_BANNER' ? '배너 포커스 시 배경과 카드가 어떻게 어우러지는지 시뮬레이션 합니다.' : '현재 매체의 렌더링 시뮬레이션 입니다.'}
             </div>
@@ -543,7 +536,6 @@
         ));
       };
 
-      // 글로벌 일정을 전체 개별 배너에 일괄 적용
       const applyDatesToAll = () => {
         if (!confirm('캠페인 기본 일정(시작일/종료일)을 모든 개별 배너에 일괄 덮어씌우시겠습니까?')) return;
         setAssets(assets.map(asset => ({
@@ -562,7 +554,6 @@
         else if (type === 'LONG_BANNER') newData = { ...DEFAULT_LONG_BANNER };
         else if (type === 'STRIP_BANNER') newData = { ...DEFAULT_STRIP_BANNER };
         
-        // 새로 생성할 때 글로벌 일정을 기본값으로 넣어줌
         newData.startDate = campaignMeta.startDate;
         newData.dueDate = campaignMeta.dueDate;
 
@@ -580,7 +571,7 @@
 
       const handleExport = () => {
         const payloads = assets.map(asset => {
-          const targetGnb = asset.type === 'TODAY_BTV' ? '홈 최상단' : (asset.data.gnb || '미지정');
+          const targetGnb = asset.type === 'TODAY_BTV' ? '홈' : (asset.data.gnb || '미지정');
           const dateInfo = asset.data.startDate ? `${asset.data.startDate} ~ ${asset.data.dueDate}` : '미지정';
           const description = `h3. 📌 캠페인 공통 정보\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | ${targetGnb} |\n| *편성 일정* | ${dateInfo} |\n\n---\n\nh3. 🖼️ 상세 기획\n* ${asset.type === 'TODAY_BTV' ? `문구: ${asset.data.mainTitle}` : asset.type === 'BIG_BANNER' ? `타이틀: ${asset.data.mainTitle}` : asset.type === 'STRIP_BANNER' ? `메인: ${asset.data.mainTitle}` : asset.type === 'FULL_PROMO_BANNER' ? `메인: ${asset.data.mainCopy}` : `카피: ${asset.data.bannerCopy || asset.data.previewTitle}`}\n* 랜딩: ${asset.data.landingValue}\n* 비고: ${asset.data.note || '없음'}`;
           return { action: "CREATE_JIRA_ISSUE", data: { issueTitle: `[디자인] ${campaignMeta.campaignName} - ${asset.name}`, description } };
