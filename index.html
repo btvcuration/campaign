@@ -357,8 +357,6 @@
                   </div>
                 </div>
                 <OverlayMemo />
-                {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
@@ -371,17 +369,13 @@
                 )}
               </div>
             ) : block.type === 'FULL_PROMO_BANNER' ? (
-              /* --- 신규: 풀프로모션 배너 Mockup --- */
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0 mt-8">
-                {/* 1. 배경 영역 */}
                 <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.bgImg) ? `url(${block.data.bgImg})` : 'none'}}>
                   {!checkIsUrl(block.data?.bgImg) && !checkHasText(block.data?.bgImg) && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]"></div>}
                   <FallbackText text={block.data?.bgImg} />
-                  {/* 어두운 딤 처리 */}
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"></div>
                 </div>
 
-                {/* 2. 상단 텍스트 영역 */}
                 <div className="relative z-10 flex flex-col items-center pt-[8%] px-10 gap-3">
                   <h2 className="text-white text-[1.8rem] font-serif tracking-[0.3em] font-black drop-shadow-lg">{block.data?.topLogo || 'TOP LOGO'}</h2>
                   <div className="w-1/2 h-px bg-white/30 my-2"></div>
@@ -398,7 +392,6 @@
                   )}
                 </div>
 
-                {/* 3. 하단 3단 세트 카드 영역 */}
                 <div className="absolute bottom-[8%] left-[5%] right-[5%] flex justify-center gap-6 z-10 h-[40%]">
                   {[1,2,3].map(i => (
                     <div key={i} className="flex-1 bg-[#0a0812]/90 border border-white/10 rounded-xl flex flex-col overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] ring-1 ring-white/5">
@@ -414,11 +407,8 @@
                   ))}
                 </div>
                 <OverlayMemo />
-                {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
               </div>
             ) : block.type === 'GENERAL_BANNER' ? (
-              /* --- 일반 배너 (1/2/3단) Mockup --- */
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0 mt-8">
                 <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
                   <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-contain bg-right-top transition-all duration-500 z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
@@ -471,8 +461,6 @@
                   <div className="h-full aspect-[129/89] bg-[#1e2029]/80 rounded-xl border border-white/10 shrink-0 shadow-lg"></div>
                 </div>
                 <OverlayMemo />
-                {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
 
                 {localShowSafeZone && (
                   <div className="absolute inset-0 z-40 pointer-events-none opacity-60 px-10">
@@ -504,8 +492,6 @@
                   </div>
                 </div>
                 <OverlayMemo />
-                {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
               </div>
             ) : block.type === 'STRIP_BANNER' ? (
               <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 mt-8 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
@@ -519,8 +505,6 @@
                   <p className="text-slate-400 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
                 </div>
                 <OverlayMemo />
-                {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
               </div>
             ) : (
               <div className="w-[320px] aspect-[129/181.5] bg-[#12141c] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center shrink-0 mt-8" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
@@ -531,8 +515,6 @@
                   <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl tracking-tight text-2xl mt-auto pb-4">{block.data?.copy || '세로형 배너 카피 입력'}</p>
                 </div>
                 <OverlayMemo />
-                {localShowSafeZone && (
-                  <div className="absolute inset-0 z-30 pointer-events-none opacity-60">
               </div>
             )}
 
@@ -683,7 +665,6 @@
                           <div><label className="block text-[10px] text-slate-500 mb-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
                           <div><label className="block text-[10px] text-slate-500 mb-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
                         </div>
-                        {/* 신규: 글로벌 일정 일괄 적용 버튼 */}
                         <button onClick={applyDatesToAll} className="w-full py-1.5 bg-[#1a1c26] hover:bg-[#262833] border border-[#303340] rounded text-[10px] font-bold text-slate-400 transition-colors">
                           ↓ 전체 배너에 일정 일괄 적용
                         </button>
