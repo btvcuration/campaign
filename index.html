@@ -257,7 +257,7 @@
             ) : block.type === 'GENERAL_BANNER' ? (
               /* --- 일반 배너 (1/2/3단) Mockup --- */
               /* 4번 요청 반영: 다른 배너와 동일하게 mt-8 상단 마진 적용, 내부 패딩으로 여백 축소 */
-              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-[#222] shrink-0 mt-8">
+              <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-[#222] shrink-0 mt-2">
                 <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
                   
                   {/* 2번 요청 반영: 배경 이미지 크기 1.5배 확대 및 자연스러운 그라데이션 적용 */}
@@ -267,8 +267,8 @@
                   </div>
                   
                   {/* 2번 요청 반영: 그라데이션 강도 대폭 상향 (이미지 경계선 완벽 차단) */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[35%] via-[#0a0a0f]/95 via-[55%] to-transparent z-10 pointer-events-none"></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[30%] via-[#0a0a0f]/95 via-[60%] to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[25%] via-[#0a0a0f]/95 via-[55%] to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[25%] via-[#0a0a0f]/95 via-[60%] to-transparent z-10 pointer-events-none"></div>
 
                   <div className="absolute left-[80px] top-[12%] w-[45%] z-20 flex flex-col gap-2">
                     <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{block.data?.previewTitle || '프리뷰 좌상단 텍스트 (1줄)'}</h1>
@@ -343,7 +343,7 @@
 
                 {/* 이미지 영역 폭 최대치로 확대 (max-w 늘림) 및 24.5:8.3 비율 적용 */}
                 <div className="flex-1 h-full py-4 pr-5 flex items-center justify-end relative z-0">
-                  <div className="w-full max-w-[550px] aspect-[24.5/8.3] rounded-xl overflow-hidden border border-[#ff5e3a]/40 bg-[#1a1c26] relative shadow-inner">
+                  <div className="w-full max-w-[575px] aspect-[24.5/8.3] rounded-xl overflow-hidden border border-[#ff5e3a]/40 bg-[#1a1c26] relative shadow-inner">
                     <div className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-all" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                       {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={64} className="text-white/10"/></div>}
                       <FallbackText text={block.data?.imageUrl} />
