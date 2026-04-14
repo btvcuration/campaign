@@ -89,36 +89,87 @@
     };
 
 
-    // --- 다중 메모 오버레이 컴포넌트 ---
+    // --- 개별 드래그가 가능한 다중 메모 컴포넌트 ---
+    const DraggableMemo = ({ memo, updateMemo, removeMemo }) => {
+      const [pos, setPos] = useState({ x: memo.x || 500, y: memo.y || 50 });
+      const isDragging = useRef(false);
+      const dragStart = useRef({ mouseX: 0, mouseY: 0, boxX: 0, boxY: 0 });
+
+      useEffect(() => {
+        setPos({ x: memo.x || 500, y: memo.y || 50 });
+      }, [memo.x, memo.y]);
+
+      const handleMouseDown = (e) => {
+        // 텍스트 박스나 삭제 버튼을 클릭했을 때는 드래그가 작동하지 않게 방어
+        if (e.target.tagName === 'TEXTAREA' || e.target.closest('button')) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        isDragging.current = true;
+        dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, boxX: pos.x, boxY: pos.y };
+
+        const handleMouseMove = (ev) => {
+          if (!isDragging.current) return;
+          ev.preventDefault();
+          const dx = ev.clientX - dragStart.current.mouseX;
+          const dy = ev.clientY - dragStart.current.mouseY;
+          setPos({ x: dragStart.current.boxX + dx, y: dragStart.current.boxY + dy });
+        };
+
+        const handleMouseUp = (ev) => {
+          if (!isDragging.current) return;
+          isDragging.current = false;
+          const dx = ev.clientX - dragStart.current.mouseX;
+          const dy = ev.clientY - dragStart.current.mouseY;
+          updateMemo(memo.id, { x: dragStart.current.boxX + dx, y: dragStart.current.boxY + dy });
+          
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove, { passive: false });
+        document.addEventListener('mouseup', handleMouseUp);
+      };
+
+      return (
+        <div 
+          onMouseDown={handleMouseDown}
+          className="absolute bg-yellow-300/95 backdrop-blur-sm px-4 py-3 rounded-xl shadow-2xl border border-yellow-400 min-w-[200px] max-w-[300px] transition-shadow hover:shadow-[0_0_20px_rgba(250,204,21,0.6)] cursor-move z-50 pointer-events-auto"
+          style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`, left: 0, top: 0, willChange: 'transform' }}
+        >
+          <div className="flex items-center justify-between gap-4 mb-2 pointer-events-none">
+            <div className="flex items-center gap-1.5 text-yellow-800 font-bold text-[10px]"><MessageSquare size={12}/> 시안 메모</div>
+            <button onMouseDown={(e) => e.stopPropagation()} onClick={() => removeMemo(memo.id)} className="pointer-events-auto text-yellow-700 hover:text-red-600 hover:bg-yellow-400 p-1 rounded-full transition-colors"><X size={12}/></button>
+          </div>
+          <textarea 
+            onMouseDown={(e) => e.stopPropagation()}
+            value={memo.text} 
+            onChange={(e) => updateMemo(memo.id, { text: e.target.value })}
+            className="w-full bg-yellow-100/50 border border-yellow-400/30 rounded p-2 text-xs text-yellow-900 font-bold outline-none resize-none focus:bg-white focus:ring-1 focus:ring-yellow-500 custom-scrollbar h-[60px] cursor-text pointer-events-auto"
+            placeholder="여기에 메모를 입력하세요..."
+          />
+        </div>
+      );
+    };
+
     const OverlayMemos = ({ block, onUpdate }) => {
       const memos = block.data?.memos || [];
       if (memos.length === 0) return null;
 
-      const handleMemoChange = (id, newText) => {
-        const updatedMemos = memos.map(memo => memo.id === id ? { ...memo, text: newText } : memo);
+      const updateMemo = (id, updates) => {
+        const updatedMemos = memos.map(m => m.id === id ? { ...m, ...updates } : m);
         onUpdate(block.id, 'memos', updatedMemos);
       };
 
       const removeMemo = (id) => {
-        const updatedMemos = memos.filter(memo => memo.id !== id);
+        const updatedMemos = memos.filter(m => m.id !== id);
         onUpdate(block.id, 'memos', updatedMemos);
       };
 
       return (
-        <div className="absolute inset-0 pointer-events-none z-50 overflow-visible flex flex-col items-center justify-center gap-4">
-          {memos.map((memo) => (
-            <div key={memo.id} className="pointer-events-auto bg-yellow-300/95 backdrop-blur-sm px-4 py-3 rounded-xl shadow-2xl border border-yellow-400 min-w-[200px] max-w-[300px] transition-all hover:scale-105 focus-within:scale-105">
-              <div className="flex items-center justify-between gap-4 mb-2">
-                <div className="flex items-center gap-1.5 text-yellow-800 font-bold text-[10px]"><MessageSquare size={12}/> 시안 메모</div>
-                <button onClick={() => removeMemo(memo.id)} className="text-yellow-700 hover:text-red-600 hover:bg-yellow-400 p-1 rounded-full transition-colors"><X size={12}/></button>
-              </div>
-              <textarea 
-                value={memo.text} 
-                onChange={(e) => handleMemoChange(memo.id, e.target.value)}
-                className="w-full bg-yellow-100/50 border border-yellow-400/30 rounded p-2 text-xs text-yellow-900 font-bold outline-none resize-none focus:bg-white focus:ring-1 focus:ring-yellow-500 custom-scrollbar h-[60px]"
-                placeholder="여기에 메모를 입력하세요..."
-              />
-            </div>
+        <div className="absolute inset-0 pointer-events-none z-50 overflow-visible">
+          {memos.map(memo => (
+            <DraggableMemo key={memo.id} memo={memo} updateMemo={updateMemo} removeMemo={removeMemo} />
           ))}
         </div>
       );
@@ -146,8 +197,14 @@
       };
 
       const handleAddMemo = () => {
-        const newMemo = { id: `memo-${Date.now()}`, text: '' };
         const currentMemos = block.data?.memos || [];
+        const offset = currentMemos.length * 20; // 겹치지 않게 약간씩 띄워서 생성
+        const newMemo = { 
+          id: `memo-${Date.now()}`, 
+          text: '', 
+          x: 500 + offset, 
+          y: 50 + offset 
+        };
         onUpdate(block.id, 'memos', [...currentMemos, newMemo]);
       };
 
