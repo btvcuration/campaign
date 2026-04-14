@@ -40,9 +40,11 @@
       X, User, ExternalLink, Monitor, Layout, Type, RectangleHorizontal, FileText, CalendarDays, MessageSquare
     } from 'lucide-react';
 
+    // GNB 신규 옵션 추가
     const GNB_OPTIONS = [
       '홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', 
-      '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널'
+      '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널',
+      '광고 홈', '콘텐츠', '기타'
     ];
 
     // --- Specifications & Templates ---
@@ -52,7 +54,8 @@
       { type: 'FULL_PROMO_BANNER', name: '풀프로모션 배너', icon: LayoutTemplate, ratio: '16:9', size: '전체화면', desc: '공통 배경 위에 메인 카피와 3개의 카드가 세트로 구성됩니다.' },
       { type: 'BIG_BANNER', name: '빅배너', icon: Monitor, ratio: '24.5:8.3', size: '2880 x 1234', desc: '텍스트(좌)와 이미지(우)로 구성된 대형 프로모션 영역.' },
       { type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '129:181.5', size: '800 x 1600', desc: '세로형 긴 배너. 카피 가독성이 매우 중요함.' },
-      { type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '397:65.5', size: '가변', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' }
+      { type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '397:65.5', size: '가변', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' },
+      { type: 'SYNOPSIS_BANNER', name: '시놉시스 배너', icon: RectangleHorizontal, ratio: '가변', size: '534 x 160', desc: '콘텐츠 시놉시스 화면에 노출되는 쿠폰/할인 띠배너.' }
     ];
 
     const DEFAULT_TODAY_BTV = {
@@ -81,30 +84,32 @@
     };
 
     const DEFAULT_LONG_BANNER = {
-      copy: '세로형 배너 카피', imageUrl: '', landingValue: 'UI_PATH: /join', note: '', memos: [], startDate: '', dueDate: ''
+      copy: '세로형 배너 메인 카피', subTitle: '서브 카피 입력', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: ''
     };
 
     const DEFAULT_STRIP_BANNER = {
       mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', memos: [], startDate: '', dueDate: ''
     };
 
+    // 신규: 시놉시스 배너 디폴트
+    const DEFAULT_SYNOPSIS_BANNER = {
+      mainTitle: '2,000명 추첨 증정', subTitle: '~7.20 | 다음날 발급', imageUrl: '', badgeText: '영화 쿠폰\n3,300원', landingValue: 'UI_PATH: /join', gnb: '콘텐츠', note: '', memos: [], startDate: '', dueDate: ''
+    };
 
     // --- 개별 드래그가 가능한 다중 메모 컴포넌트 ---
     const DraggableMemo = ({ memo, updateMemo, removeMemo }) => {
-      const [pos, setPos] = useState({ x: memo.x || 500, y: memo.y || 50 });
+      const [pos, setPos] = useState({ x: memo.x || 100, y: memo.y || 100 });
       const isDragging = useRef(false);
       const dragStart = useRef({ mouseX: 0, mouseY: 0, boxX: 0, boxY: 0 });
 
       useEffect(() => {
-        setPos({ x: memo.x || 500, y: memo.y || 50 });
+        setPos({ x: memo.x || 100, y: memo.y || 100 });
       }, [memo.x, memo.y]);
 
       const handleMouseDown = (e) => {
-        // 텍스트 박스나 삭제 버튼을 클릭했을 때는 드래그가 작동하지 않게 방어
         if (e.target.tagName === 'TEXTAREA' || e.target.closest('button')) return;
         
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         isDragging.current = true;
         dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, boxX: pos.x, boxY: pos.y };
 
@@ -198,12 +203,12 @@
 
       const handleAddMemo = () => {
         const currentMemos = block.data?.memos || [];
-        const offset = currentMemos.length * 20; // 겹치지 않게 약간씩 띄워서 생성
+        const offset = currentMemos.length * 20; // 겹치지 않게 오프셋 부여
         const newMemo = { 
           id: `memo-${Date.now()}`, 
           text: '', 
-          x: 500 + offset, 
-          y: 50 + offset 
+          x: 100 + offset, // 롱배너에서도 보이도록 중앙 좌측으로 생성 좌표 수정
+          y: 100 + offset 
         };
         onUpdate(block.id, 'memos', [...currentMemos, newMemo]);
       };
@@ -214,7 +219,7 @@
           {/* ========================================================= */}
           {/* 1. 입력 폼 영역 (Left Column) */}
           {/* ========================================================= */}
-          <div className="w-full xl:w-[400px] flex-shrink-0 h-full overflow-y-auto custom-scrollbar pr-4">
+          <div className="w-full xl:w-[400px] flex-shrink-0 h-full overflow-y-auto custom-scrollbar pr-4 pb-12">
             <div className="space-y-6 pb-8">
               <div className="bg-[#12141c] border border-[#262833] rounded-2xl p-6 space-y-5 shadow-2xl">
                 <div className="flex justify-between items-center border-b border-[#262833] pb-4 mb-2">
@@ -227,23 +232,22 @@
                 </div>
                 
                 <div className="space-y-4">
-                  {/* 편성 메뉴 공통 영역 (GNB) - 셀렉트 박스로 변경 */}
-                  {block.type !== 'LONG_BANNER' && block.type !== 'STRIP_BANNER' && (
-                    <div>
-                      <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1"><Grid size={12}/> 편성 메뉴 (GNB)</label>
-                      <select 
-                        value={block.data?.gnb || '홈'} 
-                        onChange={e => onUpdate(block.id, 'gnb', e.target.value)} 
-                        disabled={block.type === 'TODAY_BTV'}
-                        className={`w-full border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all ${block.type === 'TODAY_BTV' ? 'bg-[#12141c] text-slate-500 cursor-not-allowed' : 'bg-[#1a1c26]'}`}
-                      >
-                        {GNB_OPTIONS.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                      {block.type === 'TODAY_BTV' && <p className="text-[10px] text-slate-500 mt-1.5 ml-1">* Today B tv는 '홈' 메뉴로 고정됩니다.</p>}
-                    </div>
-                  )}
+                  {/* 모든 배너에 GNB 셀렉트 박스 노출 */}
+                  <div>
+                    <label className="block text-xs font-bold text-[#7387ff] mb-1.5 flex items-center gap-1"><Grid size={12}/> 편성 메뉴 (GNB)</label>
+                    <select 
+                      value={block.data?.gnb || '홈'} 
+                      onChange={e => onUpdate(block.id, 'gnb', e.target.value)} 
+                      disabled={block.type === 'TODAY_BTV' || block.type === 'SYNOPSIS_BANNER'}
+                      className={`w-full border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all ${(block.type === 'TODAY_BTV' || block.type === 'SYNOPSIS_BANNER') ? 'bg-[#12141c] text-slate-500 cursor-not-allowed' : 'bg-[#1a1c26]'}`}
+                    >
+                      {GNB_OPTIONS.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    {block.type === 'TODAY_BTV' && <p className="text-[10px] text-slate-500 mt-1.5 ml-1">* Today B tv는 '홈' 메뉴로 고정됩니다.</p>}
+                    {block.type === 'SYNOPSIS_BANNER' && <p className="text-[10px] text-slate-500 mt-1.5 ml-1">* 시놉시스 배너는 '콘텐츠' 메뉴로 고정됩니다.</p>}
+                  </div>
 
                   {block.type === 'TODAY_BTV' && (
                     <>
@@ -322,8 +326,9 @@
 
                   {block.type === 'LONG_BANNER' && (
                     <>
-                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">배너 주요 카피</label><textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={4} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
-                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 카피</label><textarea value={block.data?.copy || ''} onChange={e => onUpdate(block.id, 'copy', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 카피</label><textarea value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none resize-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">상단 배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                     </>
                   )}
@@ -333,6 +338,18 @@
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5">서브 문구</label><input type="text" value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">우측 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                    </>
+                  )}
+
+                  {block.type === 'SYNOPSIS_BANNER' && (
+                    <>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">메인 문구</label><input type="text" value={block.data?.mainTitle || ''} onChange={e => onUpdate(block.id, 'mainTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div><label className="block text-xs font-bold text-slate-400 mb-1.5">고지 문구 (서브)</label><input type="text" value={block.data?.subTitle || ''} onChange={e => onUpdate(block.id, 'subTitle', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                      <div className="flex gap-2">
+                        <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1.5">우측 뱃지 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-sm text-white outline-none" /></div>
+                        <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1.5">우측 텍스트 (이미지 없을때)</label><textarea value={block.data?.badgeText || ''} onChange={e => onUpdate(block.id, 'badgeText', e.target.value)} rows={2} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2 text-xs text-white outline-none resize-none" /></div>
+                      </div>
                       <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                     </>
                   )}
@@ -371,7 +388,7 @@
           <div className="flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar h-full">
             
             {/* 상단 툴바 영역 (GNB & 메모 추가 버튼) */}
-            <div className="w-full max-w-[1000px] flex justify-between items-center mb-4 mt-2">
+            <div className="w-full max-w-[1000px] flex justify-between items-center mb-6 mt-2">
               <div className="flex items-center gap-2 text-[#7387ff] bg-[#7387ff]/10 px-4 py-1.5 rounded-full border border-[#7387ff]/30 shadow-md">
                 <Grid size={14}/>
                 <span className="text-xs font-bold tracking-tight">편성 메뉴: {block.data?.gnb || '미지정'}</span>
@@ -412,7 +429,6 @@
                     <div className="absolute left-0 right-0 bottom-0 h-[28%] border-t-[1.5px] border-dashed border-orange-500 bg-orange-500/10 flex items-end justify-center pb-4"><span className="font-bold text-[10px] px-3 py-1 rounded bg-orange-600/90 text-white">하단 썸네일 침범 금지</span></div>
                   </div>
                 )}
-                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'FULL_PROMO_BANNER' ? (
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0">
@@ -452,7 +468,6 @@
                     </div>
                   ))}
                 </div>
-                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'GENERAL_BANNER' ? (
               <div className="relative w-full aspect-[16/9] max-w-[1000px] bg-[#0a0a0f] rounded-[24px] overflow-hidden shadow-2xl border border-[#303340] shrink-0">
@@ -513,11 +528,10 @@
                     <div className="absolute left-[80px] top-[10%] bottom-[45%] w-[40%] border-2 border-pink-500 bg-pink-500/10 flex items-start p-2"><span className="text-pink-300 text-xs font-bold bg-black/60 px-2 py-1 rounded">배경 텍스트 권장 영역</span></div>
                   </div>
                 )}
-                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'BIG_BANNER' ? (
-              <div className="w-full max-w-[850px] h-[250px] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0">
-                <div className="w-[40%] h-full flex flex-col justify-center items-start pl-10 pr-2 text-left z-10 shrink-0">
+              <div className="w-full max-w-[1000px] h-[250px] bg-[#0f111a] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0">
+                <div className="w-[45%] h-full flex flex-col justify-center items-start pl-12 pr-4 text-left z-10 shrink-0">
                   <h2 className="text-white font-black whitespace-pre-wrap leading-[1.1] text-[2.2rem] tracking-tight drop-shadow-xl">
                     {block.data?.mainTitle || '메인 문구 입력'}
                   </h2>
@@ -537,7 +551,6 @@
                     </div>
                   </div>
                 </div>
-                <OverlayMemos block={block} onUpdate={onUpdate} />
               </div>
             ) : block.type === 'STRIP_BANNER' ? (
               <div className="w-full max-w-[900px] aspect-[397/65.5] bg-[#1a1c26] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex items-center shrink-0 group cursor-pointer hover:border-[#7387ff]/50 transition-colors">
@@ -550,17 +563,38 @@
                   <h2 className="text-white font-extrabold text-[1.6rem] tracking-tight mb-1 truncate drop-shadow-md">{block.data?.mainTitle || '메인 문구 입력'}</h2>
                   <p className="text-slate-400 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
                 </div>
-                <OverlayMemos block={block} onUpdate={onUpdate} />
+              </div>
+            ) : block.type === 'SYNOPSIS_BANNER' ? (
+              <div className="w-[450px] h-[120px] bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] rounded-xl relative overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-[#303340] flex items-center justify-between p-6 shrink-0 mt-4 group cursor-pointer">
+                {/* 오로라 배경 (은은한 효과) */}
+                <div className="absolute -bottom-10 -right-10 w-[150px] h-[150px] bg-cyan-500/20 blur-3xl rounded-full pointer-events-none"></div>
+
+                <div className="flex flex-col justify-center z-10">
+                  <h2 className="text-white font-extrabold text-2xl tracking-tight whitespace-pre-wrap leading-tight drop-shadow-md">{block.data?.mainTitle || '메인 문구 입력'}</h2>
+                  {block.data?.subTitle && <p className="text-slate-300 font-bold text-[13px] mt-1 tracking-tight">{block.data.subTitle}</p>}
+                </div>
+                
+                <div className="z-10 shrink-0 ml-4 relative">
+                  {checkIsUrl(block.data?.imageUrl) ? (
+                    <img src={block.data.imageUrl} alt="badge" className="w-[80px] h-[80px] object-contain drop-shadow-lg" />
+                  ) : (
+                    <div className="bg-gradient-to-br from-[#ffffff] to-[#e0e0e0] rounded-lg flex items-center justify-center text-center px-4 py-3 shadow-[0_4px_10px_rgba(0,0,0,0.3)] border border-white/50 min-w-[90px] min-h-[60px]">
+                      <span className="text-[#111] font-black text-sm whitespace-pre-wrap leading-snug">{block.data?.badgeText || '뱃지 텍스트'}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="w-[320px] aspect-[129/181.5] bg-[#12141c] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col justify-center items-center text-center bg-cover bg-center shrink-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-[#12141c] opacity-70"></div>}
-                <FallbackText text={block.data?.imageUrl} alignClass="justify-center items-center text-center px-4" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none z-10"></div>
-                <div className="relative z-20 p-8 flex flex-col items-center justify-center gap-5 w-full h-full pointer-events-none">
-                  <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.3] drop-shadow-xl tracking-tight text-2xl mt-auto pb-4">{block.data?.copy || '세로형 배너 카피 입력'}</p>
+              <div className="w-[320px] aspect-[129/181.5] bg-[#0a0a0f] rounded-[24px] relative overflow-hidden shadow-2xl border border-[#303340] flex flex-col shrink-0">
+                <div className="flex-1 w-full bg-[#1a1c26] relative bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={48} className="text-white/10"/></div>}
+                  <FallbackText text={block.data?.imageUrl} alignClass="justify-center items-center text-center px-4" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent h-full pointer-events-none"></div>
                 </div>
-                <OverlayMemos block={block} onUpdate={onUpdate} />
+                <div className="relative z-20 px-8 pb-10 pt-4 flex flex-col items-center text-center w-full bg-[#0a0a0f]">
+                  <p className="text-white font-extrabold whitespace-pre-wrap leading-[1.3] tracking-tight text-2xl drop-shadow-md">{block.data?.copy || '메인 카피 입력'}</p>
+                  {block.data?.subTitle && <p className="text-slate-400 font-medium text-sm mt-3 whitespace-pre-wrap leading-snug">{block.data.subTitle}</p>}
+                </div>
               </div>
             )}
 
@@ -568,6 +602,9 @@
               <ImageIcon size={12}/> 
               {block.type === 'GENERAL_BANNER' ? '배너 포커스 시 배경과 카드가 어떻게 어우러지는지 시뮬레이션 합니다.' : '현재 매체의 렌더링 시뮬레이션 입니다.'}
             </div>
+
+            {/* 시뮬레이터 전체 위에 띄워지는 독립된 메모 영역 */}
+            <OverlayMemos block={block} onUpdate={onUpdate} />
           </div>
         </div>
       );
@@ -587,6 +624,8 @@
       const [modalState, setModalState] = useState({ isOpen: false, payloads: [] });
 
       const handleMetaChange = (e) => setCampaignMeta({ ...campaignMeta, [e.target.name]: e.target.value });
+      
+      // X, Y 좌표 저장 시 충돌 방지용 prevAssets 업데이트 로직
       const handleAssetChange = (id, field, value) => {
         setAssets(prevAssets => prevAssets.map(asset => 
           asset.id === id ? { ...asset, data: { ...asset.data, [field]: value } } : asset
@@ -610,6 +649,7 @@
         else if (type === 'BIG_BANNER') newData = { ...DEFAULT_BIG_BANNER };
         else if (type === 'LONG_BANNER') newData = { ...DEFAULT_LONG_BANNER };
         else if (type === 'STRIP_BANNER') newData = { ...DEFAULT_STRIP_BANNER };
+        else if (type === 'SYNOPSIS_BANNER') newData = { ...DEFAULT_SYNOPSIS_BANNER };
         
         newData.startDate = campaignMeta.startDate;
         newData.dueDate = campaignMeta.dueDate;
@@ -628,9 +668,9 @@
 
       const handleExport = () => {
         const payloads = assets.map(asset => {
-          const targetGnb = asset.type === 'TODAY_BTV' ? '홈' : (asset.data.gnb || '미지정');
+          const targetGnb = asset.type === 'TODAY_BTV' ? '홈' : (asset.type === 'SYNOPSIS_BANNER' ? '콘텐츠' : (asset.data.gnb || '미지정'));
           const dateInfo = asset.data.startDate ? `${asset.data.startDate} ~ ${asset.data.dueDate}` : '미지정';
-          const description = `h3. 📌 캠페인 공통 정보\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | ${targetGnb} |\n| *편성 일정* | ${dateInfo} |\n\n---\n\nh3. 🖼️ 상세 기획\n* ${asset.type === 'TODAY_BTV' ? `문구: ${asset.data.mainTitle}` : asset.type === 'BIG_BANNER' ? `타이틀: ${asset.data.mainTitle}` : asset.type === 'STRIP_BANNER' ? `메인: ${asset.data.mainTitle}` : asset.type === 'FULL_PROMO_BANNER' ? `메인: ${asset.data.mainCopy}` : `카피: ${asset.data.bannerCopy || asset.data.previewTitle}`}\n* 랜딩: ${asset.data.landingValue}\n* 비고: ${asset.data.note || '없음'}`;
+          const description = `h3. 📌 캠페인 공통 정보\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | ${targetGnb} |\n| *편성 일정* | ${dateInfo} |\n\n---\n\nh3. 🖼️ 상세 기획\n* ${asset.type === 'TODAY_BTV' ? `문구: ${asset.data.mainTitle}` : asset.type === 'BIG_BANNER' ? `타이틀: ${asset.data.mainTitle}` : asset.type === 'STRIP_BANNER' ? `메인: ${asset.data.mainTitle}` : asset.type === 'FULL_PROMO_BANNER' ? `메인: ${asset.data.mainCopy}` : asset.type === 'SYNOPSIS_BANNER' ? `메인: ${asset.data.mainTitle}` : `카피: ${asset.data.bannerCopy || asset.data.previewTitle}`}\n* 랜딩: ${asset.data.landingValue}\n* 비고: ${asset.data.note || '없음'}`;
           return { action: "CREATE_JIRA_ISSUE", data: { issueTitle: `[디자인] ${campaignMeta.campaignName} - ${asset.name}`, description } };
         });
         setModalState({ isOpen: true, payloads });
@@ -764,7 +804,7 @@
                                   <span className="truncate">{asset.name}</span>
                                 </td>
                                 <td className="p-5 font-medium text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                                  {asset.type === 'GENERAL_BANNER' ? `${asset.data.colType} 배너` : asset.type === 'BIG_BANNER' ? '빅배너' : asset.type === 'STRIP_BANNER' ? '띠배너' : asset.type === 'FULL_PROMO_BANNER' ? '풀프로모션' : asset.type === 'LONG_BANNER' ? '롱배너' : 'Today B tv'}
+                                  {asset.type === 'GENERAL_BANNER' ? `${asset.data.colType} 배너` : asset.type === 'BIG_BANNER' ? '빅배너' : asset.type === 'STRIP_BANNER' ? '띠배너' : asset.type === 'FULL_PROMO_BANNER' ? '풀프로모션' : asset.type === 'LONG_BANNER' ? '롱배너' : asset.type === 'SYNOPSIS_BANNER' ? '시놉시스 배너' : 'Today B tv'}
                                 </td>
                                 <td className="p-5 font-bold text-[#7387ff] whitespace-nowrap overflow-hidden text-ellipsis">
                                   [디자인] {campaignMeta.campaignName} - {asset.name}
