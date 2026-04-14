@@ -780,7 +780,10 @@
           const description = `h3. 📌 캠페인 공통 정보\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | ${targetGnb} |\n| *편성 일정* | ${dateInfo} |\n\n---\n\nh3. 🖼️ 상세 기획\n* ${asset.type === 'TODAY_BTV' ? `문구: ${asset.data.mainTitle}` : asset.type === 'BIG_BANNER' ? `타이틀: ${asset.data.mainTitle}` : asset.type === 'STRIP_BANNER' ? `메인: ${asset.data.mainTitle}` : asset.type === 'FULL_PROMO_BANNER' ? `메인: ${asset.data.mainCopy}` : asset.type === 'SYNOPSIS_BANNER' ? `메인: ${asset.data.mainTitle}` : `카피: ${asset.data.bannerCopy || asset.data.previewTitle}`}\n* 랜딩: ${asset.data.landingValue}\n* 비고: ${asset.data.note || '없음'}`;
           return { action: "CREATE_JIRA_ISSUE", data: { issueTitle: `[디자인] ${campaignMeta.campaignName} - ${asset.name}`, description } };
         });
-        setModalState({ isOpen: true, payloads });
+        
+        // 🌟 확장 프로그램으로 데이터 쏘기!
+        const event = new CustomEvent('SEND_TO_JIRA_EXTENSION', { detail: payloads });
+        window.dispatchEvent(event);
       };
 
       const copyToClipboard = () => {
