@@ -774,15 +774,14 @@
       };
 
       const handleExport = () => {
-        const payloads = assets.map(asset => {
-          const targetGnb = asset.type === 'TODAY_BTV' ? '홈' : (asset.type === 'SYNOPSIS_BANNER' ? '콘텐츠' : (asset.data.gnb || '미지정'));
-          const dateInfo = asset.data.startDate ? `${asset.data.startDate} ~ ${asset.data.dueDate}` : '미지정';
-          const description = `h3. 📌 캠페인 공통 정보\n| *캠페인명* | ${campaignMeta.campaignName} |\n| *편성 GNB* | ${targetGnb} |\n| *편성 일정* | ${dateInfo} |\n\n---\n\nh3. 🖼️ 상세 기획\n* ${asset.type === 'TODAY_BTV' ? `문구: ${asset.data.mainTitle}` : asset.type === 'BIG_BANNER' ? `타이틀: ${asset.data.mainTitle}` : asset.type === 'STRIP_BANNER' ? `메인: ${asset.data.mainTitle}` : asset.type === 'FULL_PROMO_BANNER' ? `메인: ${asset.data.mainCopy}` : asset.type === 'SYNOPSIS_BANNER' ? `메인: ${asset.data.mainTitle}` : `카피: ${asset.data.bannerCopy || asset.data.previewTitle}`}\n* 랜딩: ${asset.data.landingValue}\n* 비고: ${asset.data.note || '없음'}`;
-          return { action: "CREATE_JIRA_ISSUE", data: { issueTitle: `[디자인] ${campaignMeta.campaignName} - ${asset.name}`, description } };
-        });
+        // 딱 1건의 테스트용 데이터만 고정으로 만듭니다.
+        const testData = {
+          title: "[디자인 테스트] B tv 캠페인 연동 테스트",
+          desc: "이 글자가 보인다면 확장 프로그램 연동에 성공한 것입니다!\n만세!"
+        };
         
-        // 🌟 확장 프로그램으로 데이터 쏘기!
-        const event = new CustomEvent('SEND_TO_JIRA_EXTENSION', { detail: payloads });
+        // 확장 프로그램(content.js)으로 신호 발사!
+        const event = new CustomEvent('TEST_JIRA_SEND', { detail: testData });
         window.dispatchEvent(event);
       };
 
