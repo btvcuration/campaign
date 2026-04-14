@@ -79,11 +79,11 @@
     };
 
     const DEFAULT_BIG_BANNER = {
-      subType: '기본형', // '기본형' | '가입하기형'
+      subType: '기본형', 
       mainTitle: '메인 문구', 
       subTitle: '서브 타이틀', 
       desc: '상세 설명글을 입력해주세요.', 
-      buttonText: '10,000원/월 가입하기', // 고정 문구로 설정
+      buttonText: '바로가기',
       imageUrl: '', 
       logoImg: '',
       landingValue: 'UI_PATH: /join', 
@@ -309,7 +309,7 @@
                         
                         {/* 가입하기형일 때만 로고 이미지 필드 노출 */}
                         {block.data?.subType === '가입하기형' && (
-                          <div><label className="block text-xs font-bold text-slate-400 mb-1.5">브랜드 로고 URL</label><input type="text" value={block.data?.logoImg || ''} onChange={e => onUpdate(block.id, 'logoImg', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" placeholder="비어있을 경우 '월정액 로고'로 표시됩니다." /></div>
+                          <div><label className="block text-xs font-bold text-slate-400 mb-1.5">브랜드 로고 URL (좌측 상단)</label><input type="text" value={block.data?.logoImg || ''} onChange={e => onUpdate(block.id, 'logoImg', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" placeholder="비어있을 경우 '월정액 로고'로 표시됩니다." /></div>
                         )}
 
                         <div className="flex gap-2">
@@ -317,7 +317,13 @@
                           <div className="flex-1"><label className="block text-[10px] font-bold text-slate-400 mb-1.5">상세 설명글</label><input type="text" value={block.data?.desc || ''} onChange={e => onUpdate(block.id, 'desc', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                         </div>
                         
-                        <div><label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">배경 이미지 URL</label><input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
+                        {/* 버튼명 폼 삭제, 이미지 URL만 남김 */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-400 mb-1.5 mt-2">
+                            {(!block.data?.subType || block.data?.subType === '기본형') ? '우측 이미지 URL' : '배경 이미지 URL'}
+                          </label>
+                          <input type="text" value={block.data?.imageUrl || ''} onChange={e => onUpdate(block.id, 'imageUrl', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" />
+                        </div>
                         
                         <div><label className="block text-xs font-bold text-slate-400 mb-1.5">랜딩값</label><input type="text" value={block.data?.landingValue || ''} onChange={e => onUpdate(block.id, 'landingValue', e.target.value)} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white outline-none" /></div>
                       </div>
@@ -570,7 +576,7 @@
                         <p className="text-slate-300 font-medium text-[13px] tracking-tight whitespace-pre-wrap">{block.data?.desc || '상세 설명글을 입력해주세요.'}</p>
                       </div>
                       <div className="inline-flex items-center justify-center bg-[#4f3df6] hover:bg-[#6252ff] text-white px-5 py-1.5 rounded-full font-bold text-xs shadow-lg transition-colors mt-5 cursor-pointer">
-                        {block.data?.buttonText || '바로가기'}
+                        바로가기
                       </div>
                     </div>
                     <div className="flex-1 h-full py-4 pr-5 flex items-center justify-end relative z-0">
@@ -584,18 +590,16 @@
                   </>
                 ) : (
                   <>
-                    {/* 가입하기형: 배경 이미지를 우측 상단 정렬 처리 (일반 배너 프리뷰 방식 참고) */}
+                    {/* 가입하기형: 이미지 w-[70%] 원복 및 최적화된 그라데이션 적용 */}
                     <div className="absolute inset-0 z-0">
                       <div className="absolute right-0 top-0 w-[70%] h-full bg-no-repeat bg-cover bg-right-top transition-all duration-500" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
                         {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 to-[#0a0a0f] flex items-center justify-end pr-32"><ImageIcon size={64} className="text-white/10"/></div>}
                         <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-32" />
                       </div>
-                      {/* 좌측 텍스트 가독성을 위한 암전 그라데이션 */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#0f111a] from-[35%] via-[#0f111a]/60 via-[50%] to-transparent to-[75%] pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#0f111a] from-[15%] via-[#0f111a]/60 via-[35%] to-transparent to-[50%] pointer-events-none"></div>
                     </div>
 
                     <div className="relative z-10 flex flex-col justify-center h-full px-12 max-w-[60%]">
-                      {/* 로고 URL 없을 시 '월정액 로고' 노출 */}
                       {checkIsUrl(block.data?.logoImg) ? (
                         <img src={block.data.logoImg} alt="logo" className="h-8 mb-3 object-contain object-left drop-shadow-lg" />
                       ) : (
@@ -608,9 +612,8 @@
                       {block.data?.subTitle && <p className="text-red-500 font-bold text-base mb-1 drop-shadow-sm">{block.data.subTitle}</p>}
                       <p className="text-slate-300 text-[14px] font-medium leading-snug whitespace-pre-wrap mb-6 drop-shadow-md">{block.data?.desc || '상세 설명글을 입력해주세요.'}</p>
                       
-                      {/* 버튼: 기본형 바로가기 버튼과 색상 및 스타일 통일 */}
                       <div className="bg-[#4f3df6] hover:bg-[#6252ff] text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-[#4f3df6]/20 transition-all cursor-pointer w-max flex items-center justify-center">
-                        {block.data?.buttonText || '10,000원/월 가입하기'}
+                        10,000원/월 가입하기
                       </div>
                     </div>
                   </>
