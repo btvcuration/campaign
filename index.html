@@ -57,6 +57,15 @@
       { type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '397:65.5', size: '가변', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' },
       { type: 'SYNOPSIS_BANNER', name: '시놉시스 배너', icon: RectangleHorizontal, ratio: '가변', size: '534 x 160', desc: '콘텐츠 시놉시스 화면에 노출되는 쿠폰/할인 띠배너.' }
     ];
+    
+    const getAssetIcon = (type) => {
+      const spec = BANNER_SPECS.find(s => s.type === type);
+      if (spec) {
+        const IconComponent = spec.icon;
+        return <IconComponent size={16} />;
+      }
+      return <LayoutTemplate size={16} />;
+    };
 
     const DEFAULT_TODAY_BTV = {
       topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', 
