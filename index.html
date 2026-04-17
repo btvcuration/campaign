@@ -816,9 +816,16 @@
         // 3. 확장 프로그램으로 신호 발사! (객체 형태 전송)
         const event = new CustomEvent('TEST_JIRA_SEND', { detail: finalData });
         window.dispatchEvent(event);
+      };
+      
+      const activeAsset = assets.find(a => a.id === activeTabId);
 
-        // 🚨 [매우 중요] 기존에 모달창을 띄우는 코드가 있었다면 반드시 finalData가 아닌 배열인 childIssues를 넘겨야 title 에러가 나지 않습니다.
-        // setModalState({ isOpen: true, payloads: childIssues });
+      const copyToClipboard = () => {
+        if (!modalState.payloads || modalState.payloads.length === 0) return;
+        const text = modalState.payloads.map(p => `${p.title}\n${p.desc}`).join('\n\n---\n\n');
+        navigator.clipboard.writeText(text).then(() => {
+          alert("마크다운 텍스트가 클립보드에 복사되었습니다.");
+        });
       };
 
       return (
