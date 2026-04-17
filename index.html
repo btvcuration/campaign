@@ -784,7 +784,7 @@
         if (activeTabId === id) setActiveTabId('OVERVIEW');
       };
 
-      // ✅ 갓(God) 모드 캡처가 탑재된 Jira 전송 로직
+      // ✅ GNB 레이블 및 WBS 간트 날짜 연동을 위한 handleExport
       const handleExport = async () => {
         if (!assets || assets.length === 0) return alert("전송할 배너 기획안이 없습니다.");
         const meta = campaignMeta || {};
@@ -800,26 +800,28 @@
 
         for (const asset of assets) {
           setActiveTabId(asset.id);
-          // 이미지가 화면에 완전히 그려질 시간(0.8초) 부여
           await new Promise(r => setTimeout(r, 800)); 
           
           const element = document.getElementById('capture-preview-area');
           if (element) {
-            // 🌟 1. 시뮬레이터의 정확한 위치와 크기를 잽니다.
             const rect = element.getBoundingClientRect();
             const cropData = { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
 
-            // 🌟 2. 우체부(content.js)에게 사진을 찍어오라고 명령하고 기다립니다.
             const dataUrl = await new Promise((resolve) => {
-              const listener = (e) => {
+              const timeout = setTimeout(() => {
                 window.removeEventListener('RECEIVE_SCREENSHOT', listener);
-                resolve(e.detail.dataUrl); // 크롭된 이미지 수신!
+                resolve(null);
+              }, 3000);
+              const listener = (e) => {
+                clearTimeout(timeout);
+                window.removeEventListener('RECEIVE_SCREENSHOT', listener);
+                resolve(e.detail.dataUrl); 
               };
               window.addEventListener('RECEIVE_SCREENSHOT', listener);
               window.dispatchEvent(new CustomEvent('REQUEST_SCREENSHOT', { detail: cropData }));
             });
 
-            capturedImages[asset.id] = dataUrl;
+            if (dataUrl) capturedImages[asset.id] = dataUrl;
           }
         }
 
@@ -835,7 +837,10 @@
             title: `[디자인] ${asset?.name || '미지정'} 제작`,
             desc: `h3. 🖼️ 상세 기획\n* *편성 GNB*: ${targetGnb}\n* *편성 일정*: ${dateInfo}\n* *주요 카피*: ${copyText}\n* *랜딩 URL*: ${data.landingValue || '미지정'}\n* *비고*: ${data.note || '없음'}\n\nh3. 🎨 시뮬레이터 캡처 시안\n!preview.png!`,
             assignee: cleanAssignee,
-            imageData: capturedImages[asset.id] 
+            imageData: capturedImages[asset.id],
+            startDate: data.startDate, 
+            dueDate: data.dueDate,
+            gnb: targetGnb // 🌟 레이블로 쓸 GNB 데이터를 추가로 넘깁니다!
           };
         });
 
@@ -843,7 +848,9 @@
           parent: {
             title: `[프로모션] ${meta.campaignName || "미지정 캠페인"}`,
             desc: `h3. 📌 캠페인 공통 정보\n* *캠페인명*: ${meta.campaignName || "미지정"}\n* *배포 일정*: ${meta.fixVersion || "미지정"}\n* *총 요청 건수*: ${assets.length}건\n\n하위 작업(Sub-task)으로 개별 배너 기획안이 첨부되어 있습니다.`,
-            assignee: cleanAssignee
+            assignee: cleanAssignee,
+            startDate: meta.startDate,
+            dueDate: meta.dueDate
           },
           children: childIssues 
         };
