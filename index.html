@@ -6,6 +6,7 @@
   <title>B tv Campaign Manager Pro</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script type="importmap">
@@ -427,7 +428,8 @@
           {/* ========================================================= */}
           {/* 2. 시뮬레이터 프리뷰 영역 (Right Column) */}
           {/* ========================================================= */}
-          <div className="flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar h-full">
+          {/* 🌟 [추가됨] 화면 캡처를 위해 id 부여 */}
+          <div id="capture-preview-area" className="flex-1 flex flex-col items-center justify-start pt-16 pb-8 px-8 bg-[#06070a] border border-[#1a1c26] rounded-2xl overflow-y-auto relative shadow-inner min-w-[700px] custom-scrollbar h-full">
             
             {/* 상단 툴바 영역 (GNB & 메모 추가 버튼) */}
             <div className="w-full max-w-[1000px] flex justify-between items-center mb-6 mt-2">
@@ -782,33 +784,51 @@
         if (activeTabId === id) setActiveTabId('OVERVIEW');
       };
 
-      // ✅ 수정된 Jira 전송 로직 (담당자 필수값 강제 & ID 추출)
-      const handleExport = () => {
+      // 🌟 [추가됨] 캡처 기능이 탑재된 최종 지라 전송 로직
+      const handleExport = async () => {
         if (!assets || assets.length === 0) return alert("전송할 배너 기획안이 없습니다.");
         const meta = campaignMeta || {};
 
-        // 🚨 1. 담당자 누락 방어 로직
         let rawAssignee = meta.assignee || '';
         if (rawAssignee.trim() === '' || rawAssignee === '담당자') {
-          return alert("🚨 담당자가 누락되었습니다!\n왼쪽 [배포 정보] 탭에서 본인의 '지라 로그인 ID (@skbroadband 이전 값)'를 반드시 입력해 주세요.");
+          return alert("🚨 담당자가 누락되었습니다!\n왼쪽 [배포 정보] 탭에서 본인의 '지라 로그인 ID'를 반드시 입력해 주세요.");
         }
-        
-        // 🛡️ 2. 이메일 전체를 넣었을 경우를 대비해 '@' 앞부분(ID)만 추출
         const cleanAssignee = rawAssignee.split('@')[0].trim();
+
+        alert("📸 시안 이미지를 추출합니다.\n화면 탭이 자동으로 전환되니 잠시만 마우스 클릭을 멈춰주세요!");
+        let capturedImages = {};
+
+        // 마법의 시간: 탭을 하나씩 돌면서 스크린샷 찰칵!
+        for (const asset of assets) {
+          setActiveTabId(asset.id);
+          // 이미지가 로딩되고 화면이 그려질 시간(0.8초)을 충분히 줍니다.
+          await new Promise(r => setTimeout(r, 800)); 
+          
+          const element = document.getElementById('capture-preview-area');
+          if (element) {
+            try {
+              // 화면 캡처 수행 (useCORS 옵션으로 외부 이미지 허용 시도)
+              const canvas = await window.html2canvas(element, { useCORS: true, backgroundColor: '#06070a' });
+              capturedImages[asset.id] = canvas.toDataURL('image/png'); // Base64 이미지로 저장
+            } catch (e) {
+              console.error("캡처 실패:", e);
+            }
+          }
+        }
+
+        alert("🚀 캡처 완료! 지라(Jira) 서버로 데이터를 쏩니다.");
 
         const childIssues = assets.map(asset => {
           const data = asset?.data || {};
           const targetGnb = asset?.type === 'TODAY_BTV' ? '홈' : (asset?.type === 'SYNOPSIS_BANNER' ? '콘텐츠' : (data.gnb || '미지정'));
           const dateInfo = data.startDate ? `${data.startDate} ~ ${data.dueDate || ''}` : '미지정';
-          let copyText = '';
-          if (['TODAY_BTV', 'BIG_BANNER', 'SYNOPSIS_BANNER', 'STRIP_BANNER'].includes(asset?.type)) copyText = data.mainTitle || '미지정';
-          else if (asset?.type === 'FULL_PROMO_BANNER') copyText = data.mainCopy || '미지정';
-          else copyText = data.bannerCopy || data.previewTitle || '미지정';
+          let copyText = data.mainTitle || data.copy || data.bannerCopy || data.previewTitle || '미지정';
 
           return {
             title: `[디자인] ${asset?.name || '미지정'} 제작`,
-            desc: `h3. 🖼️ 상세 기획\n* *편성 GNB*: ${targetGnb}\n* *편성 일정*: ${dateInfo}\n* *주요 카피*: ${copyText}\n* *랜딩 URL*: ${data.landingValue || '미지정'}\n* *비고*: ${data.note || '없음'}`,
-            assignee: cleanAssignee // 🌟 정제된 ID 주입
+            desc: `h3. 🖼️ 상세 기획\n* *편성 GNB*: ${targetGnb}\n* *편성 일정*: ${dateInfo}\n* *주요 카피*: ${copyText}\n* *랜딩 URL*: ${data.landingValue || '미지정'}\n* *비고*: ${data.note || '없음'}\n\nh3. 🎨 시뮬레이터 캡처 시안\n!preview.png!`,
+            assignee: cleanAssignee,
+            imageData: capturedImages[asset.id] // 📸 캡처한 이미지 데이터를 백그라운드로 넘김
           };
         });
 
@@ -816,7 +836,7 @@
           parent: {
             title: `[프로모션] ${meta.campaignName || "미지정 캠페인"}`,
             desc: `h3. 📌 캠페인 공통 정보\n* *캠페인명*: ${meta.campaignName || "미지정"}\n* *배포 일정*: ${meta.fixVersion || "미지정"}\n* *총 요청 건수*: ${assets.length}건\n\n하위 작업(Sub-task)으로 개별 배너 기획안이 첨부되어 있습니다.`,
-            assignee: cleanAssignee // 🌟 정제된 ID 주입
+            assignee: cleanAssignee
           },
           children: childIssues 
         };
