@@ -782,47 +782,45 @@
         if (activeTabId === id) setActiveTabId('OVERVIEW');
       };
 
+      // ✅ 수정된 Jira 전송 로직 (담당자 필수값 강제 & ID 추출)
       const handleExport = () => {
-        // 방어 로직: 에셋(배너)이 하나도 없으면 전송 중단
-        if (!assets || assets.length === 0) {
-          alert("전송할 배너 기획안이 없습니다. 슬롯을 먼저 추가해 주세요.");
-          return;
-        }
+        if (!assets || assets.length === 0) return alert("전송할 배너 기획안이 없습니다.");
+        const meta = campaignMeta || {};
 
-        // 1. 자식 데이터 (개별 배너 리스트 - 기존 UI 모달이 읽을 수 있는 배열 구조)
+        // 🚨 1. 담당자 누락 방어 로직
+        let rawAssignee = meta.assignee || '';
+        if (rawAssignee.trim() === '' || rawAssignee === '담당자') {
+          return alert("🚨 담당자가 누락되었습니다!\n왼쪽 [배포 정보] 탭에서 본인의 '지라 로그인 ID (@skbroadband 이전 값)'를 반드시 입력해 주세요.");
+        }
+        
+        // 🛡️ 2. 이메일 전체를 넣었을 경우를 대비해 '@' 앞부분(ID)만 추출
+        const cleanAssignee = rawAssignee.split('@')[0].trim();
+
         const childIssues = assets.map(asset => {
-          // 안전장치: 데이터가 비어있을 경우를 대비
           const data = asset?.data || {};
-          
           const targetGnb = asset?.type === 'TODAY_BTV' ? '홈' : (asset?.type === 'SYNOPSIS_BANNER' ? '콘텐츠' : (data.gnb || '미지정'));
           const dateInfo = data.startDate ? `${data.startDate} ~ ${data.dueDate || ''}` : '미지정';
-          
           let copyText = '';
-          if (['TODAY_BTV', 'BIG_BANNER', 'SYNOPSIS_BANNER', 'STRIP_BANNER'].includes(asset?.type)) {
-            copyText = data.mainTitle || '미지정';
-          } else if (asset?.type === 'FULL_PROMO_BANNER') {
-            copyText = data.mainCopy || '미지정';
-          } else {
-            copyText = data.bannerCopy || data.previewTitle || '미지정';
-          }
+          if (['TODAY_BTV', 'BIG_BANNER', 'SYNOPSIS_BANNER', 'STRIP_BANNER'].includes(asset?.type)) copyText = data.mainTitle || '미지정';
+          else if (asset?.type === 'FULL_PROMO_BANNER') copyText = data.mainCopy || '미지정';
+          else copyText = data.bannerCopy || data.previewTitle || '미지정';
 
           return {
             title: `[디자인] ${asset?.name || '미지정'} 제작`,
-            desc: `h3. 🖼️ 상세 기획\n* *편성 GNB*: ${targetGnb}\n* *편성 일정*: ${dateInfo}\n* *주요 카피*: ${copyText}\n* *랜딩 URL*: ${data.landingValue || '미지정'}\n* *비고*: ${data.note || '없음'}`
+            desc: `h3. 🖼️ 상세 기획\n* *편성 GNB*: ${targetGnb}\n* *편성 일정*: ${dateInfo}\n* *주요 카피*: ${copyText}\n* *랜딩 URL*: ${data.landingValue || '미지정'}\n* *비고*: ${data.note || '없음'}`,
+            assignee: cleanAssignee // 🌟 정제된 ID 주입
           };
         });
 
-        // 2. 부모 데이터 (Jira 확장 프로그램 전용 패키징)
-        const meta = campaignMeta || {};
         const finalData = {
           parent: {
             title: `[프로모션] ${meta.campaignName || "미지정 캠페인"}`,
-            desc: `h3. 📌 캠페인 공통 정보\n* *캠페인명*: ${meta.campaignName || "미지정"}\n* *배포 일정*: ${meta.fixVersion || "미지정"}\n* *총 요청 건수*: ${assets.length}건\n\n하위 작업(Sub-task)으로 개별 배너 기획안이 첨부되어 있습니다.`
+            desc: `h3. 📌 캠페인 공통 정보\n* *캠페인명*: ${meta.campaignName || "미지정"}\n* *배포 일정*: ${meta.fixVersion || "미지정"}\n* *총 요청 건수*: ${assets.length}건\n\n하위 작업(Sub-task)으로 개별 배너 기획안이 첨부되어 있습니다.`,
+            assignee: cleanAssignee // 🌟 정제된 ID 주입
           },
           children: childIssues 
         };
         
-        // 3. 확장 프로그램으로 신호 발사! (객체 형태 전송)
         const event = new CustomEvent('TEST_JIRA_SEND', { detail: finalData });
         window.dispatchEvent(event);
       };
