@@ -769,10 +769,10 @@
               return {
                 id: `ai-asset-${index}-${timestamp}`,
                 type: aiAsset.type,
-                name: `${aiAsset.type.replace('_', ' ')} (AI)`,
+                name: aiAsset.name || `${aiAsset.type.replace('_', ' ')} (AI)`, 
                 data: { 
                   ...baseData, 
-                  ...aiAsset,
+                  ...aiAsset.data, // GEMS가 보낸 세부 데이터를 data 객체에 병합
                   startDate: payload.campaignMeta?.startDate || baseData.startDate,
                   dueDate: payload.campaignMeta?.dueDate || baseData.dueDate
                 } 
