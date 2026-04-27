@@ -932,122 +932,125 @@
       return (
         <div className="flex h-screen w-full bg-[#0a0812] text-slate-200 overflow-hidden select-none">
           
+          {/* 1. 좌측 슬림 네비게이션 바 */}
           <nav className="w-[72px] bg-[#0f111a] border-r border-[#262833] flex flex-col items-center py-6 z-30 shrink-0">
             <div className="w-11 h-11 bg-gradient-to-br from-[#7387ff] to-[#4631e6] rounded-xl flex items-center justify-center mb-10 shadow-lg shadow-[#7387ff]/20">
               <Tv className="text-white" size={24} />
             </div>
             <div className="flex flex-col gap-6 w-full px-3">
-              <button onClick={() => setAppView('AI_COPILOT')} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${appView === 'AI_COPILOT' ? 'bg-[#262833] text-[#7387ff] shadow-inner' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`} title="AI 코파일럿">
-                <Bot size={26} />
-              </button>
-              <button onClick={() => setAppView('CAMPAIGN_MANAGER')} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${appView === 'CAMPAIGN_MANAGER' ? 'bg-[#262833] text-[#7387ff] shadow-inner' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`} title="캠페인 매니저">
+              {/* 캠페인 매니저 버튼만 심플하게 남김 (클릭 이벤트 제거) */}
+              <div className="w-full aspect-square rounded-xl flex items-center justify-center bg-[#262833] text-[#7387ff] shadow-inner cursor-default" title="캠페인 매니저">
                 <LayoutTemplate size={26} />
+              </div>
+            </div>
+            <div className="mt-auto w-full px-3">
+              <button className="w-full aspect-square rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-[#1a1c26] transition-all">
+                <Settings size={24} />
               </button>
             </div>
-            <div className="mt-auto w-full px-3"><button className="w-full aspect-square rounded-xl flex items-center justify-center text-slate-500 hover:text-white hover:bg-[#1a1c26] transition-all"><Settings size={24} /></button></div>
           </nav>
 
-              <aside className="w-[320px] bg-[#12141c] border-r border-[#262833] flex flex-col h-full z-10 animate-in slide-in-from-left-4 shrink-0">
-                <div className="p-6 border-b border-[#262833] bg-[#0f111a] flex flex-col gap-1">
-                  <h1 className="text-xl font-black text-white tracking-tight">B tv Campaign</h1>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">CMS Orchestrator</p>
+          {/* 2. 사이드바 (메타 정보 폼) */}
+          <aside className="w-[320px] bg-[#12141c] border-r border-[#262833] flex flex-col h-full z-10 animate-in slide-in-from-left-4 shrink-0">
+            <div className="p-6 border-b border-[#262833] bg-[#0f111a] flex flex-col gap-1">
+              <h1 className="text-xl font-black text-white tracking-tight">B tv Campaign</h1>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">CMS Orchestrator</p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+              <button onClick={handleExport} className="w-full bg-gradient-to-r from-[#4f3df6] to-[#7387ff] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                <Send size={16} /> Jira 다중 일감 전송 <span className="bg-white/20 px-2 py-0.5 rounded-md text-xs">{assets.length}</span>
+              </button>
+              
+              <div>
+                <h2 className="text-[11px] font-bold text-[#7387ff] uppercase mb-4 flex items-center gap-1.5"><Layout size={14}/> 캠페인 기본 정보</h2>
+                <div className="space-y-4">
+                  <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">프로젝트명</label><input type="text" name="campaignName" value={campaignMeta.campaignName} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">타겟 대상</label><input type="text" name="target" value={campaignMeta.target} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">톤앤매너</label><input type="text" name="toneAndManner" value={campaignMeta.toneAndManner} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                  <button onClick={handleExport} className="w-full bg-gradient-to-r from-[#4f3df6] to-[#7387ff] text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:brightness-110 active:scale-95 transition-all">
-                    <Send size={16} /> Jira 다중 일감 전송 <span className="bg-white/20 px-2 py-0.5 rounded-md text-xs">{assets.length}</span>
-                  </button>
-                  
-                  <div>
-                    <h2 className="text-[11px] font-bold text-[#7387ff] uppercase mb-4 flex items-center gap-1.5"><Layout size={14}/> 캠페인 기본 정보</h2>
-                    <div className="space-y-4">
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">프로젝트명</label><input type="text" name="campaignName" value={campaignMeta.campaignName} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">타겟 대상</label><input type="text" name="target" value={campaignMeta.target} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">톤앤매너</label><input type="text" name="toneAndManner" value={campaignMeta.toneAndManner} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
+              </div>
+
+              <div>
+                <h2 className="text-[11px] font-bold text-[#7387ff] uppercase mb-4 flex items-center gap-1.5"><Calendar size={14}/> 릴리스 및 배포 정보</h2>
+                <div className="space-y-4">
+                  <div className="bg-[#0a0812] p-3 rounded-xl border border-[#262833]">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div><label className="block text-[10px] text-slate-500 mb-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
+                      <div><label className="block text-[10px] text-slate-500 mb-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
                     </div>
+                    <button onClick={applyDatesToAll} className="w-full py-1.5 bg-[#1a1c26] hover:bg-[#262833] border border-[#303340] rounded text-[10px] font-bold text-slate-400 transition-colors">
+                      ↓ 전체 배너에 일정 일괄 적용
+                    </button>
                   </div>
+                  <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">담당자 지정</label><input type="text" name="assignee" value={campaignMeta.assignee} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
+                </div>
+              </div>
+            </div>
+          </aside>
 
-                  <div>
-                    <h2 className="text-[11px] font-bold text-[#7387ff] uppercase mb-4 flex items-center gap-1.5"><Calendar size={14}/> 릴리스 및 배포 정보</h2>
-                    <div className="space-y-4">
-                      <div className="bg-[#0a0812] p-3 rounded-xl border border-[#262833]">
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                          <div><label className="block text-[10px] text-slate-500 mb-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
-                          <div><label className="block text-[10px] text-slate-500 mb-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate} onChange={handleMetaChange} className="w-full bg-transparent text-xs text-white outline-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
-                        </div>
-                        <button onClick={applyDatesToAll} className="w-full py-1.5 bg-[#1a1c26] hover:bg-[#262833] border border-[#303340] rounded text-[10px] font-bold text-slate-400 transition-colors">
-                          ↓ 전체 배너에 일정 일괄 적용
-                        </button>
-                      </div>
-
-                      <div><label className="block text-[10px] font-bold text-slate-400 mb-1.5">담당자 지정</label><input type="text" name="assignee" value={campaignMeta.assignee} onChange={handleMetaChange} className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg p-2.5 text-sm text-white focus:border-[#7387ff] outline-none transition-all" /></div>
+          {/* 3. 메인 콘텐츠 영역 (목록 & 프리뷰) */}
+          <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
+            <header className="bg-[#12141c]/90 backdrop-blur z-20 sticky top-0 flex flex-col shadow-sm border-b border-[#262833]">
+              <div className="flex justify-between items-end px-6 pt-3">
+                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                  <div onClick={() => setActiveTabId('OVERVIEW')} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === 'OVERVIEW' ? 'bg-[#1e202c] text-[#7387ff] border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-white'}`}><ListTodo size={16}/><span>전체 관리 목록</span></div>
+                  {assets.map(asset => (
+                    <div key={asset.id} onClick={() => setActiveTabId(asset.id)} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === asset.id ? 'bg-[#1e202c] text-white border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-white'}`}>
+                      <span className={activeTabId === asset.id ? 'text-[#7387ff]' : 'text-slate-500'}>{getAssetIcon(asset.type)}</span><span className="truncate max-w-[120px] ml-1">{asset.name}</span>
+                      <button onClick={(e) => removeAsset(asset.id, e)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all ml-1"><Trash2 size={12}/></button>
                     </div>
+                  ))}
+                </div>
+                <div className="pb-3 ml-4 flex gap-2 shrink-0">
+                  <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1a1c26] text-white rounded-xl text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={14} className="text-[#7387ff]"/> 슬롯 추가</button>
+                </div>
+              </div>
+            </header>
+
+            <div className="flex-1 overflow-hidden relative w-full h-full">
+              {activeTabId === 'OVERVIEW' ? (
+                <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-300 h-full overflow-y-auto custom-scrollbar w-full">
+                  <div className="bg-[#12141c] border border-[#262833] rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="p-6 border-b border-[#262833] bg-[#0f111a] flex justify-between items-center"><div><h3 className="text-base font-bold text-white flex items-center gap-2"><ListTodo size={18} className="text-[#7387ff]" /> 일감 생성 리스트 ({assets.length}건)</h3></div></div>
+                    <table className="w-full text-left border-collapse table-fixed">
+                      <thead>
+                        <tr className="bg-[#0a0812] text-xs text-slate-400 border-b border-[#262833]">
+                          <th className="p-4 font-bold w-[25%]">배너 구분</th>
+                          <th className="p-4 font-bold w-[20%]">상세 유형</th>
+                          <th className="p-4 font-bold w-[45%]">티켓 제목 (미리보기)</th>
+                          <th className="p-4 font-bold text-center w-[10%]">상태</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm text-slate-200">
+                        {assets.map((asset, idx) => (
+                          <tr key={idx} className="border-b border-[#262833] hover:bg-[#1a1c26] cursor-pointer group transition-colors" onClick={() => setActiveTabId(asset.id)}>
+                            <td className="p-5 font-medium text-slate-300 flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
+                              <div className="p-2 bg-[#262833] rounded-lg text-slate-400 group-hover:text-[#7387ff] transition-colors shrink-0">{getAssetIcon(asset.type)}</div>
+                              <span className="truncate">{asset.name}</span>
+                            </td>
+                            <td className="p-5 font-medium text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                              {asset.type === 'GENERAL_BANNER' ? `${asset.data.colType} 배너` : asset.type === 'BIG_BANNER' ? '빅배너' : asset.type === 'STRIP_BANNER' ? '띠배너' : asset.type === 'FULL_PROMO_BANNER' ? '풀프로모션' : asset.type === 'LONG_BANNER' ? '롱배너' : asset.type === 'SYNOPSIS_BANNER' ? '시놉시스 배너' : 'Today B tv'}
+                            </td>
+                            <td className="p-5 font-bold text-[#7387ff] whitespace-nowrap overflow-hidden text-ellipsis">
+                              [디자인] {campaignMeta.campaignName} - {asset.name}
+                            </td>
+                            <td className="p-5 text-center whitespace-nowrap">
+                              <span className="text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-400 px-3 py-1.5 rounded-full uppercase tracking-wider">Ready</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </aside>
+              ) : (
+                <BlockRenderer block={activeAsset} onUpdate={handleAssetChange} />
+              )}
+            </div>
+          </main>
 
-              <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
-                <header className="bg-[#12141c]/90 backdrop-blur z-20 sticky top-0 flex flex-col shadow-sm border-b border-[#262833]">
-                  <div className="flex justify-between items-end px-6 pt-3">
-                    <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                      <div onClick={() => setActiveTabId('OVERVIEW')} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === 'OVERVIEW' ? 'bg-[#1e202c] text-[#7387ff] border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-white'}`}><ListTodo size={16}/><span>전체 관리 목록</span></div>
-                      {assets.map(asset => (
-                        <div key={asset.id} onClick={() => setActiveTabId(asset.id)} className={`group flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-t-xl transition-all cursor-pointer border-b-2 ${activeTabId === asset.id ? 'bg-[#1e202c] text-white border-[#7387ff]' : 'text-slate-400 border-transparent hover:text-white'}`}>
-                          <span className={activeTabId === asset.id ? 'text-[#7387ff]' : 'text-slate-500'}>{getAssetIcon(asset.type)}</span><span className="truncate max-w-[120px] ml-1">{asset.name}</span>
-                          <button onClick={(e) => removeAsset(asset.id, e)} className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all ml-1"><Trash2 size={12}/></button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="pb-3 ml-4 flex gap-2 shrink-0">
-                      <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1a1c26] text-white rounded-xl text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={14} className="text-[#7387ff]"/> 슬롯 추가</button>
-                    </div>
-                  </div>
-                </header>
-
-                <div className="flex-1 overflow-hidden relative w-full h-full">
-                  {activeTabId === 'OVERVIEW' ? (
-                    <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-300 h-full overflow-y-auto custom-scrollbar w-full">
-                      <div className="bg-[#12141c] border border-[#262833] rounded-2xl overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-[#262833] bg-[#0f111a] flex justify-between items-center"><div><h3 className="text-base font-bold text-white flex items-center gap-2"><ListTodo size={18} className="text-[#7387ff]" /> 일감 생성 리스트 ({assets.length}건)</h3></div></div>
-                        <table className="w-full text-left border-collapse table-fixed">
-                          <thead>
-                            <tr className="bg-[#0a0812] text-xs text-slate-400 border-b border-[#262833]">
-                              <th className="p-4 font-bold w-[25%]">배너 구분</th>
-                              <th className="p-4 font-bold w-[20%]">상세 유형</th>
-                              <th className="p-4 font-bold w-[45%]">티켓 제목 (미리보기)</th>
-                              <th className="p-4 font-bold text-center w-[10%]">상태</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-sm text-slate-200">
-                            {assets.map((asset, idx) => (
-                              <tr key={idx} className="border-b border-[#262833] hover:bg-[#1a1c26] cursor-pointer group transition-colors" onClick={() => setActiveTabId(asset.id)}>
-                                <td className="p-5 font-medium text-slate-300 flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-                                  <div className="p-2 bg-[#262833] rounded-lg text-slate-400 group-hover:text-[#7387ff] transition-colors shrink-0">{getAssetIcon(asset.type)}</div>
-                                  <span className="truncate">{asset.name}</span>
-                                </td>
-                                <td className="p-5 font-medium text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                                  {asset.type === 'GENERAL_BANNER' ? `${asset.data.colType} 배너` : asset.type === 'BIG_BANNER' ? '빅배너' : asset.type === 'STRIP_BANNER' ? '띠배너' : asset.type === 'FULL_PROMO_BANNER' ? '풀프로모션' : asset.type === 'LONG_BANNER' ? '롱배너' : asset.type === 'SYNOPSIS_BANNER' ? '시놉시스 배너' : 'Today B tv'}
-                                </td>
-                                <td className="p-5 font-bold text-[#7387ff] whitespace-nowrap overflow-hidden text-ellipsis">
-                                  [디자인] {campaignMeta.campaignName} - {asset.name}
-                                </td>
-                                <td className="p-5 text-center whitespace-nowrap">
-                                  <span className="text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-400 px-3 py-1.5 rounded-full uppercase tracking-wider">Ready</span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <BlockRenderer block={activeAsset} onUpdate={handleAssetChange} />
-                  )}
-                </div>
-              </main>
-            </>
-          )}
-
+          {/* 모달 창들 */}
           {isAddAssetModalOpen && (
             <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
               <div className="bg-[#12141c] w-[900px] border border-[#262833] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
@@ -1069,7 +1072,7 @@
           )}
         </div>
       );
-    }
+    } // App 컴포넌트 닫기
 
     const root = createRoot(document.getElementById('root'));
     root.render(<App />);
