@@ -84,7 +84,9 @@
 
     const TEMPLATE_URLS = {
       'TODAY_BTV': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/today_btv.png',
-      'GENERAL_BANNER': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_2col.png',
+      'GENERAL_BANNER_1COL': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_1col.png',
+      'GENERAL_BANNER_2COL': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_2col.png',
+      'GENERAL_BANNER_3COL': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_3col.png',
       'GENERAL_SET_BANNER': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_2col.png',
       'FULL_PROMO_BANNER': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/full_promo.png',
       'BIG_BANNER': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/big_banner.png',
@@ -216,12 +218,26 @@
       if (!block) return null;
       const checkIsUrl = (str) => Boolean(str && typeof str === 'string' && str.startsWith('http'));
       const checkHasText = (str) => Boolean(str && !checkIsUrl(str) && str.trim() !== '');
+      const getFallbackUrl = () => {
+        if (block.type === 'GENERAL_BANNER') {
+          if (block.data?.colType === '1단') return TEMPLATE_URLS.GENERAL_BANNER_1COL;
+          if (block.data?.colType === '3단') return TEMPLATE_URLS.GENERAL_BANNER_3COL;
+          return TEMPLATE_URLS.GENERAL_BANNER_2COL;
+        }
+        return TEMPLATE_URLS[block.type] || '';
+      };
+      
+      // JSX에서 배경 이미지로 사용할 변수 할당
+      const fallbackUrl = getFallbackUrl();
 
       const FallbackText = ({ text, alignClass = 'justify-center items-center text-center px-4' }) => {
         if (!checkHasText(text) || checkIsUrl(text)) return null;
         return (
           <div className={`absolute inset-0 flex flex-col sm:flex-row gap-2 ${alignClass} text-white font-black select-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] z-20`}>
-            <div className="flex items-center text-white/90 shrink-0 bg-black/20 px-2 py-1 rounded-lg backdrop-blur-sm"><ImageIcon size={22} className="mr-1.5 opacity-90" /><span className="text-sm font-bold tracking-tight">요청 이미지</span></div>
+            <div className="flex items-center text-white/90 shrink-0 bg-black/20 px-2 py-1 rounded-lg backdrop-blur-sm">
+              <ImageIcon size={22} className="mr-1.5 opacity-90" />
+              <span className="text-sm font-bold tracking-tight">요청 이미지</span>
+            </div>
             <span className="text-xl sm:text-2xl truncate leading-tight">{text}</span>
           </div>
         );
@@ -294,8 +310,8 @@
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
-              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-contain bg-right-top z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
-                {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
+              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-contain bg-right-top z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : `url(${fallbackUrl})`}}>
+                {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && !fallbackUrl && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
                 <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-10 pr-10" />
               </div>
               <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[20%] via-[#0a0a0f]/95 via-[40%] to-transparent to-[60%] z-10 pointer-events-none"></div>
@@ -339,7 +355,7 @@
         const colType = block.data?.colType || '3단';
         const numCards = colType === '3단' ? 2 : 3;
         const activeIdx = block.data?.selectedCardIndex || 0;
-        const activeCard = block.data?.cards?.[activeIdx] || {};
+        const activeCard = block.data?.cards?.[activeIdx] || block.data?.cards?.[0] || {};
 
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
@@ -580,7 +596,7 @@
     // ====================================================================================
     // 🌟 [최종 개편] AI 프로모션 기획 뷰 (폼 확장, 팝업 제어, 머메이드 렌더링)
     // ====================================================================================
-    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, mermaidCode, onMoveToEditor }) => {
+    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onMoveToEditor }) => {
       const [inputValue, setInputValue] = useState('');
       const [activeFormTab, setActiveFormTab] = useState('STEP1');
       const [isLoading, setIsLoading] = useState(false);
@@ -1146,7 +1162,8 @@
               <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-[#1a1c26]">
                 {campaigns.map((item) => {
                   // 숫자만 추출하여 콤마(,) 포맷팅
-                  const displayTargetSize = item.targetSize ? parseInt(String(item.targetSize).replace(/[^0-9]/g, '')).toLocaleString() : 0;
+                  const safeTargetStr = item.targetSize ? String(item.targetSize).replace(/[^0-9]/g, '') : '';
+                  const displayTargetSize = safeTargetStr ? parseInt(safeTargetStr).toLocaleString() : 0;
                   
                   // 포함된 배너 텍스트 추출
                   let bannerTypesText = "등록된 배너 없음";
