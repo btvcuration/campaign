@@ -30,7 +30,7 @@
     .progress-stripes { background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent); background-size: 1rem 1rem; animation: progress-stripes 1s linear infinite; }
     @keyframes progress-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
     
-    /* 🌟 [신규 추가] 챗봇 마크다운 렌더링 스타일 */
+    /* 🌟 챗봇 마크다운 렌더링 스타일 */
     .ai-chat-body h3 { font-size: 1.1em; font-weight: 900; color: #7387ff; margin-top: 12px; margin-bottom: 6px; }
     .ai-chat-body h4 { font-size: 1em; font-weight: bold; color: #cbd5e1; margin-top: 10px; margin-bottom: 4px;}
     .ai-chat-body ul { list-style-type: disc; padding-left: 20px; margin-top: 4px; margin-bottom: 8px; }
@@ -38,6 +38,40 @@
     .ai-chat-body p { margin-bottom: 8px; }
     .ai-chat-body strong { color: #ffffff; font-weight: 900; }
     .ai-chat-body hr { border-color: #303340; margin: 16px 0; }
+
+    /* 🌟 [수정 3] Mermaid 시뮬레이터 노드 폭 찌그러짐 및 세로 글씨 방지 스타일 */
+    #mermaid-export-area svg { max-width: none !important; height: auto !important; }
+    #mermaid-export-area .node foreignObject { overflow: visible !important; }
+    #mermaid-export-area .nodeLabel,
+    #mermaid-export-area .label div {
+      min-width: 136px !important;
+      max-width: 170px !important;
+      white-space: normal !important;
+      word-break: keep-all !important;
+      overflow-wrap: break-word !important;
+      text-align: center !important;
+      line-height: 1.35 !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 4px 6px !important;
+      box-sizing: border-box !important;
+    }
+    #mermaid-export-area .nodeLabel img,
+    #mermaid-export-area .label img {
+      width: 120px !important;
+      min-width: 120px !important;
+      height: 68px !important;
+      max-width: none !important;
+      object-fit: cover !important;
+      border-radius: 6px !important;
+      margin: 0 auto 6px auto !important;
+      display: block !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
   </style>
 </head>
 <body>
@@ -52,7 +86,7 @@
       Search, Mic, Menu, Home, Grid, Settings, Calendar, GitMerge, Plus, PlusCircle, Trash2, 
       Image as ImageIcon, ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, 
       X, User, ExternalLink, Monitor, Layout, Type, RectangleHorizontal, FileText, CalendarDays, MessageSquare, Loader2, Lock, Users, Download, RefreshCw, Inbox, FolderOpen, PanelLeftOpen, PanelLeftClose,
-      Database // 🌟 추가됨
+      Database
     } from 'lucide-react';
     
     const MermaidViewer = ({ code }) => {
@@ -64,9 +98,10 @@
             startOnLoad: false,
             theme: 'dark',
             securityLevel: 'loose',
-            flowchart: { htmlLabels: true, nodeSpacing: 40, rankSpacing: 60 },
+            flowchart: { htmlLabels: true, nodeSpacing: 35, rankSpacing: 55, padding: 12 },
             themeCSS: `
-              .nodeLabel { font-size: 13px !important; width: 140px !important; white-space: normal !important; text-align: center !important; }
+              .nodeLabel { font-size: 12px !important; min-width: 136px !important; max-width: 170px !important; white-space: normal !important; word-break: keep-all !important; text-align: center !important; }
+              .nodeLabel img { width: 120px !important; min-width: 120px !important; height: 68px !important; max-width: none !important; margin: 0 auto 6px auto !important; display: block !important; }
             `
           });
           window.mermaid.render(`mermaid-${Date.now()}`, code).then(({svg}) => {
@@ -76,8 +111,7 @@
       }, [code]);
       
       if (!code) return null;
-      // 👇 여기에 id="mermaid-export-area" 가 추가되었습니다!
-      return <div id="mermaid-export-area" ref={containerRef} className="w-full h-full overflow-auto custom-scrollbar p-4 [&>svg]:mx-auto [&>svg]:block" />;
+      return <div id="mermaid-export-area" ref={containerRef} className="w-full h-full overflow-auto custom-scrollbar p-6 flex items-start justify-center [&>svg]:mx-auto [&>svg]:block" />;
     };
 
     const GNB_OPTIONS = ['홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널', '광고 홈', '콘텐츠', '기타'];
@@ -113,7 +147,6 @@
     const DEFAULT_MINI_EPG_BANNER = { imageUrl: '', buttonText: '감상하기', landingValue: 'UI_PATH: /join', gnb: '실시간 채널', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_TODAY_BTV = { topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_GENERAL_BANNER = { colType: '2단', previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역', previewImg: '', bannerCopy: '배너 내 텍스트', bannerImg: '', landingValue: 'UI_PATH: /join', gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' };
-    // 🌟 신규 세트 배너 초기값 (배열 형태)
     const DEFAULT_GENERAL_SET_BANNER = { 
       colType: '3단', 
       selectedCardIndex: 0,
@@ -212,23 +245,10 @@
       );
     };
 
-    // 🌟 수정된 PreviewDisplay: onUpdate를 전달받아 상태 변경 가능하게 함
-    // 🌟 수정된 PreviewDisplay: Error #60 방지를 위한 렌더 트리 최적화
     const PreviewDisplay = ({ block, onUpdate }) => {
       if (!block) return null;
       const checkIsUrl = (str) => Boolean(str && typeof str === 'string' && str.startsWith('http'));
       const checkHasText = (str) => Boolean(str && !checkIsUrl(str) && str.trim() !== '');
-      const getFallbackUrl = () => {
-        if (block.type === 'GENERAL_BANNER') {
-          if (block.data?.colType === '1단') return TEMPLATE_URLS.GENERAL_BANNER_1COL;
-          if (block.data?.colType === '3단') return TEMPLATE_URLS.GENERAL_BANNER_3COL;
-          return TEMPLATE_URLS.GENERAL_BANNER_2COL;
-        }
-        return TEMPLATE_URLS[block.type] || '';
-      };
-      
-      // JSX에서 배경 이미지로 사용할 변수 할당
-      const fallbackUrl = getFallbackUrl();
 
       const FallbackText = ({ text, alignClass = 'justify-center items-center text-center px-4' }) => {
         if (!checkHasText(text) || checkIsUrl(text)) return null;
@@ -280,7 +300,6 @@
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0" style={{backgroundImage: checkIsUrl(block.data?.bgImg) ? `url(${block.data.bgImg})` : 'none'}}>
               {!checkIsUrl(block.data?.bgImg) && !checkHasText(block.data?.bgImg) && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]"></div>}
-              {/* 🌟 Error #60 수정: 형제 요소를 명확히 분리 */}
               <FallbackText text={block.data?.bgImg} />
             </div>
             <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] z-0 pointer-events-none"></div>
@@ -306,12 +325,16 @@
         );
       }
 
+      // 🌟 [수정 1] GENERAL_BANNER: 프리뷰 영역에서 엉뚱한 템플릿 이미지(fallbackUrl) 출력 제거 & 배너 카드 이미지 정상 렌더링
       if (block.type === 'GENERAL_BANNER') {
+        const bannerImgSrc = checkIsUrl(block.data?.bannerImg) ? block.data.bannerImg : (checkIsUrl(block.data?.imageUrl) ? block.data.imageUrl : '');
+        const bannerTextFallback = block.data?.bannerImg || block.data?.imageUrl || '';
+
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
-              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-contain bg-right-top z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : `url(${fallbackUrl})`}}>
-                {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && !fallbackUrl && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
+              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-cover bg-right-top z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
+                {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
                 <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-10 pr-10" />
               </div>
               <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[20%] via-[#0a0a0f]/95 via-[40%] to-transparent to-[60%] z-10 pointer-events-none"></div>
@@ -326,18 +349,17 @@
                 {block.data?.colType === '1단' ? (
                   <>
                     {block.data?.bannerCopy && <div className="w-full h-[45%] p-5 pb-2 text-left z-20 flex items-start bg-gradient-to-b from-[#1a1c26] to-transparent"><p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p></div>}
-                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10" style={{ backgroundImage: checkIsUrl(block.data?.bannerImg) ? `url(${block.data.bannerImg})` : 'none' }}>
-                      {!checkIsUrl(block.data?.bannerImg) && !checkHasText(block.data?.bannerImg) && <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
-                      <FallbackText text={block.data?.bannerImg} />
+                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10" style={{ backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none' }}>
+                      {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
+                      <FallbackText text={bannerTextFallback} />
                     </div>
                   </>
                 ) : (
                   <>
                     {block.data?.bannerCopy && <div className="w-[70%] h-full flex flex-col justify-center items-start p-6 z-20 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/90 to-transparent"><p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p></div>}
-                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f]" style={{ backgroundImage: checkIsUrl(block.data?.bannerImg) ? `url(${block.data.bannerImg})` : 'none' }}>
-                      {!checkIsUrl(block.data?.bannerImg) && !checkHasText(block.data?.bannerImg) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
-                      {/* 🌟 Error #60 수정 */}
-                      <FallbackText text={block.data?.bannerImg} />
+                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f]" style={{ backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none' }}>
+                      {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
+                      <FallbackText text={bannerTextFallback} />
                       <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/60 to-transparent w-[60%] pointer-events-none z-10"></div>
                     </div>
                   </>
@@ -351,6 +373,7 @@
         );
       }
 
+      // 🌟 [수정 1] GENERAL_SET_BANNER: 카드별 에셋 이미지(cardImg) 폴백 지원 강화
       if (block.type === 'GENERAL_SET_BANNER') {
         const colType = block.data?.colType || '3단';
         const numCards = colType === '3단' ? 2 : 3;
@@ -360,7 +383,7 @@
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10 transition-all duration-300">
-              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-contain bg-right-top z-0" style={{backgroundImage: checkIsUrl(activeCard.heroImg) ? `url(${activeCard.heroImg})` : 'none'}}>
+              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-cover bg-right-top z-0" style={{backgroundImage: checkIsUrl(activeCard.heroImg) ? `url(${activeCard.heroImg})` : 'none'}}>
                 {!checkIsUrl(activeCard.heroImg) && !checkHasText(activeCard.heroImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
                 <FallbackText text={activeCard.heroImg} alignClass="justify-end items-start pt-10 pr-10" />
               </div>
@@ -376,6 +399,9 @@
               {Array.from({length: numCards}).map((_, i) => {
                 const cardData = block.data?.cards?.[i] || {};
                 const isSelected = i === activeIdx;
+                const cardImgSrc = checkIsUrl(cardData.cardImg) ? cardData.cardImg : (checkIsUrl(block.data?.imageUrl) ? block.data.imageUrl : '');
+                const cardTextFallback = cardData.cardImg || block.data?.imageUrl || '';
+
                 return (
                   <div 
                     key={i} 
@@ -383,9 +409,9 @@
                     className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex bg-[#1a1c26] shrink-0 h-full cursor-pointer transition-all duration-200 ${colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'} ${isSelected ? 'border-[3px] border-[#7387FF]' : 'border border-white/20 hover:border-white/50 opacity-60 hover:opacity-100'}`}
                   >
                     {cardData.cardCopy && <div className="w-[70%] h-full flex flex-col justify-center items-start p-6 z-20 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/90 to-transparent pointer-events-none"><p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{cardData.cardCopy}</p></div>}
-                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f] pointer-events-none" style={{ backgroundImage: checkIsUrl(cardData.cardImg) ? `url(${cardData.cardImg})` : 'none' }}>
-                      {!checkIsUrl(cardData.cardImg) && !checkHasText(cardData.cardImg) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
-                      <FallbackText text={cardData.cardImg} />
+                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f] pointer-events-none" style={{ backgroundImage: cardImgSrc ? `url(${cardImgSrc})` : 'none' }}>
+                      {!cardImgSrc && !checkHasText(cardTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
+                      <FallbackText text={cardTextFallback} />
                       <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/60 to-transparent w-[60%] pointer-events-none z-10"></div>
                     </div>
                   </div>
@@ -575,7 +601,7 @@
         );
       }
     };
-    // 🌟 [추가 1] 숫자 스마트 파싱 유틸리티 ("5만" -> "50,000")
+
     const parseAndFormatKoreanNumber = (str) => {
       if (!str) return '';
       let cleanStr = String(str).replace(/,/g, '').replace(/명/g, '').replace(/원/g, '').trim();
@@ -586,24 +612,23 @@
       if (isNaN(num)) return str; 
       return (num * multiplier).toLocaleString();
     };
-    // 🌟 [신규] 배너 이름 중복 시 자동으로 번호를 붙이는 헬퍼
+
     const getUniqueAssetName = (existingNames, baseName) => {
       if (!existingNames.includes(baseName)) return baseName;
       let n = 2;
       while (existingNames.includes(`${baseName} (${n})`)) n++;
       return `${baseName} (${n})`;
     };
+
     // ====================================================================================
-    // 🌟 [최종 개편] AI 프로모션 기획 뷰 (폼 확장, 팝업 제어, 머메이드 렌더링)
+    // 🌟 AI 프로모션 기획 뷰
     // ====================================================================================
     const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onMoveToEditor }) => {
       const [inputValue, setInputValue] = useState('');
-      const [activeFormTab, setActiveFormTab] = useState('STEP1');
       const [isLoading, setIsLoading] = useState(false);
       const [pendingAiPayload, setPendingAiPayload] = useState(null); 
       const chatEndRef = useRef(null);
 
-      // 🌟 [수정됨] App에 있던 이미지 생성 로직을 정상적인 위치(AiPlannerView 내부)로 이동
       const [isGeneratingImg, setIsGeneratingImg] = useState(false);
       const [previewImageUrl, setPreviewImageUrl] = useState('');
       const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -612,14 +637,13 @@
         setCampaignMeta(prev => ({ ...prev, targetSize: parseAndFormatKoreanNumber(e.target.value) }));
       };
 
-      // 🌟 [수정됨] 생성 성공 시 폼에 바로 넣지 않고 모달을 엽니다.
       const handleOpenImagePreview = () => {
         if (campaignMeta.mainImageUrl) {
           setPreviewImageUrl(campaignMeta.mainImageUrl);
           setShowPreviewModal(true);
           return;
         }
-        handleGenerateImage(); // 없을 때만 신규 생성
+        handleGenerateImage();
       };
       
       const handleGenerateImage = async () => {
@@ -628,11 +652,9 @@
           return;
         }
         setIsGeneratingImg(true);
-        // 모달이 닫혀있다면 미리 열어서 로딩 스피너를 보여줍니다.
         if (!showPreviewModal) setShowPreviewModal(true); 
 
         try {
-          // 🚨 주의: 매니저님의 프록시 주소로 확인해 주세요
           const response = await fetch("https://btv-proxy.alcheminos.workers.dev", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -643,30 +665,32 @@
             })
           });
           
-          const resData = await response.json();
+          const rawText = await response.text();
+          if (rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html')) {
+            throw new Error("서버 응답 지연(HTML 수신)");
+          }
+          const resData = JSON.parse(rawText);
           if (resData.status === "success" && resData.url) {
-            setPreviewImageUrl(resData.url); // 미리보기 URL만 업데이트
+            setPreviewImageUrl(resData.url);
           } else {
             alert("⚠️ 이미지 생성 실패: " + resData.message);
             setShowPreviewModal(false);
           }
         } catch (error) {
           console.error(error);
-          alert("⚠️ 서버와 통신하는 중 에러가 발생했습니다.");
+          alert("⚠️ 서버와 통신하는 중 에러가 발생했습니다: " + error.message);
           setShowPreviewModal(false);
         } finally {
           setIsGeneratingImg(false);
         }
       };
 
-      // 🌟 [신규] '이 이미지로 적용' 버튼 클릭 시
       const applyGeneratedImage = () => {
         setCampaignMeta(prev => ({ ...prev, mainImageUrl: previewImageUrl }));
         setShowPreviewModal(false);
         setPreviewImageUrl('');
       };
 
-      // 🌟 [신규] 모달 닫기
       const cancelGeneratedImage = () => {
         setShowPreviewModal(false);
         setPreviewImageUrl('');
@@ -678,23 +702,26 @@
 
       useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatHistory, isLoading]);
 
-      const handleSendMessage = async () => {
-        if (!inputValue.trim()) return;
-        const userMessage = inputValue.trim();
-        setInputValue('');
+      // 🌟 [수정 2] 외부(폼 하단 시안 생성 버튼)에서도 직접 메시지를 트리거할 수 있도록 customText 인자 지원
+      const handleSendMessage = async (customText = null) => {
+        const textToSend = typeof customText === 'string' ? customText : inputValue.trim();
+        if (!textToSend || isLoading) return;
+        if (typeof customText !== 'string') setInputValue('');
         
-        const newHistory = [...chatHistory, { id: `msg-${Date.now()}`, sender: 'user', text: userMessage }];
+        const newHistory = [...chatHistory, { id: `msg-${Date.now()}`, sender: 'user', text: textToSend }];
         setChatHistory(newHistory);
         setIsLoading(true);
 
         try {
           const proxyUrl = "https://btv-proxy.alcheminos.workers.dev";
           
-          // 🌟 [정규식 제거] Function Calling 응답에는 애초에 json 코드가 섞이지 않으므로 단순화
-          const cleanHistory = newHistory.map(msg => ({
-            sender: msg.sender,
-            text: msg.text
-          }));
+          // 🌟 초기 AI 인사말(msg-init) 제외하여 Gemini API 첫 턴 role 에러 예방
+          const cleanHistory = newHistory
+            .filter(msg => msg.id !== 'msg-init')
+            .map(msg => ({
+              sender: msg.sender,
+              text: msg.text
+            }));
 
           let resData = null;
           let isSuccess = false;
@@ -711,6 +738,7 @@
 
               const rawText = await response.text();
               if (rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html')) {
+                console.error("🚨 [서버 반환 HTML 원본]:", rawText);
                 throw new Error("프록시 지연으로 HTML 에러 페이지가 수신되었습니다.");
               }
 
@@ -728,8 +756,6 @@
 
           if (!isSuccess) throw new Error("서버 혼잡이 심합니다. 잠시 후 다시 시도해주세요. (" + lastError + ")");
 
-          // 🌟 기존 정규식 파싱(mermaidMatch, firstBrace/lastBrace, matchJsonStr) 블록 전체 삭제 후 아래로 교체
-
           let displayAiText = (resData.text || "").trim();
           
           if (resData.action === "UPDATE_STATE" && resData.rawGasData) {
@@ -744,12 +770,16 @@
             } else {
               if (Array.isArray(metaData.bannerTypes)) metaData.bannerTypes = metaData.bannerTypes.join(', ');
               if (Array.isArray(metaData.gnbLocations)) metaData.gnbLocations = metaData.gnbLocations.join(', ');
-              // 🌟 [신규] 실제 배너별 GNB 매핑을 assets에서 직접 추출해 bannerPlan을 더 정확한 값으로 덮어씀
               metaData.bannerPlan = generatedAssets.map(a => ({
                 name: a.name || a.type,
                 gnb: Array.isArray(a.data?.gnb) ? a.data.gnb.join(', ') : (a.data?.gnb || '')
               }));
-              setCampaignMeta(prev => ({ ...prev, ...metaData }));
+              // 🌟 폼에서 이미 생성/입력해둔 mainImageUrl이 날아가지 않도록 보존
+              setCampaignMeta(prev => ({ 
+                ...prev, 
+                ...metaData,
+                mainImageUrl: prev.mainImageUrl || metaData.mainImageUrl || ''
+              }));
           
               setPendingAiPayload({
                 action: "CREATE_CAMPAIGN_ASSETS",
@@ -763,7 +793,6 @@
             }
           }
           
-          // 🌟 UPDATE_STATE인데 텍스트가 비어있는 경우 최소한의 이어가기 문구 (대화 끊김 방지)
           if (!displayAiText) {
             displayAiText = resData.action === "UPDATE_STATE" 
               ? "네, 반영했습니다. 다음으로 어떤 정보를 알려주시겠어요?" 
@@ -779,9 +808,21 @@
         }
       };
 
+      // 🌟 [수정 2] 폼 하단 시안 생성 버튼 클릭 핸들러
+      const handleRequestCreateFromForm = () => {
+        if (!campaignMeta.campaignName || !campaignMeta.product || !campaignMeta.startDate || !campaignMeta.dueDate || !campaignMeta.conceptCopy) {
+          alert("⚠️ 시안을 생성하려면 먼저 필수 기획 정보(캠페인명, 대상 상품, 시작/종료일, Key 컨셉)를 모두 입력해 주세요.");
+          return;
+        }
+        if (campaignMeta.target === 'TARGET' && !campaignMeta.targetSize) {
+          alert("⚠️ TARGET 프로모션은 '타겟 모수'를 입력해 주세요.");
+          return;
+        }
+        handleSendMessage("우측 폼에 입력된 기획 정보를 바탕으로 최종 배너 시안(에셋) 데이터와 유저플로우를 바로 생성해줘.");
+      };
+
       const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } };
 
-      // 🌟 [방어 로직 추가] GAS에서 보내는 데이터 위치가 꼬일 때를 대비해 다중 체크
       const displayMermaid = pendingAiPayload?.mermaidCode 
                           || pendingAiPayload?.rawGasData?.mermaidCode 
                           || campaignMeta?.mermaidCode 
@@ -816,7 +857,7 @@
                   <div className="w-7 h-7 rounded-full bg-[#262833] flex items-center justify-center shrink-0"><Bot size={14} className="text-slate-300" /></div>
                   <div className="bg-[#1a1c26] border border-[#303340] rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2">
                     <Loader2 size={14} className="text-[#7387ff] animate-spin" />
-                    <span className="text-xs text-slate-400 font-medium">폼 동기화 중...</span>
+                    <span className="text-xs text-slate-400 font-medium">AI 기획 및 시안 동기화 중...</span>
                   </div>
                 </div>
               )}
@@ -825,12 +866,12 @@
             <div className="p-3 bg-[#12141c] border-t border-[#262833]">
               <div className="relative flex items-end bg-[#0a0812] border border-[#303340] rounded-xl overflow-hidden focus-within:border-[#4f3df6] transition-colors">
                 <textarea value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} placeholder="프로모션 목적이나 타겟을 편하게 말씀해 주세요." className="flex-1 max-h-[120px] min-h-[48px] bg-transparent text-white placeholder-slate-500 px-4 py-3 outline-none resize-none custom-scrollbar text-xs" rows={1} />
-                <button onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading} className="mb-1.5 mr-1.5 p-2 rounded-lg bg-[#4f3df6] text-white hover:bg-[#6252ff] disabled:bg-[#262833] disabled:text-slate-500 transition-colors shrink-0"><Send size={16} /></button>
+                <button onClick={() => handleSendMessage()} disabled={!inputValue.trim() || isLoading} className="mb-1.5 mr-1.5 p-2 rounded-lg bg-[#4f3df6] text-white hover:bg-[#6252ff] disabled:bg-[#262833] disabled:text-slate-500 transition-colors shrink-0"><Send size={16} /></button>
               </div>
             </div>
           </div>
 
-          {/* 🌟 2단: 중앙 기획 폼 (매니저님 요청 완벽 반영) */}
+          {/* 2단: 중앙 기획 폼 */}
           <div className="flex-1 flex flex-col bg-[#0f111a] border border-[#262833] rounded-2xl shadow-xl overflow-hidden min-w-[350px]">
             <div className="px-5 py-4 border-b border-[#262833] bg-[#12141c] flex items-center justify-between shrink-0">
               <h3 className="text-white font-bold text-[15px] tracking-tight flex items-center gap-2"><Settings size={16} className="text-pink-400" /> 캠페인 기획 폼</h3>
@@ -838,7 +879,6 @@
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#06070a]">
-              
               {/* === SECTION 1 === */}
               <div className="mb-8">
                 <div className="border-b border-[#262833] pb-2 mb-4 flex items-center gap-2">
@@ -846,7 +886,6 @@
                   <h4 className="text-sm font-bold text-white tracking-tight">1. 기본 기획 및 편성</h4>
                 </div>
                 
-                {/* 1줄: 캠페인명 + 대상 상품 (2칸) */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">캠페인 / 프로젝트명</label>
@@ -858,7 +897,6 @@
                   </div>
                 </div>
 
-                {/* 2줄: 시작일 + 종료일 + 타겟 유형 (3칸) */}
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">시작일</label>
@@ -876,7 +914,6 @@
                   </div>
                 </div>
 
-                {/* 3줄: 컨셉 + 키비주얼 (2칸, 높이 동기화) */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col">
                     <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">Key 컨셉 & 대표 문구</label>
@@ -901,7 +938,6 @@
                   <h4 className="text-sm font-bold text-white tracking-tight">2. 타겟 혜택 및 Capa 검증</h4>
                 </div>
 
-                {/* 1줄: 타겟 모수 + 배너/GNB (2칸) */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">타겟 모수 (TARGET 전용)</label>
@@ -933,7 +969,6 @@
                   </div>
                 </div>
 
-                {/* 2줄: 쿠폰 + 혜택명 + 외부 사은품 (3칸) */}
                 <div className="grid grid-cols-3 gap-4 mb-5">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">B tv 쿠폰 발급</label>
@@ -952,7 +987,6 @@
                 </div>
                 
                 {(() => {
-                  // 🌟 [신규] 레이아웃/타이포는 고정, 색상만 상태별로 교체
                   let statusColor, StatusIcon, statusText, isSpinning = false;
                   if (campaignMeta.target !== 'TARGET') {
                     statusColor = 'slate'; StatusIcon = CheckCircle; statusText = 'MASS 캠페인 모드';
@@ -1013,9 +1047,31 @@
                 </div>
               )}
             </div>
+
+            {/* 🌟 [수정 2] 중앙 기획 폼 하단에 직관적인 시안 생성 요청 버튼 추가 */}
+            <div className="p-5 bg-[#12141c] border-t border-[#262833] shrink-0">
+              <button
+                type="button"
+                onClick={handleRequestCreateFromForm}
+                disabled={isLoading}
+                className="w-full py-4 rounded-lg font-bold text-white transition-all shadow-md bg-[#4f3df6] hover:bg-[#6252ff] disabled:bg-[#262833] disabled:text-slate-500 flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>AI가 시안 및 유저플로우를 생성 중입니다...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    <span>{pendingAiPayload ? "폼 정보로 시안 다시 생성하기" : "입력한 폼 정보로 시안 생성 요청"}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           
-          {/* 3단: 우측 머메이드 시뮬레이터 (33%) 및 🌟 전송 버튼 위치 */}
+          {/* 3단: 우측 머메이드 시뮬레이터 (33%) */}
           <div className="flex-1 flex flex-col bg-[#0f111a] border border-[#262833] rounded-2xl shadow-xl overflow-hidden min-w-[320px]">
             <div className="px-5 py-4 border-b border-[#262833] bg-[#12141c] flex items-center justify-between">
               <h3 className="text-white font-bold text-[15px] tracking-tight flex items-center gap-2"><LayoutTemplate size={16} className="text-cyan-400" /> 비주얼 유저플로우 시뮬레이터</h3>
@@ -1031,7 +1087,7 @@
               )}
             </div>
 
-            {/* 🌟 3단 화면 맨 아래 고정된 이동 버튼 */}
+            {/* 3단 화면 맨 아래 고정된 이동 버튼 */}
             <div className="p-5 bg-[#12141c] border-t border-[#262833]">
               <button
                 onClick={() => {
@@ -1061,7 +1117,7 @@
     };
 
     // ====================================================================================
-    // 🌟 [신규 추가] 프로모션 관리(과거 캠페인 목록 조회/불러오기) 뷰
+    // 프로모션 관리(과거 캠페인 목록 조회/불러오기) 뷰
     // ====================================================================================
     const PromotionListView = ({ onLoadCampaign, onDuplicateCampaign }) => {
       const [campaigns, setCampaigns] = useState([]);
@@ -1076,7 +1132,6 @@
           if (!response.ok) throw new Error("서버와 통신할 수 없습니다.");
           const data = await response.json();
           
-          // 🌟 [블랙아웃 방어 로직] 데이터가 배열이 아니거나 서버 에러 객체일 경우 화면 크래시를 방지합니다.
           if (data && data.status === 'error') {
             throw new Error(data.message || "서버에서 데이터를 불러오지 못했습니다.");
           }
@@ -1088,7 +1143,7 @@
         } catch (err) { 
           console.error("캠페인 로드 실패", err); 
           setError(err.message || "목록을 불러오는 중 문제가 발생했습니다."); 
-          setCampaigns([]); // 🌟 빈 배열을 강제 할당하여 map() 함수 크래시 영구 차단
+          setCampaigns([]);
         } finally { 
           setIsLoading(false); 
         }
@@ -1105,8 +1160,6 @@
           couponBenefit: item.couponBenefit, externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl,
           product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations
         };
-        // 🌟 [신규] "수정" 시엔 기존 Jira 부모 키를 반드시 함께 넘겨야 background.js가 업데이트로 인식함
-        //    jiraKey가 풀 URL(https://.../browse/KEY)로 저장돼 있을 수 있어 마지막 경로 조각만 추출
         meta.parentJiraKey = item.jiraKey ? String(item.jiraKey).split('/').pop() : '';
         onLoadCampaign(meta, item.assets || [], item.mermaidCode || "");
       };
@@ -1115,14 +1168,13 @@
         const meta = item.meta || {
           campaignName: `${item.campaignName} (복제본)`, target: item.target, targetSize: item.targetSize,
           startDate: item.startDate, dueDate: item.dueDate, hasCoupon: item.hasCoupon, couponBenefit: item.couponBenefit,
-          externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl, // 🌟 externalGift 추가
+          externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl,
           product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations
         };
         const duplicatedAssets = (item.assets || []).map((a, idx) => ({ ...a, id: `asset-dup-${Date.now()}-${idx}` }));
         onDuplicateCampaign(meta, duplicatedAssets, item.mermaidCode || "");
       };
 
-      // 🌟 [추가됨] 오늘 날짜 기준 과거 캠페인 여부 판별 함수
       const isPastCampaign = (startDateStr) => {
         if (!startDateStr) return false;
         const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -1161,11 +1213,9 @@
             ) : (
               <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-[#1a1c26]">
                 {campaigns.map((item) => {
-                  // 숫자만 추출하여 콤마(,) 포맷팅
                   const safeTargetStr = item.targetSize ? String(item.targetSize).replace(/[^0-9]/g, '') : '';
                   const displayTargetSize = safeTargetStr ? parseInt(safeTargetStr).toLocaleString() : 0;
                   
-                  // 포함된 배너 텍스트 추출
                   let bannerTypesText = "등록된 배너 없음";
                   if (item.meta && item.meta.bannerTypes) {
                     bannerTypesText = item.meta.bannerTypes;
@@ -1173,16 +1223,11 @@
                     bannerTypesText = item.assets.map(a => a.name || a.type).join(', ');
                   }
 
-                  // 🌟 [추가됨] 시작일이 오늘보다 과거인지 체크
                   const isPast = isPastCampaign(item.startDate);
     
                   return (
-                    // 🌟 [수정 1] 카드 전체 오버레이(hover) 효과를 지워 혼선 완벽 제거
                     <div key={item.id} className="bg-[#12141c] border border-[#262833] rounded-xl p-4 transition-all">
-                      
                       <div className="flex items-center w-full">
-                        
-                        {/* 1열: 기본 캠페인 정보 (w-[33%]로 축소) */}
                         <div className="w-[33%] min-w-[240px] shrink-0 pr-4">
                           <div className="flex items-center gap-2 mb-1.5">
                             <h4 className="text-white font-bold text-[14px] truncate" title={item.campaignName}>{item.campaignName}</h4>
@@ -1202,7 +1247,6 @@
                           </div>
                         </div>
     
-                        {/* 2열: 포함 배너 리스트 */}
                         <div className="flex-1 px-5 text-left hidden md:block border-l border-[#262833] min-w-0 overflow-hidden">
                           <p className="text-[10px] text-slate-500 mb-0.5 font-bold">포함된 배너 에셋</p>
                           <p className="text-[12px] text-slate-300 font-medium truncate w-full" title={bannerTypesText}>
@@ -1210,10 +1254,7 @@
                           </p>
                         </div>
     
-                        {/* 3열: 액션 버튼들 (w-[250px] 확보 및 버튼 내 텍스트 줄바꿈 금지) */}
                         <div className="w-[250px] shrink-0 pl-4 border-l border-[#262833] flex items-center justify-end gap-1.5">
-                          
-                          {/* 🌟 [수정 2] Jira 주소가 이미 http로 시작하면 중복 부착 방지 */}
                           {item.jiraKey && item.jiraKey !== "-" && (
                             <button 
                               onClick={() => {
@@ -1235,7 +1276,6 @@
                             </button>
                           )}
                         </div>
-    
                       </div>
                     </div>
                   );
@@ -1255,7 +1295,6 @@
       const [githubVersion, setGithubVersion] = useState(null);
       const [jiraSession, setJiraSession] = useState('CHECKING');
       
-      // 🌟 [신규] 언제든 수동으로 호출할 수 있는 Jira 세션 체크 함수
       const checkJiraSessionNow = () => {
         setJiraSession('CHECKING');
         const extNode = document.getElementById('btv-campaign-extension-installed');
@@ -1274,32 +1313,27 @@
       };
 
       useEffect(() => {
-        // 1. GitHub 최신 버전 체크
         fetch('https://raw.githubusercontent.com/btvcuration/campaign/main/Tool/manifest.json')
           .then(res => res.json())
           .then(data => setGithubVersion(data.version))
           .catch(e => console.error("버전 체크 실패", e));
 
-        // 2. 초기 로드 시 Jira 세션 체크 실행
         checkJiraSessionNow();
         setTimeout(checkJiraSessionNow, 1000);
       }, []);
 
-      // 🌟 찌꺼기 삭제 완료! 바로 날짜 선언으로 넘어갑니다.
       const today = new Date();
       const todayStr = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       
-      // EDITOR 전용 상태
       const [campaignMeta, setCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
         hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false
       });
 
       const [assets, setAssets] = useState([]); 
-      const [mermaidCode, setMermaidCode] = useState(''); // 🌟 App 레벨에 머메이드 저장소 추가
+      const [mermaidCode, setMermaidCode] = useState('');
       const AUTOSAVE_KEY = 'btv_campaign_autosave_v1';
       
-      // AI 기획 폼 전용 상태
       const [aiCampaignMeta, setAiCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
         hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false
@@ -1316,6 +1350,7 @@
       const handleConfigChange = (gnbName, field, value) => setConfigMap(prev => ({ ...prev, [gnbName]: { ...prev[gnbName], [field]: value } }));
       const handleSaveConfig = async () => { setIsSettingsOpen(false); };
 
+      // 🌟 [수정 1] 시안 편집기로 이동할 때 2단/3단 일반 배너 및 세트 배너 에셋 자체에 이미지가 정확히 들어가도록 매핑 보정
       const handleMoveToEditor = (payload, onInvalid) => {
         setCampaignMeta({ ...aiCampaignMeta });
         if (!payload || payload.action !== "CREATE_CAMPAIGN_ASSETS") {
@@ -1327,7 +1362,7 @@
       
         if (aiAssets.length === 0 && !aiMermaid) {
           alert("🚨 AI가 최종 시안 데이터를 정상적으로 렌더링하지 못했습니다. (서버 응답 오류)\n수동으로 배너를 추가하거나, AI에게 다시 시안 생성을 요청해 주세요.");
-          if (onInvalid) onInvalid(); // 🌟 부모가 대신 리셋해줌
+          if (onInvalid) onInvalid();
           return;
         }
         
@@ -1336,6 +1371,9 @@
           if (!confirmOverwrite) { setCurrentView('EDITOR'); return; }
         }
 
+        // 기획 폼에서 생성/입력한 대표 이미지 최우선 확보
+        const formMainImg = aiCampaignMeta.mainImageUrl || aiMeta.mainImageUrl || '';
+
         if (aiMermaid) setMermaidCode(aiMermaid);
         if (aiMeta) {
           if (!aiMeta.conceptCopy && (aiMeta.concept || aiMeta.mainCopy || aiMeta.keyConcept)) {
@@ -1343,6 +1381,7 @@
           }
           if (Array.isArray(aiMeta.bannerTypes)) aiMeta.bannerTypes = aiMeta.bannerTypes.join(', ');
           if (Array.isArray(aiMeta.gnbLocations)) aiMeta.gnbLocations = aiMeta.gnbLocations.join(', ');
+          if (formMainImg) aiMeta.mainImageUrl = formMainImg;
           setCampaignMeta(prev => ({ ...prev, ...aiMeta }));
         }
 
@@ -1351,7 +1390,7 @@
             setAssets([]); setActiveTabId(null);
           } else {
             const timestamp = Date.now();
-            const usedNames = []; // 🌟 추가
+            const usedNames = [];
             const newAssets = aiAssets.map((aiAsset, index) => {
               let baseData = {};
               if (aiAsset.type === 'TODAY_BTV') baseData = { ...DEFAULT_TODAY_BTV };
@@ -1365,16 +1404,49 @@
               else if (aiAsset.type === 'PROMO_POPUP') baseData = { ...DEFAULT_PROMO_POPUP };
               else if (aiAsset.type === 'MINI_EPG_BANNER') baseData = { ...DEFAULT_MINI_EPG_BANNER };
 
-              let aiData = aiAsset.data || {};
-              if (aiAsset.type === 'TODAY_BTV') { if (aiData.subTitle && !aiData.subText) aiData.subText = aiData.subTitle; } 
+              let aiData = { ...(aiAsset.data || {}) };
+              const masterImg = formMainImg || aiData.imageUrl || aiData.bannerImg || aiData.bgImg || '';
+
+              if (aiAsset.type === 'TODAY_BTV') {
+                if (aiData.subTitle && !aiData.subText) aiData.subText = aiData.subTitle;
+                if (!aiData.imageUrl && masterImg) aiData.imageUrl = masterImg;
+              } 
               else if (aiAsset.type === 'GENERAL_BANNER') {
                 if (aiData.subTitle && !aiData.previewSub) aiData.previewSub = aiData.subTitle;
                 if (aiData.mainTitle && !aiData.previewTitle) aiData.previewTitle = aiData.mainTitle;
                 if (aiData.mainTitle && !aiData.bannerCopy) aiData.bannerCopy = aiData.mainTitle;
+                // 🌟 배너 에셋 자체(bannerImg)에 이미지 적용
+                if (!aiData.bannerImg && masterImg) aiData.bannerImg = masterImg;
+                // 프리뷰 영역에는 템플릿 이미지나 중복 배너 이미지가 들어가지 않도록 정리
+                if (aiData.previewImg === aiData.bannerImg || (aiData.previewImg && aiData.previewImg.includes('ui-templates'))) {
+                  aiData.previewImg = '';
+                }
+              }
+              else if (aiAsset.type === 'GENERAL_SET_BANNER') {
+                // 🌟 세트형 배너의 모든 카드(cards[].cardImg)에 이미지 적용 (Hero 프리뷰 제외)
+                const rawCards = Array.isArray(aiData.cards) && aiData.cards.length > 0 ? aiData.cards : DEFAULT_GENERAL_SET_BANNER.cards;
+                aiData.cards = rawCards.map((card, cIdx) => {
+                  const defCard = DEFAULT_GENERAL_SET_BANNER.cards[cIdx] || DEFAULT_GENERAL_SET_BANNER.cards[0];
+                  const mergedCard = { ...defCard, ...card };
+                  if (!mergedCard.cardImg && (mergedCard.imageUrl || masterImg)) {
+                    mergedCard.cardImg = mergedCard.imageUrl || masterImg;
+                  }
+                  if (mergedCard.heroImg === mergedCard.cardImg || (mergedCard.heroImg && mergedCard.heroImg.includes('ui-templates'))) {
+                    mergedCard.heroImg = '';
+                  }
+                  return mergedCard;
+                });
               }
               else if (aiAsset.type === 'FULL_PROMO_BANNER') {
                 if (aiData.mainTitle && !aiData.mainCopy) aiData.mainCopy = aiData.mainTitle;
                 if (aiData.subTitle && !aiData.subCopy) aiData.subCopy = aiData.subTitle;
+                if (!aiData.bgImg && masterImg) aiData.bgImg = masterImg;
+                [1, 2, 3].forEach(num => {
+                  if (!aiData[`card${num}Img`] && masterImg) aiData[`card${num}Img`] = masterImg;
+                });
+              }
+              else {
+                if (!aiData.imageUrl && masterImg) aiData.imageUrl = masterImg;
               }
 
               let rawGnb = aiData.gnb || baseData.gnb;
@@ -1391,10 +1463,9 @@
               const finalName = getUniqueAssetName(usedNames, rawName);
               usedNames.push(finalName);
 
-              return { id: `ai-asset-${index}-${timestamp}`, type: aiAsset.type, name: finalName, data: { ...baseData, ...aiData, gnb: cleanedGnb, startDate: aiMeta?.startDate || baseData.startDate, dueDate: aiMeta?.dueDate || baseData.dueDate } }; // 🌟 name: finalName 으로 교체
+              return { id: `ai-asset-${index}-${timestamp}`, type: aiAsset.type, name: finalName, data: { ...baseData, ...aiData, gnb: cleanedGnb, startDate: aiMeta?.startDate || aiCampaignMeta.startDate || baseData.startDate, dueDate: aiMeta?.dueDate || aiCampaignMeta.dueDate || baseData.dueDate } };
             });
             setAssets(newAssets); setActiveTabId(newAssets[0].id); 
-            // 🌟 원본 기록 저장
             setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: newAssets.map(a => ({ id: a.id, name: a.name })) }));
           }
         }
@@ -1405,7 +1476,7 @@
       const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
       const [localShowSafeZone, setLocalShowSafeZone] = useState(false);
       const [configMap, setConfigMap] = useState({});
-      // 🌟 [신규] 최초 마운트 시 1회: 임시저장된 작업이 있으면 복구 여부 확인
+
       useEffect(() => {
         try {
           const saved = localStorage.getItem(AUTOSAVE_KEY);
@@ -1430,7 +1501,6 @@
         } catch (e) { console.error("자동저장 복구 실패", e); }
       }, []);
       
-      // 🌟 [신규] 편집 중 변경사항을 디바운스로 자동저장 (EDITOR 뷰에서만)
       useEffect(() => {
         if (currentView !== 'EDITOR' || assets.length === 0) return;
         const timer = setTimeout(() => {
@@ -1441,7 +1511,6 @@
         return () => clearTimeout(timer);
       }, [campaignMeta, assets, mermaidCode, currentView]);
 
-      
       useEffect(() => {
         const fetchConfig = async () => {
           try {
@@ -1482,23 +1551,30 @@
 
       const addAsset = (type, name) => {
         const newId = `asset-${Date.now()}`;
-        const uniqueName = getUniqueAssetName(assets.map(a => a.name), name); // 🌟 추가
+        const uniqueName = getUniqueAssetName(assets.map(a => a.name), name);
         let newData = {};
-        if (type === 'TODAY_BTV') newData = { ...DEFAULT_TODAY_BTV };
-        else if (type === 'GENERAL_BANNER') newData = { ...DEFAULT_GENERAL_BANNER };
-        else if (type === 'GENERAL_SET_BANNER') newData = { ...DEFAULT_GENERAL_SET_BANNER };
-        else if (type === 'FULL_PROMO_BANNER') newData = { ...DEFAULT_FULL_PROMO_BANNER };
-        else if (type === 'BIG_BANNER') newData = { ...DEFAULT_BIG_BANNER };
-        else if (type === 'LONG_BANNER') newData = { ...DEFAULT_LONG_BANNER };
-        else if (type === 'STRIP_BANNER') newData = { ...DEFAULT_STRIP_BANNER };
-        else if (type === 'SYNOPSIS_BANNER') newData = { ...DEFAULT_SYNOPSIS_BANNER };
-        else if (type === 'PROMO_POPUP') newData = { ...DEFAULT_PROMO_POPUP };
-        else if (type === 'MINI_EPG_BANNER') newData = { ...DEFAULT_MINI_EPG_BANNER }; // 🌟 누락 분기 추가
+        const masterImg = campaignMeta.mainImageUrl || '';
+
+        if (type === 'TODAY_BTV') newData = { ...DEFAULT_TODAY_BTV, imageUrl: masterImg };
+        else if (type === 'GENERAL_BANNER') newData = { ...DEFAULT_GENERAL_BANNER, bannerImg: masterImg };
+        else if (type === 'GENERAL_SET_BANNER') {
+          newData = { 
+            ...DEFAULT_GENERAL_SET_BANNER,
+            cards: DEFAULT_GENERAL_SET_BANNER.cards.map(c => ({ ...c, cardImg: masterImg }))
+          };
+        }
+        else if (type === 'FULL_PROMO_BANNER') newData = { ...DEFAULT_FULL_PROMO_BANNER, bgImg: masterImg };
+        else if (type === 'BIG_BANNER') newData = { ...DEFAULT_BIG_BANNER, imageUrl: masterImg };
+        else if (type === 'LONG_BANNER') newData = { ...DEFAULT_LONG_BANNER, imageUrl: masterImg };
+        else if (type === 'STRIP_BANNER') newData = { ...DEFAULT_STRIP_BANNER, imageUrl: masterImg };
+        else if (type === 'SYNOPSIS_BANNER') newData = { ...DEFAULT_SYNOPSIS_BANNER, imageUrl: masterImg };
+        else if (type === 'PROMO_POPUP') newData = { ...DEFAULT_PROMO_POPUP, imageUrl: masterImg };
+        else if (type === 'MINI_EPG_BANNER') newData = { ...DEFAULT_MINI_EPG_BANNER, imageUrl: masterImg };
       
         newData.startDate = campaignMeta.startDate;
         newData.dueDate = campaignMeta.dueDate;
 
-        setAssets([...assets, { id: newId, type, name: uniqueName, data: newData }]); // 🌟 name → uniqueName
+        setAssets([...assets, { id: newId, type, name: uniqueName, data: newData }]);
         setActiveTabId(newId);
         setIsAddAssetModalOpen(false);
         setOpenAccordions({ ...openAccordions, banner: true }); 
@@ -1513,7 +1589,6 @@
         else if (activeTabId === id) setActiveTabId(filteredAssets[0].id);
       };
 
-      // 🌟 1. 확장프로그램 다운로드 함수 (에러 복구 완료)
       const handleDownloadExtension = async () => {
         setExportState({ isExporting: true, progress: 10, msg: "최신 확장프로그램 패킹 준비 중..." });
         try {
@@ -1549,7 +1624,6 @@
         }
       };
 
-      // 🌟 2. Jira 전송 함수 (마크다운 치환 및 용량 최적화 완벽 반영)
       const handleExport = async () => {
         if (!assets || assets.length === 0) {
           if (campaignMeta.target !== 'TARGET') return alert("전송할 배너 기획안이 없고, 타겟팅 캠페인도 아닙니다.");
@@ -1634,7 +1708,7 @@
           let targetGnbs = Array.isArray(data.gnb) ? data.gnb : [data.gnb || '미지정'];
           if (asset?.type === 'TODAY_BTV') targetGnbs = ['홈'];
           if (asset?.type === 'SYNOPSIS_BANNER') targetGnbs = ['콘텐츠'];
-          if (asset?.type === 'MINI_EPG_BANNER') targetGnbs = ['실시간 채널']; // 🌟 누락된 오버라이드 추가
+          if (asset?.type === 'MINI_EPG_BANNER') targetGnbs = ['실시간 채널'];
           
           const targetGnbForAssign = targetGnbs[0];
           const assigneeInfo = configMap[targetGnbForAssign];
@@ -1737,7 +1811,7 @@
           "</ul><br>" +
           "<h3>🗺️ 고객 이동 경로 (AI 기획 초안)</h3>" +
           mermaidSectionHtml + "<br><br>" +
-          changeLogHtml +  // 🌟 계산만 되고 누락됐던 변경 이력 삽입
+          changeLogHtml + 
           "<h3>📊 배너 편성 종합표</h3>" + parentTable + "<br><hr><br><p>하위 작업(Sub-task)으로 개별 상세 기획안이 첨부되어 있습니다.</p>";
         
         const mentionString = Array.from(uniqueAssignees).map(id => `[~${id}]`).join(' ');
@@ -1756,15 +1830,14 @@
         window.dispatchEvent(event);
         
         setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 잠시 후 Jira가 열립니다." });
-        localStorage.removeItem(AUTOSAVE_KEY); // 🌟 추가 — 전송 완료됐으니 임시저장 정리
+        localStorage.removeItem(AUTOSAVE_KEY);
         setTimeout(() => { setExportState({ isExporting: false, progress: 0, msg: '' }); setCurrentView('LIST'); }, 3000);
       };
       
       const activeAsset = assets.find(a => a.id === activeTabId) || assets[0];
 
-      // 🌟 [수정됨] 기존 '수정' 버튼 동작: 시안 편집(EDITOR)으로 직행
       const handleLoadCampaign = (meta, loadedAssets, loadedMermaid) => {
-        localStorage.removeItem(AUTOSAVE_KEY); // 🌟 추가 — 다른 캠페인을 명시적으로 불러왔으니 예전 임시저장 무효화
+        localStorage.removeItem(AUTOSAVE_KEY);
         setCampaignMeta(prev => ({ 
             ...prev, ...meta,
             aiOriginalAssets: loadedAssets ? loadedAssets.map(a => ({ id: a.id, name: a.name })) : []
@@ -1779,9 +1852,8 @@
         setCurrentView('EDITOR'); setIsSidebarOpen(true);
       };
 
-      // 🌟 [추가됨] 신규 '복제' 버튼 동작: AI 프로모션 기획(PLANNER)으로 이동
       const handleDuplicateCampaign = (meta, loadedAssets, loadedMermaid) => {
-        localStorage.removeItem(AUTOSAVE_KEY); // 🌟 추가
+        localStorage.removeItem(AUTOSAVE_KEY);
         setCampaignMeta(prev => ({ 
             ...prev, ...meta,
             aiOriginalAssets: loadedAssets ? loadedAssets.map(a => ({ id: a.id, name: a.name })) : []
@@ -1796,30 +1868,20 @@
         setCurrentView('PLANNER'); setIsSidebarOpen(true);
       };
 
-      // ============================================================================
-      // 🌟 [3단계: 렌더링 분기 처리] 기존 return ( ... ); 전체를 아래 코드로 덮어씌웁니다.
-      // ============================================================================
       return (
         <div className="flex h-screen w-full bg-[#06070a] text-slate-200 overflow-hidden select-none">
           
-          {/* 🌟 수정: 애니메이션 튀는 현상 방지 (너비 고정 컨테이너 활용) 및 다운로드 버튼 추가 */}
           <nav className={`bg-[#0f111a] border-r border-[#262833] flex flex-col py-6 z-30 shrink-0 shadow-lg transition-[width] duration-300 ease-in-out overflow-hidden ${isNavExpanded ? 'w-[220px]' : 'w-[72px]'}`}>
-            
-            {/* 내부 요소가 밀리지 않도록 고정 너비(220px)의 래퍼 생성 */}
             <div className="w-[220px] flex flex-col h-full">
-              
-              {/* 상단 로고 (px-3.5 및 48px 규격 일치화로 쏠림 현상 해결) */}
               <div className="flex items-center mb-10 px-3.5 w-full">
                 <div className="w-[48px] h-[48px] bg-white rounded-xl flex items-center justify-center shadow-lg shadow-[#4f3df6]/30 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-[28px] h-[28px] text-[#4f3df6] fill-current" viewBox="0 0 64 64"><path d="M45.7,30.9L45.7,30.9l0-0.2c2-2.1,3.1-4.9,3.2-7.8c0-0.7,0-1.5-0.2-2.2c-1.1-5.6-6-9.7-11.7-9.7H13v9.7h22.2c2,0,3.6,1.6,3.6,3.6s-1.6,3.6-3.6,3.6H23.1v-5l-10.1,5v25.2h24.7c7,0,12.6-5.6,12.6-12.6C50.2,36.7,48.5,33.3,45.7,30.9 M35.6,43.5H23.1v-7.8h12.5c2.2,0,3.9,1.7,3.9,3.9S37.8,43.5,35.6,43.5" /></svg>
                 </div>
-                {/* 🌟 텍스트 크기 일치화 및 볼드체 제거 */}
                 <span className={`text-white text-[15px] font-medium tracking-tight ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
                   캠페인 매니저
                 </span>
               </div>
 
-              {/* 주요 메뉴 */}
               <div className="flex flex-col gap-3 w-full px-3">
                 <button onClick={() => setCurrentView('PLANNER')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'PLANNER' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
                   <Bot size={22} className="shrink-0" />
@@ -1837,10 +1899,7 @@
                 </button>
               </div>
               
-              {/* 하단 제어 메뉴 */}
               <div className="mt-auto flex flex-col w-full px-3 gap-2.5">
-                
-                {/* 🌟 Jira 세션 상태 뱃지 */}
                 <div 
                   title={jiraSession === 'LOGGED_IN' ? 'Jira 세션 유효' : 'Jira 로그인 필요 (클릭 시 이동)'}
                   onClick={() => jiraSession !== 'LOGGED_IN' && window.open('https://jira.skbroadband.com', '_blank')}
@@ -1862,9 +1921,7 @@
                   )}
                 </div>
 
-                {/* 🌟 스마트 확장앱 버전 관리 버튼 */}
                 {(() => {
-                  // 버전 문자열 정규화 (1.3 -> 1.3.0 형태 비교 지원)
                   const cleanVer = (v) => v ? String(v).trim().replace(/^v/, '') : '';
                   const curV = cleanVer(extensionVersion);
                   const gitV = cleanVer(githubVersion);
@@ -1913,7 +1970,6 @@
                   );
                 })()}
 
-                {/* 메뉴 토글 버튼 */}
                 <button 
                   onClick={() => setIsNavExpanded(!isNavExpanded)} 
                   title={isNavExpanded ? "메뉴 닫기" : "메뉴 열기"}
@@ -1927,7 +1983,6 @@
                   )}
                 </button>
                 
-                {/* 설정 버튼 */}
                 <button 
                   onClick={handleSettingsClick} 
                   title="설정"
@@ -1944,10 +1999,8 @@
             </div>
           </nav>
 
-          {/* 🌟 2. 먹통 방지 조건 추가: 에셋(activeAsset)이 존재할 때만 사이드바 렌더링 */}
           {isSidebarOpen && currentView === 'EDITOR' && activeAsset && (
             <aside className="w-[360px] bg-[#0c0d14] border-r border-[#1a1c26] flex flex-col h-full z-10 shrink-0 shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
-              {/* 🌟 [수정 6번] 하단 부제목(Agent 텍스트) 삭제 */}
               <div className="p-6 pb-4 flex items-center border-b border-[#1a1c26] bg-[#0f111a]">
                 <h1 className="text-lg font-black text-white tracking-tight">프로모션 시안</h1>
               </div>
@@ -2169,7 +2222,7 @@
             {currentView === 'LIST' && (
               <PromotionListView 
                 onLoadCampaign={handleLoadCampaign} 
-                onDuplicateCampaign={handleDuplicateCampaign} /* 🌟 프롭스 연결 */
+                onDuplicateCampaign={handleDuplicateCampaign}
               />
             )}
 
@@ -2179,13 +2232,12 @@
                 setCampaignMeta={setAiCampaignMeta}
                 chatHistory={aiChatHistory}
                 setChatHistory={setAiChatHistory}
-                assets={assets} /* 🌟 프롭스 연결 추가 */
-                mermaidCode={mermaidCode} /* 🌟 이 줄(Prop)이 누락되어 있었습니다! 추가해 주세요 */
-                onMoveToEditor={handleMoveToEditor} /* 🌟 [핵심] 기존 익명함수를 지우고 완성된 함수 연결 */
+                assets={assets}
+                mermaidCode={mermaidCode}
+                onMoveToEditor={handleMoveToEditor}
               />
             )}
 
-            {/* 🌟 3. 빈 화면 방어: Editor 뷰에서 에셋이 없으면 안내 화면 띄우기 */}
             {currentView === 'EDITOR' && (
               <>
                 {!activeAsset ? (
@@ -2215,13 +2267,11 @@
                           <MessageSquare size={14}/> 메모 추가
                         </button>
 
-                        {/* 🌟 [수정됨] 에셋이 1개일 때도 헤더 삭제 버튼 상시 노출 */}
                         <button onClick={(e) => removeAsset(activeAsset.id, e)} className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold border border-red-500/30 hover:bg-red-500/20 hover:text-red-300 transition-colors">
                           <Trash2 size={14}/> 배너 삭제
                         </button>
 
                         <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#1a1c26] text-white rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={14} className="text-[#7387ff]"/> 배너 추가</button>
-                        {/* 🌟 기존 'Jira 패스' 버튼을 삭제하고, 그 자리에 '재확인' 버튼을 추가했습니다 */}
                         {exportState.isExporting ? (
                           <div className="w-[200px] h-[34px] bg-[#1a1c26] border border-[#4f3df6] rounded-lg overflow-hidden relative flex items-center shadow-[0_0_15px_rgba(79,61,246,0.3)]">
                             <div className="absolute inset-0 bg-[#4f3df6]/20 progress-stripes pointer-events-none"></div>
@@ -2230,8 +2280,6 @@
                           </div>
                         ) : (
                           <div className="flex gap-2 items-center">
-                            
-                            {/* 🌟 [신규] 로그인이 안 되어 있을 때만 나타나는 재확인 버튼 */}
                             {jiraSession !== 'LOGGED_IN' && (
                               <button 
                                 onClick={checkJiraSessionNow} 
@@ -2241,7 +2289,6 @@
                               </button>
                             )}
                             
-                            {/* 🌟 Jira 전송 버튼 */}
                             <button onClick={() => {
                               if (jiraSession !== 'LOGGED_IN') {
                                 window.open('https://jira.skbroadband.com', '_blank');
@@ -2252,7 +2299,6 @@
                             className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold transition-all ${jiraSession === 'LOGGED_IN' ? 'bg-[#4f3df6] hover:bg-[#6252ff] text-white shadow-lg shadow-[#4f3df6]/20' : 'bg-pink-500/20 text-pink-400 border border-pink-500/50'}`}>
                               <Send size={14}/> {jiraSession === 'LOGGED_IN' ? 'Jira 전송' : 'Jira 로그인 대기'}
                             </button>
-
                           </div>
                         )}
                       </div>
@@ -2288,8 +2334,6 @@
                             
                             <div className={`h-[32px] px-3 flex justify-between items-center relative ${activeTabId === asset.id ? 'bg-[#4f3df6]' : 'bg-[#12141c]'}`}>
                               <span className={`text-[10px] font-bold truncate pr-4 ${activeTabId === asset.id ? 'text-white' : 'text-slate-300'}`}>{asset.name}</span>
-                              
-                              {/* 🌟 [수정됨] 탭 호버 시 나타나는 삭제 버튼 상시 노출 */}
                               <button onClick={(e) => removeAsset(asset.id, e)} className={`absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded-full transition-all ${activeTabId === asset.id ? 'hover:bg-white/20 text-white' : 'hover:bg-red-500/20 text-red-400'}`}>
                                 <Trash2 size={10}/>
                               </button>
@@ -2305,7 +2349,6 @@
 
           </main>
 
-
           {isSettingsOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
               <div className="bg-[#12141c] w-[500px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10">
@@ -2315,7 +2358,6 @@
                 </div>
                 
                 <div className="p-6 space-y-6 bg-[#0a0812] max-h-[70vh] overflow-y-auto custom-scrollbar">
-                  
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-[#7387ff] flex items-center gap-1.5"><User size={14}/> 내 계정 연동</h4>
                     <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#262833]">
@@ -2365,7 +2407,6 @@
                       ))}
                     </div>
                   </div>
-
                 </div>
                 
                 <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
