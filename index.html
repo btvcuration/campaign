@@ -134,7 +134,7 @@
       Image as ImageIcon, ListTodo, Smartphone, LayoutPanelLeft, MonitorPlay, Sparkles, Bot, 
       X, User, ExternalLink, Monitor, Layout, Type, RectangleHorizontal, FileText, CalendarDays, 
       MessageSquare, Loader2, Lock, Users, Download, RefreshCw, Inbox, FolderOpen, PanelLeftOpen, 
-      PanelLeftClose, Database, Clock, AlertTriangle, BarChart3, Filter, Zap, Check
+      PanelLeftClose, Database, Clock, AlertTriangle, BarChart3, Filter, Zap, Check, Edit3, RotateCcw
     } from 'lucide-react';
     
     const MermaidViewer = ({ code }) => {
@@ -661,9 +661,9 @@
     };
 
     // ====================================================================================
-    // 🌟 AI 프로모션 기획 뷰 (요청 부서, 담당자 이름, 주기성 여부 필드 포함)
+    // 🌟 AI 프로모션 기획 뷰 (요청 부서, 담당자 이름, 주기성 여부 + [🔄 기획 초기화] 포함)
     // ====================================================================================
-    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onMoveToEditor }) => {
+    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onResetMermaid, onMoveToEditor }) => {
       const [inputValue, setInputValue] = useState('');
       const [isLoading, setIsLoading] = useState(false);
       const [pendingAiPayload, setPendingAiPayload] = useState(null); 
@@ -675,6 +675,24 @@
 
       const handleTargetSizeBlur = (e) => {
         setCampaignMeta(prev => ({ ...prev, targetSize: parseAndFormatKoreanNumber(e.target.value) }));
+      };
+
+      // 🌟 [UX 4] 새 기획 초기화 핸들러
+      const handleResetPlanner = () => {
+        if (!window.confirm("현재 작성 중인 기획 폼과 AI 대화 내역을 모두 초기화하시겠습니까?\n(요청 부서와 담당자 이름은 유지됩니다.)")) return;
+        setCampaignMeta({
+          campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
+          hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
+          bannerTypes: '', gnbLocations: '', bannerPlan: [], isCapaChecked: false,
+          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || '',
+          cycle: '단발성', uiVersion: '5.0'
+        });
+        setChatHistory([
+          { id: 'msg-init', sender: 'ai', text: '매니저님, 기획 폼이 깨끗하게 초기화되었습니다!\n새로 기획하실 프로모션 목적이나 상품을 편하게 말씀해 주세요.' }
+        ]);
+        setPendingAiPayload(null);
+        if (onResetMermaid) onResetMermaid();
       };
 
       const handleOpenImagePreview = () => {
@@ -758,7 +776,7 @@
           const proxyUrl = "https://btv-proxy.alcheminos.workers.dev";
           
           const cleanHistory = newHistory
-            .filter(msg => msg.id !== 'msg-init')
+            .filter(msg => !String(msg.id).startsWith('msg-init'))
             .map(msg => ({
               sender: msg.sender,
               text: msg.text
@@ -815,7 +833,6 @@
                 name: a.name || a.type,
                 gnb: Array.isArray(a.data?.gnb) ? a.data.gnb.join(', ') : (a.data?.gnb || '')
               }));
-              // 🌟 폼에서 입력한 부서, 담당자, 대표 이미지가 덮어써지지 않도록 보존
               setCampaignMeta(prev => ({ 
                 ...prev, 
                 ...metaData,
@@ -922,7 +939,17 @@
           <div className="flex-1 flex flex-col bg-[#0f111a] border border-[#262833] rounded-2xl shadow-xl overflow-hidden min-w-[350px]">
             <div className="px-5 py-4 border-b border-[#262833] bg-[#12141c] flex items-center justify-between shrink-0">
               <h3 className="text-white font-bold text-[15px] tracking-tight flex items-center gap-2"><Settings size={16} className="text-pink-400" /> 캠페인 기획 폼</h3>
-              <span className="text-[9px] text-slate-400 bg-[#1a1c26] px-2 py-0.5 rounded border border-[#303340] animate-pulse">AI 실시간 동기화</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-slate-400 bg-[#1a1c26] px-2 py-0.5 rounded border border-[#303340] animate-pulse">AI 실시간 동기화</span>
+                <button
+                  type="button"
+                  onClick={handleResetPlanner}
+                  title="기획 폼 및 대화 초기화"
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-[#1a1c26] hover:bg-red-500/20 text-slate-300 hover:text-red-300 border border-[#303340] text-[10px] font-bold transition-colors"
+                >
+                  <RotateCcw size={11} /> 초기화
+                </button>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#06070a]">
@@ -933,7 +960,6 @@
                   <h4 className="text-sm font-bold text-white tracking-tight">1. 기본 기획 및 담당자 정보</h4>
                 </div>
                 
-                {/* 🌟 [신규 추가] 요청 부서 + 담당자 이름 + 주기성 여부 (스케줄 시트 완벽 연동) */}
                 <div className="grid grid-cols-3 gap-3 mb-3.5">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">요청 부서 *</label>
@@ -1184,11 +1210,13 @@
         </div>
       );
     };
+    // ======= [Part 1 끝: 바로 아래 줄에 이어서 Part 2를 붙여넣으세요] =======
+    // ======= [Part 2 시작: Part 1의 맨 마지막 줄 바로 아래에 붙여넣으세요] =======
 
     // ====================================================================================
-    // 🌟 [최종 개편] 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰 (ScheduleDashboardView)
+    // 🌟 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰 (ScheduleDashboardView)
     // ====================================================================================
-    const ScheduleDashboardView = ({ onStartPlanWithDate }) => {
+    const ScheduleDashboardView = ({ onStartPlanWithDate, onOpenCampaignEditor }) => {
       const todayObj = new Date();
       const todayLocalStr = new Date(todayObj.getTime() - (todayObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -1197,14 +1225,14 @@
       const [isAssigning, setIsAssigning] = useState(false);
 
       // 캘린더 필터 상태
-      const [typeFilters, setTypeFilters] = useState([]); // ['TV', '토스트팝업', '쿠폰', 'Seg채널']
-      const [dateFilters, setDateFilters] = useState(['start']); // ['start', 'end']
+      const [typeFilters, setTypeFilters] = useState([]);
+      const [dateFilters, setDateFilters] = useState(['start']);
       const [excludeWired, setExcludeWired] = useState(false);
       const [onlyUnassigned, setOnlyUnassigned] = useState(false);
       const [searchText, setSearchText] = useState('');
       const [channelBarFilter, setChannelBarFilter] = useState('');
 
-      // 🌟 우측 상단 Capa 시뮬레이터 & 빠른 시작 상태 (채널 세분화)
+      // 우측 상단 Capa 시뮬레이터 & 빠른 시작 상태
       const [capaDate, setCapaDate] = useState(todayLocalStr);
       const [capaEndDate, setCapaEndDate] = useState(todayLocalStr);
       const [capaTarget, setCapaTarget] = useState('');
@@ -1213,11 +1241,13 @@
       const [capaToast, setCapaToast] = useState(false);
       const [capaCoupon, setCapaCoupon] = useState(true);
 
-      // 현재 캘린더 기준 연/월 요약 상태
       const [currentCalMonth, setCurrentCalMonth] = useState({ year: todayObj.getFullYear(), month: todayObj.getMonth() });
 
-      // 모달 상태 (상세 정보 / 일자별 요약 / 단순 Capa 반영)
-      const [detailModal, setDetailModal] = useState(null); // { type: 'EVENT' | 'DATE', title, data, dateStr }
+      // 모달 상태 (상세 정보 및 인라인 수정 / 일자별 요약 / 단순 Capa 반영)
+      const [detailModal, setDetailModal] = useState(null);
+      const [editEventForm, setEditEventForm] = useState(null);
+      const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
+
       const [isReqModalOpen, setIsReqModalOpen] = useState(false);
       const [isSubmittingReq, setIsSubmittingReq] = useState(false);
       const [reqStatusMsg, setReqStatusMsg] = useState('');
@@ -1247,7 +1277,6 @@
       const filteredEventsRef = useRef([]);
       const rawDataRef = useRef([]);
 
-      // 유틸리티 함수들 (17개 시트 컬럼 완벽 호환)
       const cleanDateStr = (dateVal) => {
         if (!dateVal) return "";
         let str = String(dateVal).trim();
@@ -1340,7 +1369,6 @@
         }, 0);
       };
 
-      // 서버에서 스케줄 데이터 불러오기
       const fetchScheduleData = async () => {
         setIsLoading(true);
         try {
@@ -1360,11 +1388,107 @@
         }
       };
 
-      useEffect(() => {
-        fetchScheduleData();
-      }, []);
+      useEffect(() => { fetchScheduleData(); }, []);
 
-      // ⚡ 실행시각 자동배정 트리거
+      // 이벤트 상세 모달이 열릴 때 인라인 수정용 폼 상태 초기화
+      useEffect(() => {
+        if (detailModal && detailModal.type === 'EVENT' && detailModal.data) {
+          const d = detailModal.data;
+          setEditEventForm({
+            _rowIndex: d._rowIndex,
+            uniqueCode: d.uniqueCode || '',
+            campaignName: getCampaignTitle(d),
+            startDate: d._calStart || cleanDateStr(d['시작일']) || todayLocalStr,
+            endDate: d._calEnd || cleanDateStr(d['종료일']) || todayLocalStr,
+            channel: d['채널'] || d['필터'] || '타겟배너',
+            gnb: d['GNB'] || '홈',
+            cycle: getCycleName(d),
+            couponYn: checkHasCouponItem(d) ? '쿠폰' : '미포함',
+            targetSize: String(getTargetValue(d) || 0),
+            department: getDeptName(d) || 'Btv큐레이션팀',
+            marketer: getMarketerName(d) || ''
+          });
+        } else {
+          setEditEventForm(null);
+        }
+      }, [detailModal]);
+
+      // 🌟 [UX 1] 캘린더 이벤트 모달 내 즉시 수정 및 시간 재배정 실행
+      const handleUpdateEventSchedule = async () => {
+        if (!editEventForm) return;
+        setIsUpdatingEvent(true);
+        try {
+          const targetNum = Number(String(editEventForm.targetSize).replace(/[^0-9]/g, '')) || 0;
+          const scheduleItem = {
+            _rowIndex: editEventForm._rowIndex,
+            uniqueCode: editEventForm.uniqueCode,
+            "캠페인 명": editEventForm.campaignName,
+            "시작일": editEventForm.startDate,
+            "종료일": editEventForm.endDate || editEventForm.startDate,
+            "채널": editEventForm.channel,
+            "GNB": editEventForm.gnb,
+            "주기성 여부": editEventForm.cycle,
+            "쿠폰 여부": editEventForm.couponYn,
+            "타겟 수": targetNum,
+            "요청 부서": editEventForm.department,
+            "담당자 이름": editEventForm.marketer
+          };
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateSchedule", scheduleItem })
+          });
+          const json = await res.json();
+          if (json.status === 'success') {
+            if (Array.isArray(json.data)) {
+              setRawSourceData(json.data);
+              rawDataRef.current = json.data;
+            } else {
+              await fetchScheduleData();
+            }
+            alert("✅ 일정 변경 및 실행시각 재배정이 완료되었습니다!");
+            setDetailModal(null);
+          } else {
+            alert("⚠️ 수정 실패: " + (json.message || "오류 발생"));
+          }
+        } catch (err) {
+          alert("⚠️ 통신 오류: " + err.message);
+        } finally {
+          setIsUpdatingEvent(false);
+        }
+      };
+
+      // 🌟 [UX 1] 캘린더 이벤트 모달 내 스케줄 삭제 실행
+      const handleDeleteEventSchedule = async () => {
+        if (!editEventForm) return;
+        if (!window.confirm(`[${editEventForm.campaignName}] 스케줄을 시트에서 완전히 삭제하시겠습니까?`)) return;
+        setIsUpdatingEvent(true);
+        try {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "deleteSchedule", scheduleItem: editEventForm })
+          });
+          const json = await res.json();
+          if (json.status === 'success') {
+            if (Array.isArray(json.data)) {
+              setRawSourceData(json.data);
+              rawDataRef.current = json.data;
+            } else {
+              await fetchScheduleData();
+            }
+            alert("🗑️ 스케줄이 삭제되었습니다.");
+            setDetailModal(null);
+          } else {
+            alert("⚠️ 삭제 실패: " + (json.message || "오류 발생"));
+          }
+        } catch (err) {
+          alert("⚠️ 통신 오류: " + err.message);
+        } finally {
+          setIsUpdatingEvent(false);
+        }
+      };
+
       const handleAssignExecutionTimes = async () => {
         setIsAssigning(true);
         try {
@@ -1393,7 +1517,6 @@
         }
       };
 
-      // 🌟 [핵심] ① 단순 Capa 반영 모달 열기 (시뮬레이터 조건 자동 프리필)
       const openSimpleCapaModalWithPrefill = (customDate = null) => {
         const sDate = customDate || capaDate || todayLocalStr;
         const eDate = customDate || (capaEndDate >= sDate ? capaEndDate : sDate);
@@ -1419,13 +1542,11 @@
         setIsReqModalOpen(true);
       };
 
-      // 🌟 [핵심] ② AI 시안 기획 이동 (채널 조건 검증 후 스마트 분기)
       const handleMoveToAiPlannerFromSim = (customDate = null) => {
         const sDate = customDate || capaDate || todayLocalStr;
         const eDate = customDate || (capaEndDate >= sDate ? capaEndDate : sDate);
         const hasVisualAsset = capaBanner || capaTvPopup;
 
-        // 배너/TV팝업 없이 '쿠폰' 또는 '토스트팝업'만 선택된 경우 -> AI 시안 건너뛰고 단순 Capa 반영으로 안내!
         if (!hasVisualAsset) {
           const confirmSkip = window.confirm(
             "💡 선택하신 조건(쿠폰 단독 또는 토스트팝업)은 배너/TV팝업 이미지 시안 제작이 필요하지 않습니다.\n\nAI 시안 기획을 건너뛰고 바로 [① 단순 Capa 반영] 창으로 연결할까요?\n(취소를 누르면 AI 시안 기획 화면으로 이동합니다.)"
@@ -1459,7 +1580,6 @@
         });
       };
 
-      // 필터링된 이벤트 목록 생성
       const buildFilteredEvents = () => {
         const processed = [];
         rawSourceData.forEach((item, idx) => {
@@ -1511,7 +1631,6 @@
         return processed;
       };
 
-      // 캘린더 셀 내부의 타겟 합계 / 잔여 Capa / 신호등 뱃지 갱신
       const refreshCalendarCellBadges = () => {
         if (!calendarNodeRef.current) return;
         const events = filteredEventsRef.current;
@@ -1550,7 +1669,6 @@
         });
       };
 
-      // FullCalendar 초기화 및 업데이트
       useEffect(() => {
         if (!calendarNodeRef.current || typeof window.FullCalendar === 'undefined') return;
         const filtered = buildFilteredEvents();
@@ -1645,7 +1763,6 @@
         setTimeout(refreshCalendarCellBadges, 50);
       }, [rawSourceData, typeFilters, dateFilters, excludeWired, onlyUnassigned, searchText]);
 
-      // 월별 추이 Chart.js 렌더링 (다크 모드)
       useEffect(() => {
         if (!monthlyChartRef.current || typeof window.Chart === 'undefined') return;
         const monthMap = {};
@@ -1691,7 +1808,6 @@
         });
       }, [rawSourceData, excludeWired]);
 
-      // 현재 캘린더 월 기준 채널 요약 수치 계산
       const monthlySummary = (() => {
         let tvCount = 0, toastCount = 0, couponCount = 0, segCount = 0;
         let tvSum = 0, toastSum = 0, couponSum = 0, segSum = 0;
@@ -1712,7 +1828,6 @@
         return { tvCount, toastCount, couponCount, segCount, tvSum, toastSum, couponSum, segSum };
       })();
 
-      // 향후 7일 주간 잔여 슬롯 데이터 계산
       const weeklyData = (() => {
         const list = [];
         for (let i = 0; i < 7; i++) {
@@ -1743,14 +1858,12 @@
         return list;
       })();
 
-      // 미반영 캠페인 건수 체크
       const unassignedCampaigns = rawSourceData.filter(item => {
         const st = String(item['상태'] || '').trim();
         const tm = String(item['실행시각'] || '').trim();
         return st === '미반영' || tm.includes('배정 불가');
       });
 
-      // 우측 상단 Capa 시뮬레이터 결과 계산
       const capaSimResults = (() => {
         const tVal = Number(String(capaTarget).replace(/[^0-9]/g, '')) || 0;
         const checks = [
@@ -1777,7 +1890,6 @@
         });
       })();
 
-      // 🌟 단순 Capa 반영 제출 (17개 컬럼 완벽 매칭)
       const handleSimpleRequestSubmit = async (e) => {
         e.preventDefault();
         if (!reqForm.campaignName || !reqForm.startDate) {
@@ -1847,7 +1959,6 @@
         }
       };
 
-      // 담당자 이름으로 최근 신청 이력 검색
       const recentMarketerHistory = (() => {
         const keyword = (marketerSearch || reqForm.marketer || '').trim().toUpperCase();
         if (!keyword) return [];
@@ -1859,7 +1970,6 @@
 
       return (
         <div className="flex-1 h-full overflow-y-auto custom-scrollbar bg-[#06070a] p-6 space-y-6">
-          {/* 플로팅 마우스 오버 툴팁 */}
           <div ref={tooltipRef} style={{ display: 'none' }} className="fixed z-[9999] pointer-events-none bg-[#12141c]/95 border border-[#303340] px-3.5 py-2 rounded-xl shadow-2xl text-xs text-slate-200 backdrop-blur-md" />
 
           {/* 1. 상단 타이틀 & 액션 바 */}
@@ -1901,9 +2011,8 @@
             </div>
           </div>
 
-          {/* 2. 월별 발송 추이 차트 + 캠페인 발송 모수 확인 & 빠른 시작 (2열 그리드) */}
+          {/* 2. 월별 발송 추이 차트 + 캠페인 발송 모수 확인 & 빠른 시작 */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* 좌측: 월별 발송 건수 추이 & 이번 달 요약 (7칸) */}
             <div className="lg:col-span-7 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -1942,7 +2051,6 @@
               </div>
             </div>
 
-            {/* 🌟 우측: 캠페인 발송 모수 확인 & 투트랙 빠른 시작 (5칸) */}
             <div className="lg:col-span-5 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl">
               <div>
                 <div className="flex items-start justify-between mb-3">
@@ -1986,7 +2094,6 @@
                   </div>
                 </div>
 
-                {/* 검증 결과 영역 */}
                 <div className="space-y-2 max-h-[125px] overflow-y-auto custom-scrollbar">
                   {capaSimResults.length === 0 ? (
                     <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 text-center text-xs text-slate-500">
@@ -2020,7 +2127,6 @@
                 </div>
               </div>
 
-              {/* 🌟 나란히 배치된 [① 단순 Capa 반영] / [② AI 시안 기획 이동] 버튼 */}
               <div className="mt-4 pt-3 border-t border-[#1e202b] grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
@@ -2051,7 +2157,6 @@
               </div>
             </div>
 
-            {/* AI Alert 배너 */}
             <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 flex flex-wrap items-center gap-3">
               <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[#4f3df6]/20 text-[#7387ff] border border-[#4f3df6]/40">AI Alert</span>
               <div className="flex flex-wrap items-center gap-2">
@@ -2076,9 +2181,7 @@
               </div>
             </div>
 
-            {/* 주간 테이블 + 채널별 가로 막대 그래프 (2열) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* 좌: 배너 및 쿠폰 잔여 발송 가능 모수 표 */}
               <div className="bg-[#12141c] border border-[#262833] rounded-xl overflow-hidden">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
@@ -2126,7 +2229,6 @@
                 </table>
               </div>
 
-              {/* 우: 주간 채널별 발송 모수 그래프 */}
               <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 flex flex-col justify-between">
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                   <span className="text-xs font-bold text-white">주간 일자별 발송 모수 합계</span>
@@ -2234,23 +2336,140 @@
           {/* 5. 메인 FullCalendar 영역 */}
           <div id="schedule-calendar" ref={calendarNodeRef} className="shadow-2xl" />
 
-          {/* 모달 A: 날짜 클릭 / 이벤트 클릭 상세 모달 */}
+          {/* 🌟 모달 A: 이벤트 상세 수정/삭제/시안점프 모달 & 일자별 요약 모달 */}
           {detailModal && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => setDetailModal(null)}>
               <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="p-4 border-b border-[#262833] bg-[#0f111a] flex items-center justify-between">
-                  <h3 className="text-sm font-black text-white">{detailModal.title}</h3>
+                  <h3 className="text-sm font-black text-white truncate pr-2">{detailModal.title}</h3>
                   <button onClick={() => setDetailModal(null)} className="p-1 text-slate-400 hover:text-white"><X size={16} /></button>
                 </div>
 
-                {detailModal.type === 'EVENT' ? (
-                  <div className="p-5 space-y-2.5 text-xs text-slate-300 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">캠페인 기간</span><span className="text-white font-bold">{detailModal.data._calStart} ~ {detailModal.data._calEnd}</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">상태 / 실행시각</span><span className="text-[#32d782] font-bold">{detailModal.data['상태'] || '대기 중'} ({detailModal.data['실행시각'] || '미배정'})</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">채널 / 쿠폰 여부</span><span className="text-white">{detailModal.data['채널'] || detailModal.data['필터'] || '-'} / {detailModal.data['쿠폰 여부'] || '-'}</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">타겟 수</span><span className="text-[#7387ff] font-bold">{getTargetValue(detailModal.data).toLocaleString()}명 ({formatTargetNumber(getTargetValue(detailModal.data))})</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">편성 GNB / 주기</span><span>{detailModal.data['GNB'] || '-'} / {getCycleName(detailModal.data)}</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">요청 부서 / 담당자</span><span>{getDeptName(detailModal.data) || '-'} / {getMarketerName(detailModal.data) || '-'}</span></div>
+                {detailModal.type === 'EVENT' && editEventForm ? (
+                  <div className="p-5 space-y-3.5 text-xs text-slate-300 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                    {/* 상태 배지 및 미반영 시 대체 일자 추천 */}
+                    {(() => {
+                      const st = String(detailModal.data['상태'] || '대기 중').trim();
+                      const tm = String(detailModal.data['실행시각'] || '미배정').trim();
+                      const isUnassigned = st === '미반영' || tm.includes('배정 불가');
+                      const reqNum = Number(String(editEventForm.targetSize).replace(/[^0-9]/g, '')) || 0;
+                      const altDates = [];
+                      if (isUnassigned && reqNum > 0 && editEventForm.startDate) {
+                        for (let i = -2; i <= 3; i++) {
+                          if (i === 0) continue;
+                          const dStr = getDateOffset(editEventForm.startDate, i);
+                          const bRem = Math.max(getDailyCapa('banner', dStr) - getDailyUsed('banner', dStr), 0);
+                          const cRem = Math.max(getDailyCapa('coupon', dStr) - getDailyUsed('coupon', dStr), 0);
+                          if (bRem >= reqNum && (editEventForm.couponYn !== '쿠폰' || cRem >= reqNum)) {
+                            altDates.push({ dateStr: dStr, label: `${getDayLabel(dStr)} (배너 잔여 ${formatTargetNumber(bRem)})` });
+                          }
+                        }
+                      }
+                      return (
+                        <div className={`p-3 rounded-xl border ${isUnassigned ? 'bg-red-500/10 border-red-500/30' : 'bg-[#0a0812] border-[#262833]'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-400">현재 배정 상태</span>
+                            <span className={`font-black px-2 py-0.5 rounded-full text-[11px] ${isUnassigned ? 'bg-red-500/20 text-red-400' : 'bg-[#32d782]/20 text-[#32d782]'}`}>
+                              {st} · {tm}
+                            </span>
+                          </div>
+                          {isUnassigned && altDates.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-red-500/20">
+                              <div className="text-[11px] font-bold text-amber-300 mb-1">💡 여유 슬롯이 있는 추천 대체일 (클릭 시 시작일 즉시 변경):</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {altDates.map(a => (
+                                  <button
+                                    key={a.dateStr}
+                                    type="button"
+                                    onClick={() => setEditEventForm({...editEventForm, startDate: a.dateStr, endDate: editEventForm.endDate < a.dateStr ? a.dateStr : editEventForm.endDate})}
+                                    className="px-2 py-1 rounded bg-[#1a1c26] hover:bg-[#4f3df6] text-slate-200 hover:text-white border border-[#303340] text-[10px] font-bold transition-colors"
+                                  >
+                                    {a.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* 인라인 수정 폼 */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">캠페인 명</label>
+                        <input type="text" value={editEventForm.campaignName} onChange={e => setEditEventForm({...editEventForm, campaignName: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">시작일</label>
+                        <input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm({...editEventForm, startDate: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">종료일</label>
+                        <input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm({...editEventForm, endDate: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">타겟 수 (명)</label>
+                        <input type="text" value={editEventForm.targetSize} onChange={e => setEditEventForm({...editEventForm, targetSize: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">쿠폰 여부</label>
+                        <select value={editEventForm.couponYn} onChange={e => setEditEventForm({...editEventForm, couponYn: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                          <option value="쿠폰">쿠폰 (포함)</option>
+                          <option value="미포함">미포함</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">채널</label>
+                        <input type="text" value={editEventForm.channel} onChange={e => setEditEventForm({...editEventForm, channel: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">편성 GNB</label>
+                        <input type="text" value={editEventForm.gnb} onChange={e => setEditEventForm({...editEventForm, gnb: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">요청 부서</label>
+                        <input type="text" value={editEventForm.department} onChange={e => setEditEventForm({...editEventForm, department: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1">담당자 이름</label>
+                        <input type="text" value={editEventForm.marketer} onChange={e => setEditEventForm({...editEventForm, marketer: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      </div>
+                    </div>
+
+                    {/* 🌟 [UX 1 & UX 2] 액션 버튼 바 (삭제 / 배너 시안 열기 / 일정 수정 및 재배정) */}
+                    <div className="pt-3 border-t border-[#1e202b] flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDeleteEventSchedule}
+                        disabled={isUpdatingEvent}
+                        className="px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1"
+                      >
+                        <Trash2 size={13} /> 삭제
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetData = detailModal.data;
+                            setDetailModal(null);
+                            onOpenCampaignEditor && onOpenCampaignEditor(targetData);
+                          }}
+                          className="px-3.5 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-[#7387ff] border border-[#303340] rounded-xl text-xs font-bold flex items-center gap-1.5"
+                        >
+                          <LayoutTemplate size={13} /> 배너 시안 열기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleUpdateEventSchedule}
+                          disabled={isUpdatingEvent}
+                          className="px-4 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Zap size={13} /> {isUpdatingEvent ? "처리 중..." : "수정 및 시간 재배정"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
@@ -2281,7 +2500,11 @@
                           {detailModal.data.map((ev, i) => {
                             const p = ev.extendedProps;
                             return (
-                              <div key={i} className="bg-[#0a0812] border border-[#262833] rounded-xl p-3 flex items-center justify-between text-xs">
+                              <div
+                                key={i}
+                                onClick={() => setDetailModal({ type: 'EVENT', title: p._rawTitle, data: p, dateStr: detailModal.dateStr })}
+                                className="bg-[#0a0812] hover:bg-[#1a1c26] border border-[#262833] rounded-xl p-3 flex items-center justify-between text-xs cursor-pointer transition-colors"
+                              >
                                 <div className="truncate pr-3">
                                   <div className="font-bold text-white truncate">{p._rawTitle}</div>
                                   <div className="text-[10px] text-slate-400 mt-0.5">{p['채널'] || p['필터'] || '-'} · {getDeptName(p) || '-'} {getMarketerName(p)}</div>
@@ -2297,7 +2520,6 @@
                       )}
                     </div>
 
-                    {/* 🌟 날짜 클릭 모달 하단에도 [① 단순 Capa 반영] / [② AI 시안 기획] 나란히 배치 */}
                     <div className="pt-2 grid grid-cols-2 gap-2.5">
                       <button
                         onClick={() => {
@@ -2326,7 +2548,7 @@
             </div>
           )}
 
-          {/* 모달 B: ① 단순 Capa 반영 모달 (17개 시트 컬럼 완벽 매핑) */}
+          {/* 모달 B: ① 단순 Capa 반영 모달 */}
           {isReqModalOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in zoom-in-95 duration-150">
               <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[88vh]">
@@ -2339,7 +2561,6 @@
                 </div>
 
                 <div className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-[#0a0812]">
-                  {/* 최근 이력 불러오기 바 */}
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs text-slate-400 font-medium">담당자 이름으로 과거 신청 이력을 불러와 폼을 빠르게 채울 수 있습니다.</span>
                     <div className="flex items-center gap-2">
@@ -2521,9 +2742,7 @@
         }
       };
 
-      useEffect(() => {
-        fetchCampaigns();
-      }, []);
+      useEffect(() => { fetchCampaigns(); }, []);
 
       const handleLoad = (item) => {
         const meta = item.meta || {
@@ -2535,6 +2754,7 @@
           marketer: localStorage.getItem('myMarketerName') || ''
         };
         meta.parentJiraKey = item.jiraKey ? String(item.jiraKey).split('/').pop() : '';
+        meta.uniqueCode = item.uniqueCode || meta.uniqueCode || '';
         onLoadCampaign(meta, item.assets || [], item.mermaidCode || "");
       };
 
@@ -2547,6 +2767,8 @@
           department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
           marketer: localStorage.getItem('myMarketerName') || ''
         };
+        delete meta.uniqueCode;
+        delete meta.parentJiraKey;
         const duplicatedAssets = (item.assets || []).map((a, idx) => ({ ...a, id: `asset-dup-${Date.now()}-${idx}` }));
         onDuplicateCampaign(meta, duplicatedAssets, item.mermaidCode || "");
       };
@@ -2664,7 +2886,6 @@
     };
     
     function App() {
-      // 🌟 [수정 반영] 첫 진입 기본 화면을 'CALENDAR'(프로모션 캘린더)로 설정
       const [currentView, setCurrentView] = useState('CALENDAR');
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       const [isNavExpanded, setIsNavExpanded] = useState(false); 
@@ -2672,6 +2893,9 @@
       const [githubVersion, setGithubVersion] = useState(null);
       const [jiraSession, setJiraSession] = useState('CHECKING');
       
+      // 🌟 [UX 6] 시안 에디터에서 유저플로우(Mermaid)를 다시 확인/수정할 수 있는 모달 상태
+      const [isFlowModalOpen, setIsFlowModalOpen] = useState(false);
+
       const checkJiraSessionNow = () => {
         setJiraSession('CHECKING');
         const extNode = document.getElementById('btv-campaign-extension-installed');
@@ -2699,7 +2923,6 @@
         setTimeout(checkJiraSessionNow, 1000);
       }, []);
 
-      // 🌟 [수정 반영] 요청 부서(department), 담당자 이름(marketer), 주기성 여부(cycle) 초기값 포함
       const [campaignMeta, setCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
         hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
@@ -2917,6 +3140,22 @@
       
       const handleAssetChange = (id, field, value) => {
         setAssets(prevAssets => prevAssets.map(asset => asset.id === id ? { ...asset, data: { ...asset.data, [field]: value } } : asset));
+      };
+
+      // 🌟 [UX 5] 배너 에셋 이름 직접 변경 핸들러
+      const handleAssetNameChange = (id, newName) => {
+        setAssets(prevAssets => prevAssets.map(asset => asset.id === id ? { ...asset, name: newName } : asset));
+      };
+
+      // 🌟 [UX 5] 현재 배너 에셋 복제 핸들러 (A/B안 제작용)
+      const duplicateAsset = (targetAsset) => {
+        if (!targetAsset) return;
+        const newId = `asset-copy-${Date.now()}`;
+        const uniqueName = getUniqueAssetName(assets.map(a => a.name), `${targetAsset.name} (복제)`);
+        const clonedData = JSON.parse(JSON.stringify(targetAsset.data || {}));
+        const newAsset = { id: newId, type: targetAsset.type, name: uniqueName, data: clonedData };
+        setAssets([...assets, newAsset]);
+        setActiveTabId(newId);
       };
       
       const handleCardChange = (id, cardIndex, field, value) => {
@@ -3267,7 +3506,7 @@
         setCurrentView('PLANNER'); setIsSidebarOpen(true);
       };
 
-      // 🌟 캘린더 대시보드에서 날짜/모수를 선택해 AI 기획 탭으로 연동할 때 호출
+      // 🌟 [UX 3] 캘린더 대시보드에서 날짜/모수를 선택해 AI 기획 탭으로 연동할 때 AI 챗봇이 조건을 브리핑하며 시작
       const handleStartPlanFromCalendar = (prefillObj) => {
         setAiCampaignMeta(prev => ({
           ...prev,
@@ -3275,7 +3514,66 @@
           department: prefillObj.department || prev.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
           marketer: prefillObj.marketer || prev.marketer || localStorage.getItem('myMarketerName') || ''
         }));
+
+        const summaryParts = [];
+        if (prefillObj.startDate) summaryParts.push(`일정: **${prefillObj.startDate} ~ ${prefillObj.dueDate || prefillObj.startDate}**`);
+        if (prefillObj.target === 'TARGET') summaryParts.push(`타겟 모수: **${prefillObj.targetSize || '미정'}명**`);
+        else summaryParts.push(`타겟: **MASS (전체 고객)**`);
+        if (prefillObj.channels) summaryParts.push(`채널: **${prefillObj.channels}**`);
+        if (prefillObj.hasCoupon === 'Y') summaryParts.push(`쿠폰: **포함**`);
+
+        const briefingMsg = `📅 **프로모션 캘린더에서 선택한 조건이 우측 기획 폼에 자동 반영되었습니다!**\n- ${summaryParts.join('\n- ')}\n\n이어서 기획하실 **캠페인명**, **대상 상품(VOD/월정액)**, 그리고 **핵심 컨셉**을 편하게 말씀해 주시면 맞춤 배너 구성을 제안해 드릴게요!`;
+
+        setAiChatHistory(prev => [
+          ...prev,
+          { id: `msg-init-cal-${Date.now()}`, sender: 'ai', text: briefingMsg }
+        ]);
         setCurrentView('PLANNER');
+      };
+
+      // 🌟 [UX 2] 캘린더 일정 상세 모달에서 [배너 시안 열기] 클릭 시 매칭되는 시안 에디터로 즉시 점프
+      const handleOpenCampaignFromSchedule = async (schedItem) => {
+        try {
+          const response = await fetch("https://btv-proxy.alcheminos.workers.dev?action=getCampaigns");
+          const list = await response.json();
+          if (Array.isArray(list)) {
+            const targetCode = String(schedItem.uniqueCode || '').trim();
+            const targetName = String(schedItem['캠페인 명'] || schedItem['캠페인명'] || '').trim();
+            const matched = list.find(c => (targetCode && c.uniqueCode === targetCode) || (targetName && c.campaignName === targetName));
+            if (matched && matched.assets && matched.assets.length > 0) {
+              const meta = matched.meta || {
+                campaignName: matched.campaignName, target: matched.target, targetSize: matched.targetSize,
+                startDate: matched.startDate, dueDate: matched.dueDate, hasCoupon: matched.hasCoupon,
+                couponBenefit: matched.couponBenefit, conceptCopy: matched.conceptCopy, mainImageUrl: matched.mainImageUrl,
+                product: matched.product, bannerTypes: matched.bannerTypes, gnbLocations: matched.gnbLocations,
+                department: schedItem['요청 부서'] || schedItem['부서'] || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+                marketer: schedItem['담당자 이름'] || schedItem['마케터'] || localStorage.getItem('myMarketerName') || ''
+              };
+              meta.parentJiraKey = matched.jiraKey ? String(matched.jiraKey).split('/').pop() : '';
+              meta.uniqueCode = matched.uniqueCode || targetCode;
+              handleLoadCampaign(meta, matched.assets, matched.mermaidCode || "");
+              return;
+            }
+          }
+          const goPlan = window.confirm("💡 이 스케줄에 연결된 배너 시안(에셋) 데이터가 아직 없습니다. (단순 Capa 반영 건)\n\n이 스케줄 정보를 바탕으로 AI 배너 시안 기획을 새로 시작하시겠습니까?");
+          if (goPlan) {
+            const tNum = parseInt(String(schedItem['타겟 수'] || schedItem['타겟수'] || '0').replace(/[^0-9]/g, ''), 10) || 0;
+            handleStartPlanFromCalendar({
+              campaignName: schedItem['캠페인 명'] || schedItem['캠페인명'] || '',
+              startDate: schedItem._calStart || schedItem['시작일'] || '',
+              dueDate: schedItem._calEnd || schedItem['종료일'] || '',
+              target: tNum > 0 ? 'TARGET' : 'MASS',
+              targetSize: tNum > 0 ? tNum.toLocaleString() : '',
+              hasCoupon: String(schedItem['쿠폰 여부'] || '').includes('쿠폰') ? 'Y' : 'N',
+              channels: schedItem['채널'] || schedItem['필터'] || '',
+              department: schedItem['요청 부서'] || schedItem['부서'] || 'Btv큐레이션팀',
+              marketer: schedItem['담당자 이름'] || schedItem['마케터'] || '',
+              uniqueCode: schedItem.uniqueCode || ''
+            });
+          }
+        } catch (e) {
+          alert("⚠️ 시안 조회 중 오류가 발생했습니다: " + e.message);
+        }
       };
 
       return (
@@ -3292,7 +3590,6 @@
                 </span>
               </div>
 
-              {/* 🌟 [수정 반영] 1번 최상단 메뉴에 '프로모션 캘린더' 배치 */}
               <div className="flex flex-col gap-3 w-full px-3">
                 <button onClick={() => setCurrentView('CALENDAR')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'CALENDAR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
                   <CalendarDays size={22} className="shrink-0" />
@@ -3456,6 +3753,17 @@
                   
                   {openAccordions.banner && (
                     <div className="p-4 pt-0 border-t border-[#1a1c26] mt-2 space-y-4 animate-in slide-in-from-top-2">
+                      {/* 🌟 [UX 5] 배너 에셋 이름 직접 변경 입력란 */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1 ml-1">배너 에셋 명칭 (클릭하여 수정 가능)</label>
+                        <input
+                          type="text"
+                          value={activeAsset.name || ''}
+                          onChange={e => handleAssetNameChange(activeAsset.id, e.target.value)}
+                          className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#4f3df6]"
+                        />
+                      </div>
+
                       <div className="space-y-2">
                         <label className="block text-[10px] font-bold text-slate-500 ml-1">편성 GNB (다중 선택)</label>
                         <div className="flex flex-wrap gap-1">
@@ -3638,7 +3946,10 @@
           <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
 
             {currentView === 'CALENDAR' && (
-              <ScheduleDashboardView onStartPlanWithDate={handleStartPlanFromCalendar} />
+              <ScheduleDashboardView
+                onStartPlanWithDate={handleStartPlanFromCalendar}
+                onOpenCampaignEditor={handleOpenCampaignFromSchedule}
+              />
             )}
 
             {currentView === 'LIST' && (
@@ -3656,6 +3967,7 @@
                 setChatHistory={setAiChatHistory}
                 assets={assets}
                 mermaidCode={mermaidCode}
+                onResetMermaid={() => setMermaidCode('')}
                 onMoveToEditor={handleMoveToEditor}
               />
             )}
@@ -3683,17 +3995,26 @@
                           Preview Layout <span className="text-[#4f3df6] font-black text-xl">·</span> <span className="text-slate-400 text-sm font-medium">{activeAsset?.name}</span>
                         </h2>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex gap-2.5 flex-wrap">
+                        {/* 🌟 [UX 6] 유저플로우(Mermaid) 모달 열기 버튼 */}
+                        <button onClick={() => setIsFlowModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold hover:bg-cyan-500/20 transition-colors">
+                          <GitMerge size={14}/> 유저플로우
+                        </button>
 
-                        <button onClick={handleAddMemo} className="flex items-center gap-1.5 px-4 py-2 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 rounded-lg text-xs font-bold hover:bg-yellow-500/20 transition-colors shadow-lg">
+                        <button onClick={handleAddMemo} className="flex items-center gap-1.5 px-3.5 py-2 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 rounded-lg text-xs font-bold hover:bg-yellow-500/20 transition-colors">
                           <MessageSquare size={14}/> 메모 추가
                         </button>
 
-                        <button onClick={(e) => removeAsset(activeAsset.id, e)} className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold border border-red-500/30 hover:bg-red-500/20 hover:text-red-300 transition-colors">
+                        {/* 🌟 [UX 5] 현재 배너 복제 버튼 */}
+                        <button onClick={() => duplicateAsset(activeAsset)} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#d946ef]/10 text-[#e879f9] border border-[#d946ef]/30 rounded-lg text-xs font-bold hover:bg-[#d946ef]/20 transition-colors">
+                          <Copy size={14}/> 배너 복제
+                        </button>
+
+                        <button onClick={(e) => removeAsset(activeAsset.id, e)} className="flex items-center gap-1.5 px-3.5 py-2 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold border border-red-500/30 hover:bg-red-500/20 hover:text-red-300 transition-colors">
                           <Trash2 size={14}/> 배너 삭제
                         </button>
 
-                        <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#1a1c26] text-white rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={14} className="text-[#7387ff]"/> 배너 추가</button>
+                        <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1a1c26] text-white rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={14} className="text-[#7387ff]"/> 배너 추가</button>
                         {exportState.isExporting ? (
                           <div className="w-[200px] h-[34px] bg-[#1a1c26] border border-[#4f3df6] rounded-lg overflow-hidden relative flex items-center shadow-[0_0_15px_rgba(79,61,246,0.3)]">
                             <div className="absolute inset-0 bg-[#4f3df6]/20 progress-stripes pointer-events-none"></div>
@@ -3705,7 +4026,7 @@
                             {jiraSession !== 'LOGGED_IN' && (
                               <button 
                                 onClick={checkJiraSessionNow} 
-                                className="flex items-center gap-1.5 px-4 py-2 bg-[#262833] text-slate-300 rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#303340] hover:text-white transition-colors"
+                                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#262833] text-slate-300 rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#303340] hover:text-white transition-colors"
                               >
                                 <RefreshCw size={14} className={jiraSession === 'CHECKING' ? 'animate-spin' : ''}/> 재확인
                               </button>
@@ -3770,6 +4091,35 @@
             )}
 
           </main>
+
+          {/* 🌟 [UX 6] 시안 편집 화면용 유저플로우(Mermaid) 확인 및 코드 편집 모달 */}
+          {isFlowModalOpen && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200" onClick={() => setIsFlowModalOpen(false)}>
+              <div className="bg-[#12141c] w-full max-w-4xl border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 max-h-[88vh]" onClick={e => e.stopPropagation()}>
+                <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
+                  <h3 className="text-base font-black text-white flex items-center gap-2"><GitMerge size={18} className="text-cyan-400"/> 캠페인 유저플로우 확인 및 편집</h3>
+                  <button onClick={() => setIsFlowModalOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white transition-colors"><X size={16}/></button>
+                </div>
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-[#0a0812]">
+                  <div className="lg:col-span-7 h-[420px] lg:h-auto overflow-auto custom-scrollbar border-b lg:border-b-0 lg:border-r border-[#262833] flex items-center justify-center">
+                    {mermaidCode ? <MermaidViewer code={mermaidCode} /> : <div className="text-xs text-slate-500">등록된 유저플로우 코드가 없습니다. 우측에 코드를 입력해 보세요.</div>}
+                  </div>
+                  <div className="lg:col-span-5 p-4 flex flex-col bg-[#12141c]">
+                    <label className="text-xs font-bold text-slate-300 mb-2">Mermaid 코드 직접 편집 (Jira 전송 시 자동 반영)</label>
+                    <textarea
+                      value={mermaidCode}
+                      onChange={e => setMermaidCode(e.target.value)}
+                      placeholder="graph TD..."
+                      className="flex-1 min-h-[220px] bg-[#0a0812] border border-[#303340] rounded-xl p-3 text-xs font-mono text-slate-200 outline-none focus:border-cyan-400 resize-none custom-scrollbar"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
+                  <button onClick={() => setIsFlowModalOpen(false)} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold">확인 및 닫기</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {isSettingsOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
