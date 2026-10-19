@@ -11,7 +11,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
 
-  <!-- 🌟 [신규 통합] 캠페인 스케줄 대시보드용 FullCalendar & Chart.js CDN -->
+  <!-- 캠페인 스케줄 대시보드용 FullCalendar & Chart.js CDN -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
@@ -37,7 +37,7 @@
     .progress-stripes { background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent); background-size: 1rem 1rem; animation: progress-stripes 1s linear infinite; }
     @keyframes progress-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
     
-    /* 🌟 챗봇 마크다운 렌더링 스타일 */
+    /* 챗봇 마크다운 렌더링 스타일 */
     .ai-chat-body h3 { font-size: 1.1em; font-weight: 900; color: #7387ff; margin-top: 12px; margin-bottom: 6px; }
     .ai-chat-body h4 { font-size: 1em; font-weight: bold; color: #cbd5e1; margin-top: 10px; margin-bottom: 4px;}
     .ai-chat-body ul { list-style-type: disc; padding-left: 20px; margin-top: 4px; margin-bottom: 8px; }
@@ -46,7 +46,7 @@
     .ai-chat-body strong { color: #ffffff; font-weight: 900; }
     .ai-chat-body hr { border-color: #303340; margin: 16px 0; }
 
-    /* 🌟 [수정 3] Mermaid 시뮬레이터 노드 폭 찌그러짐 및 세로 글씨 방지 스타일 */
+    /* Mermaid 시뮬레이터 노드 폭 찌그러짐 및 세로 글씨 방지 스타일 */
     #mermaid-export-area svg { max-width: none !important; height: auto !important; }
     #mermaid-export-area .node foreignObject { overflow: visible !important; }
     #mermaid-export-area .nodeLabel,
@@ -80,7 +80,7 @@
       border: 1px solid rgba(255, 255, 255, 0.15) !important;
     }
 
-    /* 🌟 [신규 추가] 다크 모드 FullCalendar 커스텀 테마 */
+    /* 다크 모드 FullCalendar 커스텀 테마 */
     #schedule-calendar {
       background: #0f111a;
       padding: 18px;
@@ -221,7 +221,6 @@
 
       const handleMouseDown = (e) => {
         if (e.target.tagName === 'TEXTAREA' || e.target.closest('button')) return;
-        
         e.preventDefault(); e.stopPropagation();
         isDragging.current = true;
         dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, boxX: pos.x, boxY: pos.y };
@@ -240,7 +239,6 @@
           const dx = ev.clientX - dragStart.current.mouseX;
           const dy = ev.clientY - dragStart.current.mouseY;
           updateMemo(memo.id, { x: dragStart.current.boxX + dx, y: dragStart.current.boxY + dy });
-          
           document.removeEventListener('mousemove', handleMouseMove);
           document.removeEventListener('mouseup', handleMouseUp);
         };
@@ -315,17 +313,14 @@
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 bg-[#0a0a0f]"></div>
-            
             <div className="absolute right-[0%] top-[0%] w-[70%] h-[70%] bg-no-repeat bg-cover bg-right-top z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
               {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>}
               <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-start pt-10 pr-10" />
               <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-transparent to-transparent w-[35%]"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent h-[35%] top-auto bottom-0"></div>
             </div>
-            
             <div className="absolute inset-0 w-[50%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent z-10 pointer-events-none"></div>
             <div className="absolute inset-0 top-[40%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
-            
             <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white px-10">
               <div className="absolute left-[80px] top-[48%] -translate-y-1/2 w-[45%] pl-2">
                 <h3 className="text-[#32d782] text-sm font-bold mb-2 tracking-tight">{block.data?.topText || '상단 카피'}</h3>
@@ -351,7 +346,6 @@
               <FallbackText text={block.data?.bgImg} />
             </div>
             <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] z-0 pointer-events-none"></div>
-            
             <div className="relative z-10 flex flex-col items-center pt-[8%] px-10 gap-4">
               <h2 className="text-white text-[1.8rem] font-black drop-shadow-lg">{block.data?.topLogo || '상단 타이틀'}</h2>
               <div className="w-[10%] h-0.5 bg-white/50 rounded-full mb-2"></div>
@@ -373,7 +367,6 @@
         );
       }
 
-      // 🌟 [수정 1] GENERAL_BANNER: 프리뷰 영역의 엉뚱한 템플릿 이미지(fallbackUrl) 제거 & 배너 카드 자체에 이미지 정상 렌더링
       if (block.type === 'GENERAL_BANNER') {
         const bannerImgSrc = checkIsUrl(block.data?.bannerImg) ? block.data.bannerImg : (checkIsUrl(block.data?.imageUrl) ? block.data.imageUrl : '');
         const bannerTextFallback = block.data?.bannerImg || block.data?.imageUrl || '';
@@ -421,7 +414,6 @@
         );
       }
 
-      // 🌟 [수정 1] GENERAL_SET_BANNER: 세트 카드별 이미지(cardImg) 렌더링 보장
       if (block.type === 'GENERAL_SET_BANNER') {
         const colType = block.data?.colType || '3단';
         const numCards = colType === '3단' ? 2 : 3;
@@ -669,7 +661,7 @@
     };
 
     // ====================================================================================
-    // 🌟 AI 프로모션 기획 뷰
+    // 🌟 AI 프로모션 기획 뷰 (요청 부서, 담당자 이름, 주기성 여부 필드 포함)
     // ====================================================================================
     const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onMoveToEditor }) => {
       const [inputValue, setInputValue] = useState('');
@@ -745,12 +737,14 @@
       };
       
       const handleMetaChange = (e) => {
-        setCampaignMeta(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        if (name === 'department') localStorage.setItem('myDepartment', value);
+        if (name === 'marketer') localStorage.setItem('myMarketerName', value);
+        setCampaignMeta(prev => ({ ...prev, [name]: value }));
       };
 
       useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatHistory, isLoading]);
 
-      // 🌟 [수정 2] 폼 하단 시안 생성 버튼에서도 호출 가능하도록 customText 인자 지원
       const handleSendMessage = async (customText = null) => {
         const textToSend = typeof customText === 'string' ? customText : inputValue.trim();
         if (!textToSend || isLoading) return;
@@ -821,10 +815,14 @@
                 name: a.name || a.type,
                 gnb: Array.isArray(a.data?.gnb) ? a.data.gnb.join(', ') : (a.data?.gnb || '')
               }));
+              // 🌟 폼에서 입력한 부서, 담당자, 대표 이미지가 덮어써지지 않도록 보존
               setCampaignMeta(prev => ({ 
                 ...prev, 
                 ...metaData,
-                mainImageUrl: prev.mainImageUrl || metaData.mainImageUrl || ''
+                mainImageUrl: prev.mainImageUrl || metaData.mainImageUrl || '',
+                department: prev.department || metaData.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+                marketer: prev.marketer || metaData.marketer || localStorage.getItem('myMarketerName') || '',
+                cycle: prev.cycle || metaData.cycle || '단발성'
               }));
           
               setPendingAiPayload({
@@ -857,6 +855,10 @@
       const handleRequestCreateFromForm = () => {
         if (!campaignMeta.campaignName || !campaignMeta.product || !campaignMeta.startDate || !campaignMeta.dueDate || !campaignMeta.conceptCopy) {
           alert("⚠️ 시안을 생성하려면 먼저 필수 기획 정보(캠페인명, 대상 상품, 시작/종료일, Key 컨셉)를 모두 입력해 주세요.");
+          return;
+        }
+        if (!campaignMeta.department || !campaignMeta.marketer) {
+          alert("⚠️ 캠페인 스케줄 반영을 위해 '요청 부서'와 '담당자 이름'을 입력해 주세요.");
           return;
         }
         if (campaignMeta.target === 'TARGET' && !campaignMeta.targetSize) {
@@ -925,50 +927,69 @@
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#06070a]">
               {/* === SECTION 1 === */}
-              <div className="mb-8">
+              <div className="mb-7">
                 <div className="border-b border-[#262833] pb-2 mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-[#4f3df6] rounded-full"></div>
-                  <h4 className="text-sm font-bold text-white tracking-tight">1. 기본 기획 및 편성</h4>
+                  <h4 className="text-sm font-bold text-white tracking-tight">1. 기본 기획 및 담당자 정보</h4>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* 🌟 [신규 추가] 요청 부서 + 담당자 이름 + 주기성 여부 (스케줄 시트 완벽 연동) */}
+                <div className="grid grid-cols-3 gap-3 mb-3.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">캠페인 / 프로젝트명</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">요청 부서 *</label>
+                    <input type="text" name="department" value={campaignMeta.department || ''} onChange={handleMetaChange} placeholder="예: Btv큐레이션팀" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">담당자 이름 *</label>
+                    <input type="text" name="marketer" value={campaignMeta.marketer || ''} onChange={handleMetaChange} placeholder="예: 심효섭" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">주기성 여부</label>
+                    <select name="cycle" value={campaignMeta.cycle || '단발성'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
+                      <option value="단발성">단발성</option>
+                      <option value="주기성">주기성</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">캠페인 / 프로젝트명 *</label>
                     <input type="text" name="campaignName" value={campaignMeta.campaignName || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">대상 상품 (VOD / 월정액 등)</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">대상 상품 (VOD / 월정액 등) *</label>
                     <input type="text" name="product" value={campaignMeta.product || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-3 gap-3 mb-3.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">시작일</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">시작일 *</label>
                     <input type="date" name="startDate" value={campaignMeta.startDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">종료일</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">종료일 *</label>
                     <input type="date" name="dueDate" value={campaignMeta.dueDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">타겟 유형</label>
-                    <select name="target" value={campaignMeta.target || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">타겟 유형</label>
+                    <select name="target" value={campaignMeta.target || 'MASS'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
                       <option value="MASS">MASS</option><option value="TARGET">TARGET</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col">
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">Key 컨셉 & 대표 문구</label>
-                    <textarea name="conceptCopy" value={campaignMeta.conceptCopy || ''} onChange={handleMetaChange} className="w-full h-[88px] bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none resize-none custom-scrollbar" />
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">Key 컨셉 & 대표 문구 *</label>
+                    <textarea name="conceptCopy" value={campaignMeta.conceptCopy || ''} onChange={handleMetaChange} className="w-full h-[84px] bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none resize-none custom-scrollbar" />
                   </div>
                   <div className="flex flex-col">
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">메인 키비주얼 URL</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">메인 키비주얼 URL</label>
                     <div className="flex flex-col gap-2 h-full">
                       <input type="text" name="mainImageUrl" placeholder="https://..." value={campaignMeta.mainImageUrl || ''} onChange={(e) => setCampaignMeta({...campaignMeta, mainImageUrl: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
-                      <button type="button" onClick={handleOpenImagePreview} disabled={isGeneratingImg} className="bg-[#4f3df6] hover:bg-[#3b2bc7] text-white flex-1 rounded-lg text-xs font-bold w-full transition-colors h-full min-h-[38px]">
+                      <button type="button" onClick={handleOpenImagePreview} disabled={isGeneratingImg} className="bg-[#4f3df6] hover:bg-[#3b2bc7] text-white flex-1 rounded-lg text-xs font-bold w-full transition-colors h-full min-h-[36px]">
                         {isGeneratingImg ? "⏳ AI 이미지 생성 중..." : (campaignMeta.mainImageUrl ? "🖼️ 반영된 이미지 확인" : "🪄 AI 키비주얼 이미지 자동 생성")}
                       </button>
                     </div>
@@ -983,14 +1004,14 @@
                   <h4 className="text-sm font-bold text-white tracking-tight">2. 타겟 혜택 및 Capa 검증</h4>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-3.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">타겟 모수 (TARGET 전용)</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">타겟 모수 (TARGET 전용)</label>
                     <input type="text" name="targetSize" value={campaignMeta.targetSize || ''} onChange={handleMetaChange} onBlur={handleTargetSizeBlur} disabled={campaignMeta.target !== 'TARGET'} placeholder="입력 후 폼 밖을 누르면 자동 변환" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-pink-500 outline-none disabled:opacity-30" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">제작 배너 · 편성 GNB</label>
-                    <div className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg px-3 py-2 min-h-[38px] max-h-[104px] overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">제작 배너 · 편성 GNB</label>
+                    <div className="w-full bg-[#1a1c26] border border-[#303340] rounded-lg px-3 py-2 min-h-[36px] max-h-[96px] overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
                       {Array.isArray(campaignMeta.bannerPlan) && campaignMeta.bannerPlan.length > 0 ? (
                         campaignMeta.bannerPlan.map((b, i) => (
                           <div key={i} className="flex items-center gap-2 flex-wrap">
@@ -1002,8 +1023,7 @@
                           </div>
                         ))
                       ) : (campaignMeta.bannerTypes || campaignMeta.gnbLocations) ? (
-                        <div className="text-[10px] text-slate-500">
-                          <div className="mb-0.5 text-slate-600">(구버전 캠페인 — 배너별 매핑 정보 없음)</div>
+                        <div className="text-[10px] text-slate-400">
                           {campaignMeta.bannerTypes && <div>배너: {campaignMeta.bannerTypes}</div>}
                           {campaignMeta.gnbLocations && <div>GNB: {campaignMeta.gnbLocations}</div>}
                         </div>
@@ -1014,19 +1034,19 @@
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="grid grid-cols-3 gap-3 mb-4">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">B tv 쿠폰 발급</label>
-                    <select name="hasCoupon" value={campaignMeta.hasCoupon || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">B tv 쿠폰 발급</label>
+                    <select name="hasCoupon" value={campaignMeta.hasCoupon || 'N'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
                       <option value="N">미포함</option><option value="Y">포함</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">쿠폰 혜택 명</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">쿠폰 혜택 명</label>
                     <input type="text" name="couponBenefit" value={campaignMeta.couponBenefit || ''} onChange={handleMetaChange} disabled={campaignMeta.hasCoupon === 'N'} placeholder="예: 2,000원 할인" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none disabled:opacity-30" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 ml-1">외부 사은품 (기프티콘 등)</label>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">외부 사은품 (기프티콘 등)</label>
                     <input type="text" name="externalGift" value={campaignMeta.externalGift || ''} onChange={handleMetaChange} placeholder="예: 스타벅스 추첨" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
                   </div>
                 </div>
@@ -1048,12 +1068,12 @@
                   const c = colorMap[statusColor];
                   const subText = campaignMeta.target !== 'TARGET'
                     ? '전체 고객 대상이므로 타겟 Capa 검증이 생략됩니다.'
-                    : '* AI가 타겟 모수와 일정을 확인하여 자동으로 승인합니다.';
+                    : '* 캘린더 모수 확인기 또는 AI 대화를 통해 자동 승인됩니다.';
                 
                   return (
-                    <div className={`p-4 rounded-xl border transition-colors ${c.bg} ${c.border} pointer-events-none select-none flex flex-col items-center justify-center gap-2`}>
-                      <div className={`flex items-center gap-2 font-bold text-[14px] ${c.text}`}>
-                        <StatusIcon size={18} className={isSpinning ? 'animate-spin' : ''} />
+                    <div className={`p-3.5 rounded-xl border transition-colors ${c.bg} ${c.border} pointer-events-none select-none flex flex-col items-center justify-center gap-1.5`}>
+                      <div className={`flex items-center gap-2 font-bold text-[13px] ${c.text}`}>
+                        <StatusIcon size={16} className={isSpinning ? 'animate-spin' : ''} />
                         {statusText}
                       </div>
                       <span className="text-[10px] text-slate-500">{subText}</span>
@@ -1093,7 +1113,7 @@
               )}
             </div>
 
-            {/* 🌟 [수정 2] 중앙 기획 폼 하단에 직관적인 시안 생성 요청 버튼 추가 */}
+            {/* 중앙 기획 폼 하단 시안 생성 요청 버튼 */}
             <div className="p-5 bg-[#12141c] border-t border-[#262833] shrink-0">
               <button
                 type="button"
@@ -1138,6 +1158,10 @@
                 onClick={() => {
                   if (!campaignMeta.campaignName || !campaignMeta.product || !campaignMeta.startDate || !campaignMeta.dueDate || !campaignMeta.conceptCopy) {
                     alert("⚠️ 필수 기획 정보(캠페인명, 대상 상품, 시작/종료일, Key 컨셉)가 모두 입력되어야 다음 단계로 이동할 수 있습니다.");
+                    return;
+                  }
+                  if (!campaignMeta.department || !campaignMeta.marketer) {
+                    alert("⚠️ 캠페인 스케줄 반영을 위해 '요청 부서'와 '담당자 이름'을 입력해 주세요.");
                     return;
                   }
                   if (campaignMeta.target === 'TARGET' && (!campaignMeta.targetSize || !campaignMeta.isCapaChecked)) {
