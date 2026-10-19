@@ -1186,7 +1186,7 @@
     };
 
     // ====================================================================================
-    // 🌟 [신규 통합] 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰 (ScheduleDashboardView)
+    // 🌟 [최종 개편] 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰 (ScheduleDashboardView)
     // ====================================================================================
     const ScheduleDashboardView = ({ onStartPlanWithDate }) => {
       const todayObj = new Date();
@@ -1196,24 +1196,27 @@
       const [isLoading, setIsLoading] = useState(true);
       const [isAssigning, setIsAssigning] = useState(false);
 
-      // 필터 상태
+      // 캘린더 필터 상태
       const [typeFilters, setTypeFilters] = useState([]); // ['TV', '토스트팝업', '쿠폰', 'Seg채널']
       const [dateFilters, setDateFilters] = useState(['start']); // ['start', 'end']
       const [excludeWired, setExcludeWired] = useState(false);
       const [onlyUnassigned, setOnlyUnassigned] = useState(false);
       const [searchText, setSearchText] = useState('');
-      const [channelBarFilter, setChannelBarFilter] = useState(''); // '' | '배너' | '쿠폰' | 'TV팝업' | '토스트팝업'
+      const [channelBarFilter, setChannelBarFilter] = useState('');
 
-      // 우측 상단 Capa 계산기 상태
+      // 🌟 우측 상단 Capa 시뮬레이터 & 빠른 시작 상태 (채널 세분화)
       const [capaDate, setCapaDate] = useState(todayLocalStr);
+      const [capaEndDate, setCapaEndDate] = useState(todayLocalStr);
       const [capaTarget, setCapaTarget] = useState('');
       const [capaBanner, setCapaBanner] = useState(true);
+      const [capaTvPopup, setCapaTvPopup] = useState(false);
+      const [capaToast, setCapaToast] = useState(false);
       const [capaCoupon, setCapaCoupon] = useState(true);
 
       // 현재 캘린더 기준 연/월 요약 상태
       const [currentCalMonth, setCurrentCalMonth] = useState({ year: todayObj.getFullYear(), month: todayObj.getMonth() });
 
-      // 모달 상태 (상세 정보 / 일자별 요약 / 단순 Capa 신청)
+      // 모달 상태 (상세 정보 / 일자별 요약 / 단순 Capa 반영)
       const [detailModal, setDetailModal] = useState(null); // { type: 'EVENT' | 'DATE', title, data, dateStr }
       const [isReqModalOpen, setIsReqModalOpen] = useState(false);
       const [isSubmittingReq, setIsSubmittingReq] = useState(false);
@@ -1229,7 +1232,7 @@
         channels: ['타겟배너'],
         gnb: '홈',
         cycle: '단발성',
-        offerType: '쿠폰',
+        couponYn: '쿠폰',
         totalTarget: '',
         segIdCount: '1개',
         department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
@@ -1244,7 +1247,7 @@
       const filteredEventsRef = useRef([]);
       const rawDataRef = useRef([]);
 
-      // 유틸리티 함수들
+      // 유틸리티 함수들 (17개 시트 컬럼 완벽 호환)
       const cleanDateStr = (dateVal) => {
         if (!dateVal) return "";
         let str = String(dateVal).trim();
@@ -1281,24 +1284,26 @@
         return targetValue;
       };
 
-      const getCouponValue = (item) => {
-        const keys = Object.keys(item || {}).filter(k => String(k).replace(/\s+/g, '').toUpperCase().includes('쿠폰'));
-        for (const key of keys) {
-          const cleanNum = String(item[key]).replace(/[^0-9]/g, '');
-          if (cleanNum) return Number(cleanNum);
-        }
-        return 0;
+      const checkHasCouponItem = (item) => {
+        if (!item) return false;
+        const ch = String(item['채널'] || item['필터'] || '').toUpperCase();
+        const cpnCol = String(item['쿠폰 여부'] || item['오퍼분류'] || item['쿠폰'] || '').toUpperCase();
+        return ch.includes('쿠폰') || cpnCol.includes('쿠폰') || cpnCol === 'Y' || cpnCol.includes('포함') || (parseInt(String(item['쿠폰'] || '0').replace(/[^0-9]/g, ''), 10) > 0);
       };
 
       const getCampaignTitle = (item) => {
         if (!item) return "제목 없음";
-        const direct = item['캠페인명'] || item['캠페인 명'] || item['제목'] || item['Title'];
+        const direct = item['캠페인 명'] || item['캠페인명'] || item['제목'] || item['Title'];
         if (direct && String(direct).trim()) return String(direct).trim();
         return "제목 없음";
       };
 
+      const getDeptName = (item) => String(item?.['요청 부서'] || item?.['부서'] || '').trim();
+      const getMarketerName = (item) => String(item?.['담당자 이름'] || item?.['마케터'] || '').trim();
+      const getCycleName = (item) => String(item?.['주기성 여부'] || item?.['주기'] || '단발성').trim();
+
       const isWiredDept = (item) => {
-        const dept = item ? String(item['부서'] || '').trim() : '';
+        const dept = getDeptName(item);
         return dept.includes('밸류애드팀') || dept.includes('유선');
       };
 
@@ -1327,14 +1332,10 @@
           if (exWired && isWiredDept(item)) return sum;
           const start = cleanDateStr(item['시작일']);
           if (start !== dateStr) return sum;
-          const filterText = String(item['필터'] || item['채널'] || '').toUpperCase();
-          const offerText = String(item['오퍼분류'] || '').toUpperCase();
+          const filterText = String(item['채널'] || item['필터'] || '').toUpperCase();
           const targetValue = getTargetValue(item);
           if (type === 'banner' && (filterText.includes('SEG') || filterText.includes('배너'))) return sum + targetValue;
-          if (type === 'coupon') {
-            const couponValue = getCouponValue(item);
-            if (filterText.includes('쿠폰') || offerText.includes('쿠폰') || couponValue > 0) return sum + (couponValue || targetValue);
-          }
+          if (type === 'coupon' && checkHasCouponItem(item)) return sum + targetValue;
           return sum;
         }, 0);
       };
@@ -1392,6 +1393,72 @@
         }
       };
 
+      // 🌟 [핵심] ① 단순 Capa 반영 모달 열기 (시뮬레이터 조건 자동 프리필)
+      const openSimpleCapaModalWithPrefill = (customDate = null) => {
+        const sDate = customDate || capaDate || todayLocalStr;
+        const eDate = customDate || (capaEndDate >= sDate ? capaEndDate : sDate);
+        const selectedChs = [];
+        if (capaTvPopup) selectedChs.push('TV팝업');
+        if (capaBanner) selectedChs.push('타겟배너');
+        if (capaToast) selectedChs.push('토스트팝업');
+        if (selectedChs.length === 0 && capaCoupon) selectedChs.push('쿠폰');
+        if (selectedChs.length === 0) selectedChs.push('타겟배너');
+
+        const rawTargetNum = String(capaTarget || '').replace(/[^0-9]/g, '');
+
+        setReqForm(prev => ({
+          ...prev,
+          startDate: sDate,
+          endDate: eDate,
+          channels: selectedChs,
+          couponYn: capaCoupon ? '쿠폰' : '미포함',
+          totalTarget: rawTargetNum || prev.totalTarget,
+          department: localStorage.getItem('myDepartment') || prev.department || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || prev.marketer || ''
+        }));
+        setIsReqModalOpen(true);
+      };
+
+      // 🌟 [핵심] ② AI 시안 기획 이동 (채널 조건 검증 후 스마트 분기)
+      const handleMoveToAiPlannerFromSim = (customDate = null) => {
+        const sDate = customDate || capaDate || todayLocalStr;
+        const eDate = customDate || (capaEndDate >= sDate ? capaEndDate : sDate);
+        const hasVisualAsset = capaBanner || capaTvPopup;
+
+        // 배너/TV팝업 없이 '쿠폰' 또는 '토스트팝업'만 선택된 경우 -> AI 시안 건너뛰고 단순 Capa 반영으로 안내!
+        if (!hasVisualAsset) {
+          const confirmSkip = window.confirm(
+            "💡 선택하신 조건(쿠폰 단독 또는 토스트팝업)은 배너/TV팝업 이미지 시안 제작이 필요하지 않습니다.\n\nAI 시안 기획을 건너뛰고 바로 [① 단순 Capa 반영] 창으로 연결할까요?\n(취소를 누르면 AI 시안 기획 화면으로 이동합니다.)"
+          );
+          if (confirmSkip) {
+            openSimpleCapaModalWithPrefill(sDate);
+            return;
+          }
+        }
+
+        const selectedChs = [];
+        if (capaTvPopup) selectedChs.push('TV팝업');
+        if (capaBanner) selectedChs.push('타겟배너');
+        if (capaToast) selectedChs.push('토스트팝업');
+        if (capaCoupon) selectedChs.push('쿠폰');
+
+        const formattedTarget = capaTarget ? parseAndFormatKoreanNumber(capaTarget) : '';
+        const isTargetMode = Boolean(formattedTarget && formattedTarget !== '0');
+
+        onStartPlanWithDate && onStartPlanWithDate({
+          startDate: sDate,
+          dueDate: eDate,
+          target: isTargetMode ? 'TARGET' : 'MASS',
+          targetSize: formattedTarget,
+          hasCoupon: capaCoupon ? 'Y' : 'N',
+          channels: selectedChs.join(', ') || '타겟배너',
+          bannerTypes: capaTvPopup && capaBanner ? 'GENERAL_BANNER, PROMO_POPUP' : (capaTvPopup ? 'PROMO_POPUP' : 'GENERAL_BANNER'),
+          isCapaChecked: capaSimResults.length > 0 && capaSimResults.every(r => r.ok),
+          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || ''
+        });
+      };
+
       // 필터링된 이벤트 목록 생성
       const buildFilteredEvents = () => {
         const processed = [];
@@ -1408,17 +1475,14 @@
           const timePrefix = execTime && !execTime.includes('배정 불가') && execTime !== '상시(MASS)' ? `[${execTime}] ` : (isUnassigned ? `[⚠️미반영] ` : '');
           const displayTitle = `${timePrefix}${rawTitle}`;
 
-          const filterText = String(item['필터'] || item['채널'] || '').toUpperCase();
-          const offerText = String(item['오퍼분류'] || '').toUpperCase();
+          const filterText = String(item['채널'] || item['필터'] || '').toUpperCase();
 
-          // 검색어 필터
           if (searchText && !rawTitle.toUpperCase().includes(searchText.toUpperCase())) return;
 
-          // 채널 필터
           if (typeFilters.length > 0) {
             const hasTV = typeFilters.includes("TV") && filterText.includes("TV");
             const hasToast = typeFilters.includes("토스트팝업") && filterText.includes("토스트");
-            const hasCoupon = typeFilters.includes("쿠폰") && (filterText.includes("쿠폰") || offerText.includes("쿠폰") || getCouponValue(item) > 0);
+            const hasCoupon = typeFilters.includes("쿠폰") && checkHasCouponItem(item);
             const hasSeg = typeFilters.includes("Seg채널") && (filterText.includes("SEG") || filterText.includes("배너"));
             if (!(hasTV || hasToast || hasCoupon || hasSeg)) return;
           }
@@ -1511,6 +1575,8 @@
             },
             dateClick: (info) => {
               const dayCampaigns = filteredEventsRef.current.filter(e => e.extendedProps?.type === 'start' && e.start === info.dateStr);
+              setCapaDate(info.dateStr);
+              setCapaEndDate(info.dateStr);
               setDetailModal({
                 type: 'DATE',
                 title: `${info.dateStr} 발송 캠페인 및 실행시각 현황`,
@@ -1538,11 +1604,11 @@
                 let tvSum = 0, toastSum = 0, cpnSum = 0, segSum = 0;
                 dayEvs.forEach(c => {
                   const p = c.extendedProps;
-                  const f = String(p['필터'] || p['채널'] || '').toUpperCase();
+                  const f = String(p['채널'] || p['필터'] || '').toUpperCase();
                   const tv = getTargetValue(p);
                   if (f.includes('TV')) { tvC++; tvSum += tv; }
                   if (f.includes('토스트')) { toastC++; toastSum += tv; }
-                  if (f.includes('쿠폰') || getCouponValue(p) > 0) { cpnC++; cpnSum += tv; }
+                  if (checkHasCouponItem(p)) { cpnC++; cpnSum += tv; }
                   if (f.includes('SEG') || f.includes('배너')) { segC++; segSum += tv; }
                 });
                 tooltipRef.current.innerHTML = `
@@ -1589,7 +1655,7 @@
           if (!start || start.length < 7) return;
           const mKey = start.slice(0, 7);
           if (!monthMap[mKey]) monthMap[mKey] = { monthKey: mKey, label: `${Number(mKey.split('-')[1])}월`, tv: 0, toast: 0, target: 0 };
-          const fText = String(item['필터'] || item['채널'] || '').toUpperCase();
+          const fText = String(item['채널'] || item['필터'] || '').toUpperCase();
           const tVal = getTargetValue(item);
           if (fText.includes('TV')) monthMap[mKey].tv += 1;
           if (fText.includes('토스트')) monthMap[mKey].toast += 1;
@@ -1635,12 +1701,11 @@
           if (!start) return;
           const parts = start.split('-');
           if (Number(parts[0]) === currentCalMonth.year && (Number(parts[1]) - 1) === currentCalMonth.month) {
-            const fText = String(item['필터'] || item['채널'] || '').toUpperCase();
-            const oText = String(item['오퍼분류'] || '').toUpperCase();
+            const fText = String(item['채널'] || item['필터'] || '').toUpperCase();
             const tv = getTargetValue(item);
             if (fText.includes('TV')) { tvCount++; tvSum += tv; }
             if (fText.includes('토스트')) { toastCount++; toastSum += tv; }
-            if (fText.includes('쿠폰') || oText.includes('쿠폰') || getCouponValue(item) > 0) { couponCount++; couponSum += tv; }
+            if (checkHasCouponItem(item)) { couponCount++; couponSum += tv; }
             if (fText.includes('SEG') || fText.includes('배너')) { segCount++; segSum += tv; }
           }
         });
@@ -1657,12 +1722,11 @@
           const cCapa = getDailyCapa('coupon', dStr);
           const cUsed = getDailyUsed('coupon', dStr);
 
-          // 채널별 일일 타겟 합산
           let tvTarget = 0, toastTarget = 0;
           rawSourceData.forEach(item => {
             if (excludeWired && isWiredDept(item)) return;
             if (cleanDateStr(item['시작일']) !== dStr) return;
-            const f = String(item['필터'] || item['채널'] || '').toUpperCase();
+            const f = String(item['채널'] || item['필터'] || '').toUpperCase();
             const tv = getTargetValue(item);
             if (f.includes('TV')) tvTarget += tv;
             if (f.includes('토스트')) toastTarget += tv;
@@ -1713,11 +1777,11 @@
         });
       })();
 
-      // 단순 Capa 신청 제출 (Track A)
+      // 🌟 단순 Capa 반영 제출 (17개 컬럼 완벽 매칭)
       const handleSimpleRequestSubmit = async (e) => {
         e.preventDefault();
         if (!reqForm.campaignName || !reqForm.startDate) {
-          return alert("캠페인명과 시작일은 필수입니다.");
+          return alert("캠페인 명과 시작일은 필수입니다.");
         }
         if (reqForm.uiVersions.length === 0 || reqForm.channels.length === 0) {
           return alert("UI버전과 채널을 1개 이상 선택해 주세요.");
@@ -1729,22 +1793,29 @@
         localStorage.setItem('myMarketerName', reqForm.marketer);
 
         const targetNum = Number(String(reqForm.totalTarget).replace(/[^0-9]/g, '')) || 0;
-        const isCpn = reqForm.offerType.includes('쿠폰') || reqForm.channels.includes('쿠폰');
+        const isCpn = reqForm.couponYn === '쿠폰' || reqForm.channels.includes('쿠폰');
 
         const scheduleItem = {
+          "캠페인 명": reqForm.campaignName,
           "캠페인명": reqForm.campaignName,
           "시작일": reqForm.startDate,
           "종료일": reqForm.endDate || reqForm.startDate,
           "UI버전": reqForm.uiVersions.join(", "),
+          "채널": reqForm.channels.join(", "),
           "필터": reqForm.channels.join(", "),
           "GNB": reqForm.gnb,
+          "주기성 여부": reqForm.cycle,
           "주기": reqForm.cycle,
-          "오퍼분류": reqForm.offerType,
+          "쿠폰 여부": isCpn ? "쿠폰" : "미포함",
+          "오퍼분류": isCpn ? "쿠폰" : "콘텐츠",
+          "타겟 수": targetNum,
           "타겟수": targetNum,
-          "쿠폰": isCpn ? targetNum : 0,
-          "SEG ID 수": reqForm.segIdCount,
+          "SEG ID 수": reqForm.segIdCount || (targetNum > 0 ? "1개" : "-"),
+          "요청 부서": reqForm.department,
           "부서": reqForm.department,
-          "마케터": reqForm.marketer
+          "담당자 이름": reqForm.marketer,
+          "마케터": reqForm.marketer,
+          "반영 여부": "Y"
         };
 
         try {
@@ -1761,11 +1832,11 @@
             } else {
               await fetchScheduleData();
             }
-            setReqStatusMsg("✅ 신청 및 실행시각 자동 배정이 완료되었습니다!");
+            setReqStatusMsg("✅ 스케줄 시트 반영 및 실행시각 자동 배정이 완료되었습니다!");
             setTimeout(() => {
               setIsReqModalOpen(false);
               setReqStatusMsg('');
-            }, 1200);
+            }, 1000);
           } else {
             setReqStatusMsg("⚠️ 오류: " + (json.message || "저장 실패"));
           }
@@ -1776,12 +1847,12 @@
         }
       };
 
-      // 마케터 이름으로 최근 신청 이력 검색
+      // 담당자 이름으로 최근 신청 이력 검색
       const recentMarketerHistory = (() => {
         const keyword = (marketerSearch || reqForm.marketer || '').trim().toUpperCase();
         if (!keyword) return [];
         return rawSourceData.filter(item => {
-          const m = String(item['마케터'] || item['담당자'] || '').toUpperCase();
+          const m = getMarketerName(item).toUpperCase();
           return m.includes(keyword);
         }).slice(-15).reverse();
       })();
@@ -1795,9 +1866,9 @@
           <div className="bg-gradient-to-r from-[#12141c] to-[#1a1c26] border border-[#262833] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
             <div>
               <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2.5">
-                <CalendarDays size={22} className="text-[#7387ff]" /> B tv 통합 캠페인 스케줄 & Capa 대시보드
+                <CalendarDays size={22} className="text-[#7387ff]" /> 프로모션 캘린더 & Capa 스케줄러
               </h2>
-              <p className="text-xs text-slate-400 mt-1">월별 채널 발송 추이, 일일 잔여 Capa 검증 및 실행시각(01~23시) 자동 배정을 한곳에서 관리합니다.</p>
+              <p className="text-xs text-slate-400 mt-1">일별 잔여 Capa 확인 후 [① 단순 Capa 반영] 또는 [② AI 시안 기획]으로 즉시 진행할 수 있습니다.</p>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <button
@@ -1809,22 +1880,28 @@
                 {isAssigning ? "시간 배정 중..." : "실행시각 자동배정"}
               </button>
               <button
-                onClick={() => setIsReqModalOpen(true)}
+                onClick={() => openSimpleCapaModalWithPrefill()}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-white border border-[#303340] rounded-xl text-xs font-bold transition-all"
+              >
+                <Plus size={14} className="text-[#32d782]" /> ① 단순 Capa 반영
+              </button>
+              <button
+                onClick={() => handleMoveToAiPlannerFromSim()}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg shadow-[#4f3df6]/30 transition-all"
               >
-                <Plus size={14} /> 단순 Capa 신청 (시안 불필요)
+                <Bot size={14} /> ② AI 시안 기획 이동 〉
               </button>
               <button
                 onClick={fetchScheduleData}
                 disabled={isLoading}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 border border-[#303340] rounded-xl text-xs font-bold transition-all"
+                className="flex items-center gap-1.5 px-3 py-2.5 bg-[#12141c] hover:bg-[#262833] text-slate-300 border border-[#262833] rounded-xl text-xs font-bold transition-all"
               >
-                <RefreshCw size={14} className={isLoading ? "animate-spin text-[#7387ff]" : ""} /> 새로고침
+                <RefreshCw size={14} className={isLoading ? "animate-spin text-[#7387ff]" : ""} />
               </button>
             </div>
           </div>
 
-          {/* 2. 월별 발송 추이 차트 + 캠페인 발송 모수 계산기 (2열 그리드) */}
+          {/* 2. 월별 발송 추이 차트 + 캠페인 발송 모수 확인 & 빠른 시작 (2열 그리드) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* 좌측: 월별 발송 건수 추이 & 이번 달 요약 (7칸) */}
             <div className="lg:col-span-7 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl">
@@ -1858,67 +1935,80 @@
                     <div className="text-base font-black text-white mt-1">{monthlySummary.couponCount}건 <span className="text-[11px] text-pink-400 font-bold">({formatTargetNumber(monthlySummary.couponSum)})</span></div>
                   </div>
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3">
-                    <div className="text-[10px] font-bold text-slate-400">Seg채널 (배너)</div>
+                    <div className="text-[10px] font-bold text-slate-400">타겟배너 (Seg)</div>
                     <div className="text-base font-black text-white mt-1">{monthlySummary.segCount}건 <span className="text-[11px] text-[#32d782] font-bold">({formatTargetNumber(monthlySummary.segSum)})</span></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 우측: 캠페인 발송 모수 확인기 (5칸) */}
+            {/* 🌟 우측: 캠페인 발송 모수 확인 & 투트랙 빠른 시작 (5칸) */}
             <div className="lg:col-span-5 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl">
               <div>
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">📨 캠페인 발송 모수 시뮬레이터</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">배너(평일 280만/목 270만) · 쿠폰(일 270만) 가능 여부 즉시 확인</p>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">📨 캠페인 발송 모수 확인 & 빠른 시작</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">일정·모수·채널 검증 후 단순 Capa 반영 또는 AI 시안 기획으로 연결합니다.</p>
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-pink-500/15 text-pink-400 border border-pink-500/30">±2일 자동 추천</span>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-pink-500/15 text-pink-400 border border-pink-500/30">±2일 추천</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-3 gap-2.5 mb-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">기준 시작일</label>
-                    <input type="date" value={capaDate} onChange={e => setCapaDate(e.target.value)} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">시작일</label>
+                    <input type="date" value={capaDate} onChange={e => { setCapaDate(e.target.value); if (capaEndDate < e.target.value) setCapaEndDate(e.target.value); }} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">요청 타겟 모수 (명)</label>
-                    <input type="text" value={capaTarget} onChange={e => setCapaTarget(e.target.value)} onBlur={e => setCapaTarget(parseAndFormatKoreanNumber(e.target.value))} placeholder="예: 50만 또는 500000" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">종료일</label>
+                    <input type="date" value={capaEndDate} onChange={e => setCapaEndDate(e.target.value)} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">타겟 수 (명)</label>
+                    <input type="text" value={capaTarget} onChange={e => setCapaTarget(e.target.value)} onBlur={e => setCapaTarget(parseAndFormatKoreanNumber(e.target.value))} placeholder="예: 50만" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                   </div>
                 </div>
 
-                <div className="flex gap-2 mb-4">
-                  <label className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold cursor-pointer transition-all ${capaBanner ? 'bg-[#4f3df6]/15 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
-                    <input type="checkbox" checked={capaBanner} onChange={e => setCapaBanner(e.target.checked)} className="accent-[#4f3df6]" /> 타겟 배너
-                  </label>
-                  <label className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold cursor-pointer transition-all ${capaCoupon ? 'bg-pink-500/15 border-pink-500/60 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
-                    <input type="checkbox" checked={capaCoupon} onChange={e => setCapaCoupon(e.target.checked)} className="accent-pink-500" /> B tv 쿠폰
-                  </label>
+                <div className="mb-3">
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5">발송 채널 및 쿠폰 조건 선택</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaBanner ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
+                      <input type="checkbox" checked={capaBanner} onChange={e => setCapaBanner(e.target.checked)} className="accent-[#4f3df6]" /> 타겟배너
+                    </label>
+                    <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaTvPopup ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
+                      <input type="checkbox" checked={capaTvPopup} onChange={e => setCapaTvPopup(e.target.checked)} className="accent-[#4f3df6]" /> TV팝업
+                    </label>
+                    <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaToast ? 'bg-slate-500/20 border-slate-400 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
+                      <input type="checkbox" checked={capaToast} onChange={e => setCapaToast(e.target.checked)} className="accent-slate-400" /> 토스트팝업
+                    </label>
+                    <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaCoupon ? 'bg-pink-500/20 border-pink-500 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
+                      <input type="checkbox" checked={capaCoupon} onChange={e => setCapaCoupon(e.target.checked)} className="accent-pink-500" /> 쿠폰발급
+                    </label>
+                  </div>
                 </div>
 
                 {/* 검증 결과 영역 */}
-                <div className="space-y-2 max-h-[145px] overflow-y-auto custom-scrollbar">
+                <div className="space-y-2 max-h-[125px] overflow-y-auto custom-scrollbar">
                   {capaSimResults.length === 0 ? (
-                    <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 text-center text-xs text-slate-500">
-                      기준일과 타겟 모수를 입력하면 잔여 Capa 판정 결과가 표시됩니다.
+                    <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 text-center text-xs text-slate-500">
+                      시작일과 타겟 수를 입력하면 배너/쿠폰 잔여 Capa 가능 여부가 표시됩니다.
                     </div>
                   ) : (
                     capaSimResults.map(res => (
-                      <div key={res.type} className="bg-[#12141c] border border-[#262833] rounded-xl p-3">
-                        <div className="flex items-center justify-between mb-1">
+                      <div key={res.type} className="bg-[#12141c] border border-[#262833] rounded-xl p-2.5">
+                        <div className="flex items-center justify-between mb-0.5">
                           <span className="text-xs font-bold text-white">{res.label} CAPA 판정</span>
                           <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${res.ok ? 'bg-[#32d782]/20 text-[#32d782]' : 'bg-red-500/20 text-red-400'}`}>
                             {res.ok ? '발송 가능' : '한도 초과 (불가)'}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          일 한도 {formatTargetNumber(res.capa)} · 기사용 {formatTargetNumber(res.used)} · <b className="text-white">잔여 {formatTargetNumber(res.remain)}</b>
+                          한도 {formatTargetNumber(res.capa)} · 기사용 {formatTargetNumber(res.used)} · <b className="text-white">잔여 {formatTargetNumber(res.remain)}</b>
                         </div>
                         {!res.ok && (
-                          <div className="mt-1.5 text-[11px] text-[#7387ff] font-bold flex flex-wrap items-center gap-1.5">
-                            <span>💡 대체일 추천:</span>
+                          <div className="mt-1 text-[11px] text-[#7387ff] font-bold flex flex-wrap items-center gap-1.5">
+                            <span>💡 추천일:</span>
                             {res.recos.length > 0 ? res.recos.map(r => (
-                              <button key={r.dateStr} onClick={() => setCapaDate(r.dateStr)} className="underline hover:text-white">
+                              <button key={r.dateStr} onClick={() => { setCapaDate(r.dateStr); setCapaEndDate(r.dateStr); }} className="underline hover:text-white">
                                 {r.label}
                               </button>
                             )) : <span className="text-red-400">전후 2일 내 가능 일자 없음</span>}
@@ -1930,18 +2020,23 @@
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#1e202b] flex gap-2">
+              {/* 🌟 나란히 배치된 [① 단순 Capa 반영] / [② AI 시안 기획 이동] 버튼 */}
+              <div className="mt-4 pt-3 border-t border-[#1e202b] grid grid-cols-2 gap-2.5">
                 <button
-                  onClick={() => onStartPlanWithDate && onStartPlanWithDate({
-                    startDate: capaDate,
-                    target: 'TARGET',
-                    targetSize: capaTarget || '',
-                    hasCoupon: capaCoupon ? 'Y' : 'N',
-                    isCapaChecked: capaSimResults.length > 0 && capaSimResults.every(r => r.ok)
-                  })}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-[#4f3df6] to-[#6252ff] hover:from-[#3b2bc7] hover:to-[#4f3df6] text-white rounded-xl text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-1.5"
+                  type="button"
+                  onClick={() => openSimpleCapaModalWithPrefill()}
+                  className="py-3 px-3 bg-[#1a1c26] hover:bg-[#262833] text-white border border-[#303340] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow"
                 >
-                  <Bot size={14} /> 이 조건으로 AI 시안 기획 시작 〉
+                  <PlusCircle size={14} className="text-[#32d782] shrink-0" />
+                  <span>① 단순 Capa 반영</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMoveToAiPlannerFromSim()}
+                  className="py-3 px-3 bg-gradient-to-r from-[#4f3df6] to-[#6252ff] hover:from-[#3b2bc7] hover:to-[#4f3df6] text-white rounded-xl text-xs font-bold shadow-lg shadow-[#4f3df6]/25 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Bot size={14} className="shrink-0" />
+                  <span>② AI 시안 기획 〉</span>
                 </button>
               </div>
             </div>
@@ -2000,7 +2095,7 @@
                       const bPct = Math.min(Math.round((item.bannerUsed / item.bannerCapa) * 100), 100);
                       const cPct = Math.min(Math.round((item.couponUsed / item.couponCapa) * 100), 100);
                       return (
-                        <tr key={item.dateStr} className="hover:bg-[#1a1c26]/60 transition-colors cursor-pointer" onClick={() => setCapaDate(item.dateStr)}>
+                        <tr key={item.dateStr} className="hover:bg-[#1a1c26]/60 transition-colors cursor-pointer" onClick={() => { setCapaDate(item.dateStr); setCapaEndDate(item.dateStr); }}>
                           <td className="py-2.5 px-3 font-bold text-white">{item.label}</td>
                           <td className={`py-2.5 px-3 font-bold ${item.bannerRemain <= 0 ? 'text-red-400' : 'text-[#32d782]'}`}>
                             {formatTargetNumber(Math.max(item.bannerRemain, 0))}
@@ -2152,10 +2247,10 @@
                   <div className="p-5 space-y-2.5 text-xs text-slate-300 max-h-[65vh] overflow-y-auto custom-scrollbar">
                     <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">캠페인 기간</span><span className="text-white font-bold">{detailModal.data._calStart} ~ {detailModal.data._calEnd}</span></div>
                     <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">상태 / 실행시각</span><span className="text-[#32d782] font-bold">{detailModal.data['상태'] || '대기 중'} ({detailModal.data['실행시각'] || '미배정'})</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">채널 (필터)</span><span className="text-white">{detailModal.data['필터'] || detailModal.data['채널'] || '-'}</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">타겟 모수</span><span className="text-[#7387ff] font-bold">{getTargetValue(detailModal.data).toLocaleString()}명 ({formatTargetNumber(getTargetValue(detailModal.data))})</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">편성 GNB / 오퍼</span><span>{detailModal.data['GNB'] || '-'} / {detailModal.data['오퍼분류'] || '-'}</span></div>
-                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">부서 / 마케터</span><span>{detailModal.data['부서'] || '-'} / {detailModal.data['마케터'] || '-'}</span></div>
+                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">채널 / 쿠폰 여부</span><span className="text-white">{detailModal.data['채널'] || detailModal.data['필터'] || '-'} / {detailModal.data['쿠폰 여부'] || '-'}</span></div>
+                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">타겟 수</span><span className="text-[#7387ff] font-bold">{getTargetValue(detailModal.data).toLocaleString()}명 ({formatTargetNumber(getTargetValue(detailModal.data))})</span></div>
+                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">편성 GNB / 주기</span><span>{detailModal.data['GNB'] || '-'} / {getCycleName(detailModal.data)}</span></div>
+                    <div className="flex justify-between py-1.5 border-b border-[#1e202b]"><span className="text-slate-500 font-bold">요청 부서 / 담당자</span><span>{getDeptName(detailModal.data) || '-'} / {getMarketerName(detailModal.data) || '-'}</span></div>
                   </div>
                 ) : (
                   <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
@@ -2189,7 +2284,7 @@
                               <div key={i} className="bg-[#0a0812] border border-[#262833] rounded-xl p-3 flex items-center justify-between text-xs">
                                 <div className="truncate pr-3">
                                   <div className="font-bold text-white truncate">{p._rawTitle}</div>
-                                  <div className="text-[10px] text-slate-400 mt-0.5">{p['필터'] || '-'} · {p['부서'] || '-'} {p['마케터'] || ''}</div>
+                                  <div className="text-[10px] text-slate-400 mt-0.5">{p['채널'] || p['필터'] || '-'} · {getDeptName(p) || '-'} {getMarketerName(p)}</div>
                                 </div>
                                 <div className="text-right shrink-0">
                                   <span className="text-[11px] font-bold text-[#7387ff] block">{formatTargetNumber(getTargetValue(p))}</span>
@@ -2202,27 +2297,27 @@
                       )}
                     </div>
 
-                    <div className="pt-2 flex gap-2">
+                    {/* 🌟 날짜 클릭 모달 하단에도 [① 단순 Capa 반영] / [② AI 시안 기획] 나란히 배치 */}
+                    <div className="pt-2 grid grid-cols-2 gap-2.5">
                       <button
                         onClick={() => {
                           const targetDate = detailModal.dateStr;
                           setDetailModal(null);
-                          setReqForm(prev => ({ ...prev, startDate: targetDate, endDate: targetDate }));
-                          setIsReqModalOpen(true);
+                          openSimpleCapaModalWithPrefill(targetDate);
                         }}
-                        className="flex-1 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-200 border border-[#303340] rounded-xl text-xs font-bold"
+                        className="py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-200 border border-[#303340] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
                       >
-                        + 단순 Capa 신청
+                        <PlusCircle size={14} className="text-[#32d782]" /> ① 단순 Capa 반영
                       </button>
                       <button
                         onClick={() => {
                           const targetDate = detailModal.dateStr;
                           setDetailModal(null);
-                          onStartPlanWithDate && onStartPlanWithDate({ startDate: targetDate });
+                          handleMoveToAiPlannerFromSim(targetDate);
                         }}
-                        className="flex-1 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg"
+                        className="py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg flex items-center justify-center gap-1.5"
                       >
-                        이 날짜로 AI 시안 기획 〉
+                        <Bot size={14} /> ② AI 시안 기획 〉
                       </button>
                     </div>
                   </div>
@@ -2231,14 +2326,14 @@
             </div>
           )}
 
-          {/* 모달 B: 단순 Capa 신청 모달 (Track A - 시트 직접 저장 & 마케터 이력 불러오기) */}
+          {/* 모달 B: ① 단순 Capa 반영 모달 (17개 시트 컬럼 완벽 매핑) */}
           {isReqModalOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in zoom-in-95 duration-150">
               <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[88vh]">
                 <div className="p-5 border-b border-[#262833] bg-[#0f111a] flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-black text-white">단순 캠페인 Capa 신청 (시안 불필요)</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">구글 시트에 즉시 반영되며 실행시각(01~23시)이 자동으로 배정됩니다.</p>
+                    <h3 className="text-base font-black text-white">① 단순 캠페인 Capa 반영 (시안 불필요)</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">쿠폰 단독 발송이나 기제작 소재 캠페인을 '캠페인 스케줄' 시트에 즉시 반영하고 실행시각을 배정합니다.</p>
                   </div>
                   <button onClick={() => setIsReqModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white"><X size={18} /></button>
                 </div>
@@ -2246,13 +2341,13 @@
                 <div className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-[#0a0812]">
                   {/* 최근 이력 불러오기 바 */}
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400 font-medium">마케터 이름으로 과거 신청 이력을 불러와 폼을 빠르게 채울 수 있습니다.</span>
+                    <span className="text-xs text-slate-400 font-medium">담당자 이름으로 과거 신청 이력을 불러와 폼을 빠르게 채울 수 있습니다.</span>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={marketerSearch}
                         onChange={e => setMarketerSearch(e.target.value)}
-                        placeholder="마케터 이름"
+                        placeholder="담당자 이름"
                         className="bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-1.5 text-xs text-white w-32 outline-none focus:border-[#4f3df6]"
                       />
                       <button
@@ -2268,35 +2363,35 @@
                   {showHistoryList && (
                     <div className="bg-[#12141c] border border-[#303340] rounded-xl max-h-44 overflow-y-auto custom-scrollbar divide-y divide-[#1e202b]">
                       {recentMarketerHistory.length === 0 ? (
-                        <div className="p-4 text-center text-xs text-slate-500">해당 마케터의 신청 이력이 없습니다.</div>
+                        <div className="p-4 text-center text-xs text-slate-500">해당 담당자의 신청 이력이 없습니다.</div>
                       ) : (
                         recentMarketerHistory.map((h, i) => (
                           <button
                             key={i}
                             type="button"
                             onClick={() => {
-                              const chText = String(h['필터'] || h['채널'] || '');
-                              const chs = ['TV팝업', '타겟배너', '토스트팝업'].filter(c => chText.includes(c));
+                              const chText = String(h['채널'] || h['필터'] || '');
+                              const chs = ['TV팝업', '타겟배너', '토스트팝업', '쿠폰'].filter(c => chText.includes(c));
                               setReqForm({
                                 campaignName: getCampaignTitle(h),
                                 startDate: cleanDateStr(h['시작일']) || todayLocalStr,
                                 endDate: cleanDateStr(h['종료일']) || todayLocalStr,
                                 uiVersions: String(h['UI버전'] || '5.0').split(',').map(s => s.trim()).filter(Boolean),
-                                channels: chs.length > 0 ? chs : ['타겟배너'],
+                                channels: chs.length > 0 ? chs : ['쿠폰'],
                                 gnb: h['GNB'] || '홈',
-                                cycle: h['주기'] || '단발성',
-                                offerType: h['오퍼분류'] || '쿠폰',
+                                cycle: getCycleName(h),
+                                couponYn: checkHasCouponItem(h) ? '쿠폰' : '미포함',
                                 totalTarget: String(getTargetValue(h) || ''),
                                 segIdCount: h['SEG ID 수'] || '1개',
-                                department: h['부서'] || 'Btv큐레이션팀',
-                                marketer: h['마케터'] || marketerSearch
+                                department: getDeptName(h) || 'Btv큐레이션팀',
+                                marketer: getMarketerName(h) || marketerSearch
                               });
                               setShowHistoryList(false);
                             }}
                             className="w-full p-3 text-left hover:bg-[#1a1c26] transition-colors"
                           >
                             <div className="text-xs font-bold text-white">{getCampaignTitle(h)}</div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{cleanDateStr(h['시작일'])} ~ {cleanDateStr(h['종료일'])} · {h['필터'] || '-'} · 타겟 {formatTargetNumber(getTargetValue(h))}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">{cleanDateStr(h['시작일'])} ~ {cleanDateStr(h['종료일'])} · {h['채널'] || h['필터'] || '-'} · 타겟 {formatTargetNumber(getTargetValue(h))}</div>
                           </button>
                         ))
                       )}
@@ -2305,7 +2400,7 @@
 
                   <form id="simpleScheduleForm" onSubmit={handleSimpleRequestSubmit} className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">캠페인명 *</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">캠페인 명 *</label>
                       <input type="text" required value={reqForm.campaignName} onChange={e => setReqForm({...reqForm, campaignName: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                     </div>
                     <div>
@@ -2332,7 +2427,7 @@
                     <div>
                       <label className="block text-[11px] font-bold text-slate-400 mb-1">채널 (다중 선택)</label>
                       <div className="flex gap-1.5">
-                        {['TV팝업', '타겟배너', '토스트팝업'].map(ch => {
+                        {['쿠폰', '토스트팝업', '타겟배너', 'TV팝업'].map(ch => {
                           const checked = reqForm.channels.includes(ch);
                           return (
                             <button type="button" key={ch} onClick={() => setReqForm({...reqForm, channels: checked ? reqForm.channels.filter(x => x !== ch) : [...reqForm.channels, ch]})} className={`flex-1 py-2 rounded-lg text-[11px] font-bold border ${checked ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
@@ -2347,15 +2442,21 @@
                       <input type="text" value={reqForm.gnb} onChange={e => setReqForm({...reqForm, gnb: e.target.value})} placeholder="예: 홈, 영화시리즈" className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">주기</label>
-                      <input type="text" value={reqForm.cycle} onChange={e => setReqForm({...reqForm, cycle: e.target.value})} placeholder="예: 단발성 / 주기성" className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">주기성 여부</label>
+                      <select value={reqForm.cycle} onChange={e => setReqForm({...reqForm, cycle: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                        <option value="단발성">단발성</option>
+                        <option value="주기성">주기성</option>
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">오퍼분류 (쿠폰 포함 시 쿠폰 기재)</label>
-                      <input type="text" value={reqForm.offerType} onChange={e => setReqForm({...reqForm, offerType: e.target.value})} placeholder="예: 쿠폰 / 경품 / 콘텐츠" className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">쿠폰 여부</label>
+                      <select value={reqForm.couponYn} onChange={e => setReqForm({...reqForm, couponYn: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                        <option value="쿠폰">쿠폰 (포함)</option>
+                        <option value="미포함">미포함</option>
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">전체 타겟수 (명) *</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">타겟 수 (명) *</label>
                       <input type="number" required value={reqForm.totalTarget} onChange={e => setReqForm({...reqForm, totalTarget: e.target.value})} placeholder="예: 500000" className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                     </div>
                     <div>
@@ -2363,11 +2464,11 @@
                       <input type="text" value={reqForm.segIdCount} onChange={e => setReqForm({...reqForm, segIdCount: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">부서 *</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">요청 부서 *</label>
                       <input type="text" required value={reqForm.department} onChange={e => setReqForm({...reqForm, department: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">담당 마케터 *</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">담당자 이름 *</label>
                       <input type="text" required value={reqForm.marketer} onChange={e => setReqForm({...reqForm, marketer: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                     </div>
                   </form>
@@ -2377,7 +2478,7 @@
                 <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end gap-2">
                   <button type="button" onClick={() => setIsReqModalOpen(false)} className="px-4 py-2 bg-[#1a1c26] text-slate-300 rounded-lg text-xs font-bold">닫기</button>
                   <button type="submit" form="simpleScheduleForm" disabled={isSubmittingReq} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold shadow-lg disabled:opacity-50">
-                    {isSubmittingReq ? "처리 중..." : "스케줄 등록 및 시간 자동배정"}
+                    {isSubmittingReq ? "처리 중..." : "스케줄 반영 및 시간 자동배정"}
                   </button>
                 </div>
               </div>
@@ -2429,7 +2530,9 @@
           campaignName: item.campaignName, target: item.target, targetSize: item.targetSize,
           startDate: item.startDate, dueDate: item.dueDate, hasCoupon: item.hasCoupon, 
           couponBenefit: item.couponBenefit, externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl,
-          product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations
+          product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations,
+          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || ''
         };
         meta.parentJiraKey = item.jiraKey ? String(item.jiraKey).split('/').pop() : '';
         onLoadCampaign(meta, item.assets || [], item.mermaidCode || "");
@@ -2440,7 +2543,9 @@
           campaignName: `${item.campaignName} (복제본)`, target: item.target, targetSize: item.targetSize,
           startDate: item.startDate, dueDate: item.dueDate, hasCoupon: item.hasCoupon, couponBenefit: item.couponBenefit,
           externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl,
-          product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations
+          product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations,
+          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || ''
         };
         const duplicatedAssets = (item.assets || []).map((a, idx) => ({ ...a, id: `asset-dup-${Date.now()}-${idx}` }));
         onDuplicateCampaign(meta, duplicatedAssets, item.mermaidCode || "");
@@ -2559,7 +2664,8 @@
     };
     
     function App() {
-      const [currentView, setCurrentView] = useState('PLANNER');
+      // 🌟 [수정 반영] 첫 진입 기본 화면을 'CALENDAR'(프로모션 캘린더)로 설정
+      const [currentView, setCurrentView] = useState('CALENDAR');
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       const [isNavExpanded, setIsNavExpanded] = useState(false); 
       const [extensionVersion, setExtensionVersion] = useState(null);
@@ -2593,9 +2699,13 @@
         setTimeout(checkJiraSessionNow, 1000);
       }, []);
 
+      // 🌟 [수정 반영] 요청 부서(department), 담당자 이름(marketer), 주기성 여부(cycle) 초기값 포함
       const [campaignMeta, setCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
-        hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false
+        hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
+        department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+        marketer: localStorage.getItem('myMarketerName') || '',
+        cycle: '단발성', uiVersion: '5.0'
       });
 
       const [assets, setAssets] = useState([]); 
@@ -2604,7 +2714,10 @@
       
       const [aiCampaignMeta, setAiCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
-        hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false
+        hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
+        department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+        marketer: localStorage.getItem('myMarketerName') || '',
+        cycle: '단발성', uiVersion: '5.0'
       });
       const [aiChatHistory, setAiChatHistory] = useState([
         { id: 'msg-init', sender: 'ai', text: '매니저님, 환영합니다.\n어떤 프로모션을 기획하실 예정인가요? 우측 폼에 아시는 만큼 먼저 적어주셔도 좋고, 저와 대화하며 하나씩 채워가도 좋습니다!' }
@@ -2618,7 +2731,6 @@
       const handleConfigChange = (gnbName, field, value) => setConfigMap(prev => ({ ...prev, [gnbName]: { ...prev[gnbName], [field]: value } }));
       const handleSaveConfig = async () => { setIsSettingsOpen(false); };
 
-      // 🌟 [수정 1] 시안 편집기로 이동할 때 2단/3단 일반 배너 및 세트 배너 에셋 자체에 이미지가 정확히 들어가도록 매핑 보정
       const handleMoveToEditor = (payload, onInvalid) => {
         setCampaignMeta({ ...aiCampaignMeta });
         if (!payload || payload.action !== "CREATE_CAMPAIGN_ASSETS") {
@@ -2649,7 +2761,13 @@
           if (Array.isArray(aiMeta.bannerTypes)) aiMeta.bannerTypes = aiMeta.bannerTypes.join(', ');
           if (Array.isArray(aiMeta.gnbLocations)) aiMeta.gnbLocations = aiMeta.gnbLocations.join(', ');
           if (formMainImg) aiMeta.mainImageUrl = formMainImg;
-          setCampaignMeta(prev => ({ ...prev, ...aiMeta }));
+          setCampaignMeta(prev => ({ 
+            ...prev, 
+            ...aiMeta,
+            department: aiCampaignMeta.department || prev.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+            marketer: aiCampaignMeta.marketer || prev.marketer || localStorage.getItem('myMarketerName') || '',
+            cycle: aiCampaignMeta.cycle || prev.cycle || '단발성'
+          }));
         }
 
         if (aiAssets && Array.isArray(aiAssets)) {
@@ -2790,7 +2908,12 @@
         fetchConfig();
       }, []);
 
-      const handleMetaChange = (e) => setCampaignMeta({ ...campaignMeta, [e.target.name]: e.target.value });
+      const handleMetaChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'department') localStorage.setItem('myDepartment', value);
+        if (name === 'marketer') localStorage.setItem('myMarketerName', value);
+        setCampaignMeta({ ...campaignMeta, [name]: value });
+      };
       
       const handleAssetChange = (id, field, value) => {
         setAssets(prevAssets => prevAssets.map(asset => asset.id === id ? { ...asset, data: { ...asset.data, [field]: value } } : asset));
@@ -2899,8 +3022,8 @@
         const myJiraId = localStorage.getItem('myJiraId') || '';
         if (!myJiraId) { alert("🚨 지라 전송을 위해 담당자 ID가 필요합니다!"); return handleSettingsClick(); }
         const cleanAssignee = myJiraId.split('@')[0].trim();
-        const myDepartment = localStorage.getItem('myDepartment') || 'Btv큐레이션팀';
-        const myMarketerName = localStorage.getItem('myMarketerName') || cleanAssignee;
+        const myDepartment = meta.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀';
+        const myMarketerName = meta.marketer || localStorage.getItem('myMarketerName') || cleanAssignee;
 
         setExportState({ isExporting: true, progress: 10, msg: "이미지 추출 준비 중..." });
         let capturedImages = {};
@@ -3065,11 +3188,11 @@
           "<h3>📌 캠페인 공통 정보</h3>" +
           "<ul>" +
             "<li><b>캠페인명:</b> " + (meta.campaignName || "미지정") + "</li>" +
+            "<li><b>요청 부서 / 담당자:</b> " + myDepartment + " / " + myMarketerName + "</li>" +
             "<li><b>대상 상품:</b> " + (meta.product || "미지정") + "</li>" +
             "<li><b>타겟 유형:</b> " + (meta.target || "MASS") + "</li>" +
             "<li><b>예상 모수:</b> " + (meta.targetSize ? meta.targetSize + "명" : "미지정") + "</li>" +
-            "<li><b>타겟 조건:</b> " + (meta.targetCondition || "미지정") + "</li>" +
-            "<li><b>편성 일정:</b> " + (meta.startDate || "미지정") + " ~ " + (meta.dueDate || "미지정") + "</li>" +
+            "<li><b>편성 일정:</b> " + (meta.startDate || "미지정") + " ~ " + (meta.dueDate || "미지정") + " (" + (meta.cycle || "단발성") + ")</li>" +
             "<li><b>B tv 쿠폰:</b> " + (safeHasCoupon === 'Y' ? "포함 (" + (meta.couponBenefit || "혜택 미상") + ")" : "미포함") + "</li>" +
             "<li><b>외부 사은품:</b> " + (meta.externalGift || "없음") + "</li>" +
             "<li><b>총 요청 건수:</b> " + assets.length + "건</li>" +
@@ -3090,7 +3213,15 @@
           parent: { title: `[캠페인] ${meta.campaignName || "신규 캠페인"}`, desc: parentDescText, assignee: cleanAssignee, startDate: meta.startDate, dueDate: meta.dueDate, images: parentImagesToUpload, comment: parentCommentText },
           children: childIssues,
           rawGasData: { 
-            meta: { ...meta, targetSize: safeTargetSize, uniqueCode: uniqueCode, department: myDepartment, marketer: myMarketerName }, 
+            meta: { 
+              ...meta, 
+              targetSize: safeTargetSize, 
+              uniqueCode: uniqueCode, 
+              department: myDepartment, 
+              marketer: myMarketerName,
+              cycle: meta.cycle || '단발성',
+              uiVersion: meta.uiVersion || '5.0'
+            }, 
             assignee: cleanAssignee, assets: assets, mermaidCode: mermaidCode 
           }
         };
@@ -3099,7 +3230,7 @@
         
         setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 잠시 후 Jira가 열립니다." });
         localStorage.removeItem(AUTOSAVE_KEY);
-        setTimeout(() => { setExportState({ isExporting: false, progress: 0, msg: '' }); setCurrentView('LIST'); }, 3000);
+        setTimeout(() => { setExportState({ isExporting: false, progress: 0, msg: '' }); setCurrentView('CALENDAR'); }, 3000);
       };
       
       const activeAsset = assets.find(a => a.id === activeTabId) || assets[0];
@@ -3140,7 +3271,9 @@
       const handleStartPlanFromCalendar = (prefillObj) => {
         setAiCampaignMeta(prev => ({
           ...prev,
-          ...prefillObj
+          ...prefillObj,
+          department: prefillObj.department || prev.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: prefillObj.marketer || prev.marketer || localStorage.getItem('myMarketerName') || ''
         }));
         setCurrentView('PLANNER');
       };
@@ -3159,7 +3292,13 @@
                 </span>
               </div>
 
+              {/* 🌟 [수정 반영] 1번 최상단 메뉴에 '프로모션 캘린더' 배치 */}
               <div className="flex flex-col gap-3 w-full px-3">
+                <button onClick={() => setCurrentView('CALENDAR')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'CALENDAR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
+                  <CalendarDays size={22} className="shrink-0" />
+                  <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 캘린더</span>
+                </button>
+
                 <button onClick={() => setCurrentView('PLANNER')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'PLANNER' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
                   <Bot size={22} className="shrink-0" />
                   <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 기획</span>
@@ -3173,12 +3312,6 @@
                 <button onClick={() => setCurrentView('LIST')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'LIST' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
                   <ListTodo size={22} className="shrink-0" />
                   <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 관리</span>
-                </button>
-
-                {/* 🌟 [신규 추가] 4번째 탭: 프로모션 캘린더 대시보드 */}
-                <button onClick={() => setCurrentView('CALENDAR')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'CALENDAR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
-                  <CalendarDays size={22} className="shrink-0" />
-                  <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 캘린더</span>
                 </button>
               </div>
               
@@ -3296,18 +3429,20 @@
                   </div>
                   
                   {openAccordions.campaign && (
-                    <div className="p-4 pt-0 border-t border-[#1a1c26] mt-2 space-y-4 animate-in slide-in-from-top-2">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2"><input type="text" name="campaignName" placeholder="캠페인/프로젝트명" value={campaignMeta.campaignName} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2.5 text-sm text-white focus:border-[#4f3df6] outline-none transition-all" /></div>
+                    <div className="p-4 pt-0 border-t border-[#1a1c26] mt-2 space-y-3 animate-in slide-in-from-top-2">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="col-span-2"><input type="text" name="campaignName" placeholder="캠페인/프로젝트명" value={campaignMeta.campaignName || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-sm text-white focus:border-[#4f3df6] outline-none transition-all" /></div>
+                        <div><input type="text" name="department" placeholder="요청 부서" value={campaignMeta.department || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" /></div>
+                        <div><input type="text" name="marketer" placeholder="담당자 이름" value={campaignMeta.marketer || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" /></div>
                         <div>
-                          <select name="target" value={campaignMeta.target} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2.5 text-xs text-white focus:border-[#4f3df6] outline-none transition-all">
+                          <select name="target" value={campaignMeta.target || 'MASS'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none transition-all">
                             <option value="MASS">MASS 타겟</option>
                             <option value="TARGET">선별 TARGET</option>
                           </select>
                         </div>
-                        <div><input type="text" name="targetSize" placeholder="모수 (예: 5만명)" value={campaignMeta.targetSize || ''} onChange={handleMetaChange} disabled={campaignMeta.target !== 'TARGET'} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2.5 text-xs text-white focus:border-[#4f3df6] outline-none transition-all disabled:opacity-30 disabled:cursor-not-allowed" /></div>
-                        <div><label className="block text-[10px] text-slate-500 mb-1 ml-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
-                        <div><label className="block text-[10px] text-slate-500 mb-1 ml-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
+                        <div><input type="text" name="targetSize" placeholder="모수 (예: 5만명)" value={campaignMeta.targetSize || ''} onChange={handleMetaChange} disabled={campaignMeta.target !== 'TARGET'} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none transition-all disabled:opacity-30 disabled:cursor-not-allowed" /></div>
+                        <div><label className="block text-[10px] text-slate-500 mb-1 ml-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
+                        <div><label className="block text-[10px] text-slate-500 mb-1 ml-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
                       </div>
                     </div>
                   )}
@@ -3654,11 +3789,11 @@
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] text-slate-400 mb-1">기본 소속 부서명</label>
+                          <label className="block text-[10px] text-slate-400 mb-1">기본 요청 부서</label>
                           <input type="text" defaultValue={localStorage.getItem('myDepartment') || 'Btv큐레이션팀'} onBlur={(e) => localStorage.setItem('myDepartment', e.target.value.trim())} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" placeholder="Btv큐레이션팀" />
                         </div>
                         <div>
-                          <label className="block text-[10px] text-slate-400 mb-1">담당 마케터 성명</label>
+                          <label className="block text-[10px] text-slate-400 mb-1">담당자 이름</label>
                           <input type="text" defaultValue={localStorage.getItem('myMarketerName') || ''} onBlur={(e) => localStorage.setItem('myMarketerName', e.target.value.trim())} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" placeholder="홍길동" />
                         </div>
                       </div>
