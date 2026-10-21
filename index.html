@@ -181,9 +181,9 @@
 
     const BANNER_SPECS = [
       { type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', desc: '홈 최상단 대형 배너. 75% 이미지 배치.' },
-      { type: 'GENERAL_BANNER', name: '일반 배너', icon: LayoutPanelLeft, ratio: '가변', desc: '배경 프리뷰와 하단 배너 카드 1개 세팅.' },
+      { type: 'GENERAL_BANNER', name: '2단배너', icon: LayoutPanelLeft, ratio: '가변', desc: '좌측 프리뷰와 하단 배너 카드 1개 세팅.' },
       { type: 'GENERAL_SET_BANNER', name: '일반 배너 (세트형)', icon: Grid, ratio: '가변', desc: '연속된 2/3단 패키지 배너 세팅 및 통합 기획.' },
-      { type: 'FULL_PROMO_BANNER', name: '풀프로모션', icon: LayoutTemplate, ratio: '16:9', desc: '공통 배경 위에 메인 카피와 3개 카드 세트.' },
+      { type: 'FULL_PROMO_BANNER', name: '풀프로모션배너', icon: LayoutTemplate, ratio: '16:9', desc: '공통 배경 위에 메인 카피와 3개 카드 세트.' },
       { type: 'BIG_BANNER', name: '빅배너', icon: Monitor, ratio: '24.5:8.3', desc: '텍스트와 우측 이미지로 구성된 대형 영역.' },
       { type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '129:181', desc: '세로형 긴 배너. 카피 가독성 중요.' },
       { type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '가변', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' },
@@ -191,17 +191,50 @@
       { type: 'PROMO_POPUP', name: 'TV 팝업', icon: Sparkles, ratio: '4:3', desc: '중앙 팝업 공지. 이미지와 하단 액션 버튼.' },
       { type: 'MINI_EPG_BANNER', name: '미니 EPG 배너', icon: Tv, ratio: '가변', desc: '실시간 방송 시청 중 노출되는 썸네일.' }
     ];
-    
-    // 🌟 [신규] '배너 특성 및 텍스트 규격' 시트 기준 실시간 글자 수 & 줄 수 검증 입력 컴포넌트
+
+    // 🌟 [동적 파서] '배너 특성 및 텍스트 규격' 시트의 F열(텍스트 규격) 문자열에서 실시간으로 글자 수/줄 수 추출
+    const extractSpecLimitsFromSheetText = (specText = '', defaults = {}) => {
+      const raw = String(specText || '');
+      const findNum = (regex, fb) => {
+        const m = raw.match(regex);
+        return m ? parseInt(m[1], 10) : fb;
+      };
+
+      const parts = raw.split(/\(\s*배너\s*\)/);
+      const firstPart = parts[0] || raw;
+      const secondPart = parts[1] || '';
+
+      const findInPart = (partStr, regex, fb) => {
+        const m = String(partStr || '').match(regex);
+        return m ? parseInt(m[1], 10) : fb;
+      };
+
+      return {
+        rawText: raw,
+        maxLines: findNum(/최대\s*(\d+)\s*줄/, defaults.maxLines || 2),
+        logoMax: findInPart(firstPart, /로고\s*[:：]?\s*(?:최대\s*)?(\d+)\s*자/, defaults.logoMax || 9),
+        mainMax: findInPart(firstPart, /메인\s*텍스트\s*[:：]?\s*(?:최대\s*)?(\d+)\s*자/,
+                 findInPart(firstPart, /상단\s*텍스트\s*[:：]?\s*(?:최대\s*)?(\d+)\s*자/,
+                 findInPart(firstPart, /텍스트\s*[:：]?\s*(?:최대\s*)?(?:\d+\s*~\s*)?(\d+)\s*자/, defaults.mainMax || 20))),
+        subMax:  findInPart(firstPart, /서브\s*텍스트\s*[:：]?\s*(?:최대\s*)?(\d+)\s*자/,
+                 findInPart(firstPart, /하단\s*텍스트\s*[:：]?\s*(?:최대\s*)?(\d+)\s*자/,
+                 findInPart(firstPart, /텍스트\s*[:：]?\s*(?:최대\s*)?(?:\d+\s*~\s*)?(\d+)\s*자/, defaults.subMax || 20))),
+        cardMax: secondPart
+                 ? findInPart(secondPart, /(?:1줄\s*내\s*|텍스트\s*[:：]?\s*)?(?:최대\s*)?(\d+)\s*자/, defaults.cardMax || 8)
+                 : (defaults.cardMax || 8),
+        btnMax:  findNum(/텍스트\s*[:：]?\s*\d+\s*~\s*(\d+)\s*자/,
+                 findNum(/텍스트\s*[:：]?\s*(?:최대\s*)?(\d+)\s*자/, defaults.btnMax || 9))
+      };
+    };
+
+    // 🌟 실시간 글자 수 & 줄 수 검증 입력창 컴포넌트
     const CopyInputWithSpec = ({ label, value = '', onChange, maxChars, maxLines = 1, placeholder = '', multiline = false, textColorClass = 'text-white' }) => {
       const text = String(value || '');
       const lines = text ? text.split('\n') : [''];
       const lineCount = lines.length;
-      // 여러 줄 허용 시 '가장 긴 줄의 글자 수' 또는 '전체 글자 수' 체크
       const maxLineLength = Math.max(...lines.map(l => l.length), 0);
       const totalLength = text.replace(/\n/g, '').length;
       
-      // 줄당 제한인지 전체 제한인지 판별 (풀프로모션 서브텍스트 68자 같은 경우는 전체 글자수 기준)
       const isTotalLimit = maxChars >= 35 && maxLines > 1;
       const currentCount = isTotalLimit ? totalLength : maxLineLength;
       const isCharExceeded = maxChars ? currentCount > maxChars : false;
@@ -212,11 +245,13 @@
         <div className="space-y-1">
           <div className="flex items-center justify-between px-0.5">
             <span className="text-[10px] font-bold text-slate-400">{label}</span>
-            <span className={`text-[10px] font-bold ${isWarning ? 'text-red-400 animate-pulse' : 'text-slate-500'}`}>
-              {isTotalLimit ? `총 ${currentCount}` : `줄당 최대 ${currentCount}`}/{maxChars}자
-              {maxLines > 1 ? ` · ${lineCount}/${maxLines}줄` : ''}
-              {isWarning && ' ⚠️규격초과'}
-            </span>
+            {maxChars && (
+              <span className={`text-[10px] font-bold ${isWarning ? 'text-red-400 animate-pulse' : 'text-slate-500'}`}>
+                {isTotalLimit ? `총 ${currentCount}` : `줄당 ${currentCount}`}/{maxChars}자
+                {maxLines > 1 ? ` · ${lineCount}/${maxLines}줄` : ''}
+                {isWarning && ' ⚠️규격초과'}
+              </span>
+            )}
           </div>
           {multiline ? (
             <textarea
@@ -239,9 +274,10 @@
       );
     };
 
+    const DEFAULT_CUSTOM_BANNER = { mainTitle: '신규 배너 메인 문구', subTitle: '서브 문구 입력', buttonText: '바로가기', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_MINI_EPG_BANNER = { imageUrl: '', buttonText: '감상하기', landingValue: 'UI_PATH: /join', gnb: '실시간 채널', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_TODAY_BTV = { topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_GENERAL_BANNER = { colType: '2단', previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역', previewImg: '', bannerCopy: '배너 내 텍스트', bannerImg: '', landingValue: 'UI_PATH: /join', gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_GENERAL_BANNER = { colType: '2단', previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역', previewImg: '', bannerCopy: '배너 텍스트', bannerImg: '', landingValue: 'UI_PATH: /join', gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_GENERAL_SET_BANNER = { 
       colType: '3단', 
       selectedCardIndex: 0,
@@ -256,7 +292,7 @@
     const DEFAULT_BIG_BANNER = { subType: '기본형', mainTitle: '메인 문구', subTitle: '서브 타이틀', desc: '상세 설명글을 입력해주세요.', buttonText: '바로가기', imageUrl: '', logoImg: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_LONG_BANNER = { copy: '세로형 배너 메인 카피', subTitle: '서브 카피 입력', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_STRIP_BANNER = { mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_SYNOPSIS_BANNER = { mainTitle: '2,000명 추첨 증정', subTitle: '~7.20 | 다음날 발급', imageUrl: '', badgeText: '영화 쿠폰\n3,300원', landingValue: 'UI_PATH: /join', gnb: '콘텐츠', note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_SYNOPSIS_BANNER = { mainTitle: '2천명 추첨', subTitle: '~7.20 발급', imageUrl: '', badgeText: '영화 쿠폰\n3,300원', landingValue: 'UI_PATH: /join', gnb: '콘텐츠', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_PROMO_POPUP = { imageUrl: '', buttonText: '바로가기', closeText: '닫기', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
 
     const DraggableMemo = ({ memo, updateMemo, removeMemo }) => {
@@ -428,8 +464,8 @@
               <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[20%] via-[#0a0a0f]/95 via-[40%] to-transparent to-[60%] z-10 pointer-events-none"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[35%] via-[#0a0a0f]/95 via-[50%] to-transparent to-[75%] z-10 pointer-events-none"></div>
               <div className="absolute left-[80px] top-[12%] w-[35%] z-20 flex flex-col gap-2">
-                <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{block.data?.previewTitle || '프리뷰 좌상단 텍스트 (1줄)'}</h1>
-                <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2">{block.data?.previewSub || '서브 설명글 영역\n2줄에서 3줄 정도 작성 요망'}</p>
+                <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-pre-wrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{block.data?.previewTitle || '프리뷰 좌상단 텍스트'}</h1>
+                <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2">{block.data?.previewSub || '서브 설명글 영역'}</p>
               </div>
             </div>
             <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-4 z-30 overflow-hidden pr-8 h-[185px]">
@@ -477,7 +513,7 @@
               <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[20%] via-[#0a0a0f]/95 via-[40%] to-transparent to-[60%] z-10 pointer-events-none"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[35%] via-[#0a0a0f]/95 via-[50%] to-transparent to-[75%] z-10 pointer-events-none"></div>
               <div className="absolute left-[80px] top-[12%] w-[35%] z-20 flex flex-col gap-2">
-                <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{activeCard.heroTitle || '상단 타이틀'}</h1>
+                <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-pre-wrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{activeCard.heroTitle || '상단 타이틀'}</h1>
                 <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2">{activeCard.heroSub || '서브 설명글 영역'}</p>
               </div>
             </div>
@@ -687,6 +723,40 @@
           </div>
         );
       }
+
+      // 🌟 [신규] 시트에 새로 추가된 배너 유형(CUSTOM_BANNER: 편성표 배너, WING UI 배너 등)을 위한 범용 스마트 프리뷰 렌더러
+      return (
+        <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0 flex items-center justify-center p-10">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+            <span className="text-white/[0.03] font-black text-[96px] tracking-widest select-none uppercase">{block.name || block.type}</span>
+          </div>
+          <div className="relative z-10 w-full max-w-[780px] bg-[#12141c]/95 border-[3px] border-[#7387FF] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center min-h-[210px]">
+            <div className="flex-1 p-8 flex flex-col justify-center gap-2 z-10">
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded bg-[#4f3df6]/20 text-[#7387ff] border border-[#4f3df6]/40 w-max mb-1">
+                {block.name || '시트 연동 신규 배너'}
+              </span>
+              {block.data?.mainTitle && (
+                <h2 className="text-white font-black text-2xl leading-tight whitespace-pre-wrap drop-shadow-md">{block.data.mainTitle}</h2>
+              )}
+              {block.data?.subTitle && (
+                <p className="text-slate-300 font-medium text-sm leading-snug whitespace-pre-wrap">{block.data.subTitle}</p>
+              )}
+              {block.data?.buttonText && (
+                <div className="mt-3 inline-flex bg-[#4f3df6] text-white px-5 py-1.5 rounded-lg font-bold text-xs w-max shadow-lg">
+                  {block.data.buttonText}
+                </div>
+              )}
+            </div>
+            <div className="w-[42%] self-stretch bg-[#1a1c26] relative bg-cover bg-center shrink-0 min-h-[210px]" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+              {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
+                <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={40} className="text-white/10"/></div>
+              )}
+              <FallbackText text={block.data?.imageUrl} />
+              <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#12141c] to-transparent pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      );
     };
 
     const parseAndFormatKoreanNumber = (str) => {
@@ -724,7 +794,6 @@
         setCampaignMeta(prev => ({ ...prev, targetSize: parseAndFormatKoreanNumber(e.target.value) }));
       };
 
-      // 🌟 [UX 4] 새 기획 초기화 핸들러
       const handleResetPlanner = () => {
         if (!window.confirm("현재 작성 중인 기획 폼과 AI 대화 내역을 모두 초기화하시겠습니까?\n(요청 부서와 담당자 이름은 유지됩니다.)")) return;
         setCampaignMeta({
@@ -1258,10 +1327,11 @@
       );
     };
     // ======= [Part 1 끝: 바로 아래 줄에 이어서 Part 2를 붙여넣으세요] =======
+
     // ======= [Part 2 시작: Part 1의 맨 마지막 줄 바로 아래에 붙여넣으세요] =======
 
     // ====================================================================================
-    // 🌟 [프리징 버그 완벽 수정본] 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰
+    // 🌟 [프리징 버그 해결 완료] 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰
     // ====================================================================================
     const ScheduleDashboardView = ({ onStartPlanWithDate, onOpenCampaignEditor }) => {
       const todayObj = new Date();
@@ -1324,7 +1394,6 @@
       const filteredEventsRef = useRef([]);
       const rawDataRef = useRef([]);
 
-      // 안전한 날짜 정규화
       const cleanDateStr = (dateVal) => {
         if (!dateVal) return "";
         let str = String(dateVal).trim();
@@ -1385,7 +1454,6 @@
         return dept.includes('밸류애드팀') || dept.includes('유선');
       };
 
-      // 🌟 Invalid Date 크래시 방어 가드 추가
       const getDateOffset = (dateStr, offsetDays) => {
         const clean = cleanDateStr(dateStr) || todayLocalStr;
         const d = new Date(`${clean}T00:00:00`);
@@ -1447,7 +1515,7 @@
 
       useEffect(() => { fetchScheduleData(); }, []);
 
-      // 🌟 [핵심 버그 수정] 이벤트 클릭 시 editEventForm과 detailModal을 동기(Synchronous)로 동시에 세팅
+      // 🌟 이벤트 클릭 시 editEventForm과 detailModal을 동기(Synchronous)로 동시에 세팅하여 프리징 방지
       const openEventDetailModal = (rawProps, fallbackDateStr = todayLocalStr) => {
         if (tooltipRef.current) tooltipRef.current.style.display = 'none';
         const d = { ...(rawProps || {}) };
@@ -2398,7 +2466,7 @@
           {/* 5. 메인 FullCalendar 영역 */}
           <div id="schedule-calendar" ref={calendarNodeRef} className="shadow-2xl" />
 
-          {/* 🌟 모달 A: 이벤트 상세 수정/삭제/시안점프 모달 & 일자별 요약 모달 */}
+          {/* 모달 A: 이벤트 상세 수정/삭제/시안점프 모달 & 일자별 요약 모달 */}
           {detailModal && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => setDetailModal(null)}>
               <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -2776,7 +2844,7 @@
         </div>
       );
     };
-    
+
     // ====================================================================================
     // 프로모션 관리(과거 캠페인 목록 조회/불러오기) 뷰
     // ====================================================================================
@@ -2961,8 +3029,22 @@
       const [githubVersion, setGithubVersion] = useState(null);
       const [jiraSession, setJiraSession] = useState('CHECKING');
       
-      // 🌟 [UX 6] 시안 에디터에서 유저플로우(Mermaid)를 다시 확인/수정할 수 있는 모달 상태
       const [isFlowModalOpen, setIsFlowModalOpen] = useState(false);
+
+      // 🌟 [동적 규격 연동] 시트에서 실시간으로 불러온 배너 특성 및 텍스트 규격 State
+      const [sheetBannerSpecs, setSheetBannerSpecs] = useState([]);
+
+      const fetchBannerSpecsFromSheet = async () => {
+        try {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev?action=getBannerSpecs");
+          const json = await res.json();
+          if (json && json.status === 'success' && Array.isArray(json.data)) {
+            setSheetBannerSpecs(json.data);
+          }
+        } catch (e) {
+          console.error("배너 규격 시트 로드 실패:", e);
+        }
+      };
 
       const checkJiraSessionNow = () => {
         setJiraSession('CHECKING');
@@ -2989,7 +3071,21 @@
 
         checkJiraSessionNow();
         setTimeout(checkJiraSessionNow, 1000);
+        fetchBannerSpecsFromSheet();
       }, []);
+
+      // 🌟 현재 선택된 배너(activeAsset)에 대응하는 시트 규격 행을 실시간으로 탐색
+      const getMatchedSheetSpec = (asset) => {
+        if (!asset || sheetBannerSpecs.length === 0) return null;
+        const aName = String(asset.name || '').replace(/\s+/g, '');
+        if (asset.type === 'BIG_BANNER' && asset.data?.subType === '가입하기형') {
+          const subMatch = sheetBannerSpecs.find(s => s.bannerName.replace(/\s+/g, '').includes('월정액'));
+          if (subMatch) return subMatch;
+        }
+        const byName = sheetBannerSpecs.find(s => aName.includes(s.bannerName.replace(/\s+/g, '')));
+        if (byName) return byName;
+        return sheetBannerSpecs.find(s => s.type === asset.type) || null;
+      };
 
       const [campaignMeta, setCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
@@ -3079,6 +3175,7 @@
               else if (aiAsset.type === 'SYNOPSIS_BANNER') baseData = { ...DEFAULT_SYNOPSIS_BANNER };
               else if (aiAsset.type === 'PROMO_POPUP') baseData = { ...DEFAULT_PROMO_POPUP };
               else if (aiAsset.type === 'MINI_EPG_BANNER') baseData = { ...DEFAULT_MINI_EPG_BANNER };
+              else baseData = { ...DEFAULT_CUSTOM_BANNER };
 
               let aiData = { ...(aiAsset.data || {}) };
               const masterImg = formMainImg || aiData.imageUrl || aiData.bannerImg || aiData.bgImg || '';
@@ -3210,12 +3307,10 @@
         setAssets(prevAssets => prevAssets.map(asset => asset.id === id ? { ...asset, data: { ...asset.data, [field]: value } } : asset));
       };
 
-      // 🌟 [UX 5] 배너 에셋 이름 직접 변경 핸들러
       const handleAssetNameChange = (id, newName) => {
         setAssets(prevAssets => prevAssets.map(asset => asset.id === id ? { ...asset, name: newName } : asset));
       };
 
-      // 🌟 [UX 5] 현재 배너 에셋 복제 핸들러 (A/B안 제작용)
       const duplicateAsset = (targetAsset) => {
         if (!targetAsset) return;
         const newId = `asset-copy-${Date.now()}`;
@@ -3257,12 +3352,13 @@
           };
         }
         else if (type === 'FULL_PROMO_BANNER') newData = { ...DEFAULT_FULL_PROMO_BANNER, bgImg: masterImg };
-        else if (type === 'BIG_BANNER') newData = { ...DEFAULT_BIG_BANNER, imageUrl: masterImg };
+        else if (type === 'BIG_BANNER') newData = { ...DEFAULT_BIG_BANNER, subType: name.includes('월정액') ? '가입하기형' : '기본형', imageUrl: masterImg };
         else if (type === 'LONG_BANNER') newData = { ...DEFAULT_LONG_BANNER, imageUrl: masterImg };
         else if (type === 'STRIP_BANNER') newData = { ...DEFAULT_STRIP_BANNER, imageUrl: masterImg };
         else if (type === 'SYNOPSIS_BANNER') newData = { ...DEFAULT_SYNOPSIS_BANNER, imageUrl: masterImg };
         else if (type === 'PROMO_POPUP') newData = { ...DEFAULT_PROMO_POPUP, imageUrl: masterImg };
         else if (type === 'MINI_EPG_BANNER') newData = { ...DEFAULT_MINI_EPG_BANNER, imageUrl: masterImg };
+        else newData = { ...DEFAULT_CUSTOM_BANNER, imageUrl: masterImg };
       
         newData.startDate = campaignMeta.startDate;
         newData.dueDate = campaignMeta.dueDate;
@@ -3456,7 +3552,7 @@
 
             return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: mappedAssigneeJiraId, imageData: setImagesArr[0], startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs };
           } else {
-            let copyText = data.mainTitle || data.copy || data.bannerCopy || data.previewTitle || '미지정';
+            let copyText = data.mainTitle || data.copy || data.bannerCopy || data.previewTitle || data.buttonText || '미지정';
             const imgName = `banner_preview_${idx + 1}.png`;
             let imgDataUrl = capturedImages[asset.id];
             if (Array.isArray(imgDataUrl)) imgDataUrl = imgDataUrl[0];
@@ -3574,7 +3670,6 @@
         setCurrentView('PLANNER'); setIsSidebarOpen(true);
       };
 
-      // 🌟 [UX 3] 캘린더 대시보드에서 날짜/모수를 선택해 AI 기획 탭으로 연동할 때 AI 챗봇이 조건을 브리핑하며 시작
       const handleStartPlanFromCalendar = (prefillObj) => {
         setAiCampaignMeta(prev => ({
           ...prev,
@@ -3599,7 +3694,6 @@
         setCurrentView('PLANNER');
       };
 
-      // 🌟 [UX 2] 캘린더 일정 상세 모달에서 [배너 시안 열기] 클릭 시 매칭되는 시안 에디터로 즉시 점프
       const handleOpenCampaignFromSchedule = async (schedItem) => {
         try {
           const response = await fetch("https://btv-proxy.alcheminos.workers.dev?action=getCampaigns");
@@ -3782,8 +3876,15 @@
 
           {isSidebarOpen && currentView === 'EDITOR' && activeAsset && (
             <aside className="w-[360px] bg-[#0c0d14] border-r border-[#1a1c26] flex flex-col h-full z-10 shrink-0 shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
-              <div className="p-6 pb-4 flex items-center border-b border-[#1a1c26] bg-[#0f111a]">
+              <div className="p-6 pb-4 flex items-center justify-between border-b border-[#1a1c26] bg-[#0f111a]">
                 <h1 className="text-lg font-black text-white tracking-tight">프로모션 시안</h1>
+                <button
+                  onClick={fetchBannerSpecsFromSheet}
+                  title="시트 최신 텍스트 규격 다시 불러오기"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1a1c26] hover:bg-[#262833] text-[10px] font-bold text-[#7387ff] border border-[#303340] transition-colors"
+                >
+                  <RefreshCw size={11} /> 규격 동기화
+                </button>
               </div>
               
               <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 custom-scrollbar">
@@ -3821,9 +3922,8 @@
                   
                   {openAccordions.banner && (
                     <div className="p-4 pt-0 border-t border-[#1a1c26] mt-2 space-y-4 animate-in slide-in-from-top-2">
-                      {/* 🌟 [UX 5] 배너 에셋 이름 직접 변경 입력란 */}
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1 ml-1">배너 에셋 명칭 (클릭하여 수정 가능)</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1 ml-1">배너 에셋 명칭 (시트 배너명과 매칭 가능)</label>
                         <input
                           type="text"
                           value={activeAsset.name || ''}
@@ -3860,229 +3960,287 @@
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 pt-2">
-                        {activeAsset.type === 'TODAY_BTV' && (
-                          <>
-                            <div className="col-span-2 bg-[#0a0812]/60 border border-[#262833] rounded-lg px-3 py-2 text-[10px] text-slate-400">
-                              📌 <b className="text-white">Today B tv 규격:</b> 최대 3줄 (로고 최대 9자 / 텍스트 최대 20자)
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="상단 로고/문구" maxChars={9} maxLines={1} value={activeAsset.data?.topText || ''} onChange={e => handleAssetChange(activeAsset.id, 'topText', e.target.value)} placeholder="상단 문구 (최대 9자)" />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="메인 타이틀 (1~2줄)" maxChars={20} maxLines={2} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} placeholder="메인 타이틀 (줄당 최대 20자)" />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="서브 텍스트" maxChars={20} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subText || ''} onChange={e => handleAssetChange(activeAsset.id, 'subText', e.target.value)} placeholder="서브 텍스트 (최대 20자)" />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="배경 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL (예: UI_PATH: /synopsis_page)" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'GENERAL_SET_BANNER' && (
-                          <>
-                            <div className="col-span-2">
-                              <select value={activeAsset.data?.colType || '2단'} onChange={e => {
-                                handleAssetChange(activeAsset.id, 'colType', e.target.value);
-                                if (e.target.value === '3단' && activeAsset.data?.selectedCardIndex === 2) {
-                                  handleAssetChange(activeAsset.id, 'selectedCardIndex', 1);
-                                }
-                              }} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
-                                <option value="2단">2단 배너 폭 (총 3개 카드 구성)</option>
-                                <option value="3단">3단 배너 폭 (총 2개 와이드 구성)</option>
-                              </select>
-                            </div>
-                            
-                            {(() => {
-                              const activeIdx = activeAsset.data?.selectedCardIndex || 0;
-                              const cardData = activeAsset.data?.cards?.[activeIdx] || {};
-                              
-                              return (
-                                <>
-                                  <div className="col-span-2 border-t border-[#1a1c26] mt-2 pt-2 flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-pink-400">현재 포커스: 카드 {activeIdx + 1} 설정</span>
-                                    <span className="text-[9px] text-slate-500 bg-[#262833] px-2 py-0.5 rounded">* 미리보기 카드 클릭 전환</span>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌측 프리뷰 타이틀`} maxChars={18} maxLines={1} textColorClass="text-white font-bold" value={cardData.heroTitle || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroTitle', e.target.value)} />
-                                  </div>
-                                  <div className="col-span-2">
-                                    <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌측 프리뷰 서브 (최대 3줄)`} maxChars={22} maxLines={3} multiline={true} textColorClass="text-slate-300" value={cardData.heroSub || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroSub', e.target.value)} />
-                                  </div>
-                                  <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] Hero 우상단 이미지 URL`} value={cardData.heroImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400" /></div>
-                                  
-                                  <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">카드 {activeIdx + 1} 배너 내부 설정</div>
-                                  <div className="col-span-2">
-                                    <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 배너 내 텍스트 (최대 2줄)`} maxChars={14} maxLines={2} multiline={true} value={cardData.cardCopy || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardCopy', e.target.value)} />
-                                  </div>
-                                  <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 배경 이미지 URL`} value={cardData.cardImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#7387ff]" /></div>
-                                  <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 랜딩 URL`} value={cardData.landingValue || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#7387ff]" /></div>
-                                </>
-                              );
-                            })()}
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'FULL_PROMO_BANNER' && (
-                          <>
-                            <div className="col-span-2 bg-[#0a0812]/60 border border-[#262833] rounded-lg px-3 py-2 text-[10px] text-slate-400">
-                              📌 <b className="text-white">풀프로모션 규격:</b> 배경 최대 5줄(로고 20자, 메인 40자, 서브 68자) / 하단 배너 3개(각 2줄, 줄당 10자 이내)
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="상단 로고 타이틀" maxChars={20} maxLines={1} value={activeAsset.data?.topLogo || ''} onChange={e => handleAssetChange(activeAsset.id, 'topLogo', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="메인 텍스트 (1줄)" maxChars={40} maxLines={1} multiline={true} textColorClass="text-cyan-300 font-bold" value={activeAsset.data?.mainCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainCopy', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="서브 텍스트 (최대 3줄, 총 68자)" maxChars={68} maxLines={3} multiline={true} textColorClass="text-purple-300" value={activeAsset.data?.subCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'subCopy', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="전체 배경 이미지 URL" value={activeAsset.data?.bgImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bgImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            {[1, 2, 3].map(i => (
-                                <React.Fragment key={i}>
-                                  <div className="col-span-2 border-t border-[#1a1c26] mt-2 pt-2 text-[10px] font-bold text-slate-400">카드 {i} 설정 (각 1줄 10자 이내)</div>
-                                  <div>
-                                    <CopyInputWithSpec label={`카드 ${i} 타이틀`} maxChars={10} maxLines={1} value={activeAsset.data?.[`card${i}Title`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Title`, e.target.value)} />
-                                  </div>
-                                  <div>
-                                    <CopyInputWithSpec label={`카드 ${i} 서브`} maxChars={10} maxLines={1} textColorClass="text-yellow-400" value={activeAsset.data?.[`card${i}Sub`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Sub`, e.target.value)} />
-                                  </div>
-                                  <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.[`card${i}Img`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Img`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                                  <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.[`card${i}Landing`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Landing`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                                </React.Fragment>
-                            ))}
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'BIG_BANNER' && (
-                          <>
-                            <div className="col-span-2 bg-[#0a0812]/60 border border-[#262833] rounded-lg px-3 py-2 text-[10px] text-slate-400">
-                              📌 <b className="text-white">빅배너 규격:</b> 최대 3줄(로고+텍스트 2줄) / 텍스트 줄당 최대 19자
-                            </div>
-                            <div className="col-span-2">
-                              <select value={activeAsset.data?.subType === '가입하기형' ? '가입하기형' : '기본형'} onChange={e => handleAssetChange(activeAsset.id, 'subType', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
-                                <option value="기본형">기본형 (텍스트 + 우측 이미지)</option>
-                                <option value="가입하기형">월정액 가입하기형 (풀배경)</option>
-                              </select>
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="메인 타이틀" maxChars={19} maxLines={2} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="서브 타이틀" maxChars={19} maxLines={1} textColorClass="text-orange-400" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="상세 설명" maxChars={19} maxLines={1} textColorClass="text-slate-300" value={activeAsset.data?.desc || ''} onChange={e => handleAssetChange(activeAsset.id, 'desc', e.target.value)} />
-                            </div>
-                            {activeAsset.data?.subType === '가입하기형' && (
-                              <div className="col-span-2"><input type="text" placeholder="상단 로고 URL (비우면 텍스트)" value={activeAsset.data?.logoImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'logoImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            )}
-                            <div className="col-span-2"><input type="text" placeholder="배경/우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'GENERAL_BANNER' && (
-                          <>
-                            <div className="col-span-2">
-                              <select value={activeAsset.data?.colType || '2단'} onChange={e => handleAssetChange(activeAsset.id, 'colType', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
-                                <option value="1단">1단 배너 (세로형)</option>
-                                <option value="2단">2단 배너 (가로형)</option>
-                                <option value="3단">3단 배너 (와이드형)</option>
-                              </select>
-                            </div>
-                            <div className="col-span-2 border-t border-[#1a1c26] mt-2 pt-2 text-[10px] font-bold text-pink-400">1. 좌측 배경 프리뷰 영역 (최대 7줄)</div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="좌상단 메인 텍스트 (1줄)" maxChars={18} maxLines={1} textColorClass="text-white font-bold" value={activeAsset.data?.previewTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="좌상단 서브 설명글 (2~3줄)" maxChars={22} maxLines={3} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.previewSub || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewSub', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="우상단 프리뷰 이미지 URL" value={activeAsset.data?.previewImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2 border-t border-[#1a1c26] mt-2 pt-2 text-[10px] font-bold text-[#7387ff]">2. 하단 배너 카드 영역</div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="배너 내 텍스트 (최대 2줄)" maxChars={14} maxLines={2} multiline={true} value={activeAsset.data?.bannerCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerCopy', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="배너 배경 이미지 URL" value={activeAsset.data?.bannerImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'LONG_BANNER' && (
-                          <>
-                            <div className="col-span-2 bg-[#0a0812]/60 border border-[#262833] rounded-lg px-3 py-2 text-[10px] text-slate-400">
-                              📌 <b className="text-white">롱배너 규격:</b> 상단 텍스트 최대 17자 / 하단 텍스트 최대 12자
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="상단 메인 카피 (최대 17자)" maxChars={17} maxLines={2} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.copy || ''} onChange={e => handleAssetChange(activeAsset.id, 'copy', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="하단 서브 카피 (최대 12자)" maxChars={12} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
+                      {/* 🌟 실시간 '배너 특성 및 텍스트 규격' 시트 연동 영역 (시트 수정 시 글자 수가 자동 변경됨!) */}
+                      {(() => {
+                        const matchedSpec = getMatchedSheetSpec(activeAsset);
+                        const isTargetImpossible = matchedSpec && String(matchedSpec.targetable).includes('불가');
 
-                        {activeAsset.type === 'STRIP_BANNER' && (
-                          <>
-                            <div className="col-span-2 bg-[#0a0812]/60 border border-[#262833] rounded-lg px-3 py-2 text-[10px] text-slate-400">
-                              📌 <b className="text-white">띠배너 규격:</b> 최대 2줄 / 텍스트 줄당 최대 25자
+                        return (
+                          <div className="space-y-3 pt-1">
+                            {matchedSpec && (
+                              <div className="bg-[#0a0812]/90 border border-[#303340] rounded-xl p-3 space-y-1.5 text-[10px]">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-black text-[#7387ff] flex items-center gap-1">
+                                    📋 시트 실시간 규격 ({matchedSpec.bannerName})
+                                  </span>
+                                  {matchedSpec.swVersion && (
+                                    <span className="px-1.5 py-0.5 rounded bg-[#1a1c26] text-slate-400 font-mono text-[9px]">UI {matchedSpec.swVersion}</span>
+                                  )}
+                                </div>
+                                <div className="text-slate-300 whitespace-pre-wrap leading-relaxed bg-[#12141c] p-2 rounded-lg border border-[#262833]">
+                                  {matchedSpec.textSpec || '규격 제한 없음'}
+                                </div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-slate-400 pt-0.5">
+                                  <span>• <b>편성:</b> {matchedSpec.gnbArea}</span>
+                                  <span>• <b>Target:</b> <b className={isTargetImpossible ? 'text-red-400' : 'text-[#32d782]'}>{matchedSpec.targetable}</b></span>
+                                </div>
+                                {isTargetImpossible && campaignMeta.target === 'TARGET' && (
+                                  <div className="text-red-400 font-bold bg-red-500/10 border border-red-500/30 rounded px-2 py-1 mt-1">
+                                    ⚠️ 시트 규격상 이 배너는 타겟팅(TARGET) 편성이 불가합니다!
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3">
+                              {activeAsset.type === 'TODAY_BTV' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { logoMax: 9, mainMax: 20, subMax: 20 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="상단 로고/문구" maxChars={lim.logoMax} maxLines={1} value={activeAsset.data?.topText || ''} onChange={e => handleAssetChange(activeAsset.id, 'topText', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="메인 텍스트" maxChars={lim.mainMax} maxLines={2} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="서브 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subText || ''} onChange={e => handleAssetChange(activeAsset.id, 'subText', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="배경 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'GENERAL_SET_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 20, subMax: 20, cardMax: 8 });
+                                const activeIdx = activeAsset.data?.selectedCardIndex || 0;
+                                const cardData = activeAsset.data?.cards?.[activeIdx] || {};
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <select value={activeAsset.data?.colType || '2단'} onChange={e => {
+                                        handleAssetChange(activeAsset.id, 'colType', e.target.value);
+                                        if (e.target.value === '3단' && activeAsset.data?.selectedCardIndex === 2) {
+                                          handleAssetChange(activeAsset.id, 'selectedCardIndex', 1);
+                                        }
+                                      }} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                                        <option value="2단">2단 배너 폭 (총 3개 카드 구성)</option>
+                                        <option value="3단">3단 배너 폭 (총 2개 와이드 구성)</option>
+                                      </select>
+                                    </div>
+                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 flex items-center justify-between">
+                                      <span className="text-[10px] font-bold text-pink-400">포커스: 카드 {activeIdx + 1} 설정</span>
+                                      <span className="text-[9px] text-slate-500 bg-[#262833] px-2 py-0.5 rounded">* 미리보기 클릭 전환</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌 프리뷰 메인`} maxChars={lim.mainMax} maxLines={4} multiline={true} textColorClass="text-white font-bold" value={cardData.heroTitle || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌 프리뷰 서브`} maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={cardData.heroSub || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroSub', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 우 프리뷰 이미지 URL`} value={cardData.heroImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400" /></div>
+                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">카드 {activeIdx + 1} 배너 내부 설정</div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 배너 내 텍스트`} maxChars={lim.cardMax} maxLines={3} multiline={true} value={cardData.cardCopy || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardCopy', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 배경 이미지 URL`} value={cardData.cardImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#7387ff]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 랜딩 URL`} value={cardData.landingValue || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#7387ff]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'FULL_PROMO_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { logoMax: 20, mainMax: 40, subMax: 68, cardMax: 10 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="상단 로고 타이틀" maxChars={lim.logoMax} maxLines={1} value={activeAsset.data?.topLogo || ''} onChange={e => handleAssetChange(activeAsset.id, 'topLogo', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="메인 텍스트 (1줄)" maxChars={lim.mainMax} maxLines={1} multiline={true} textColorClass="text-cyan-300 font-bold" value={activeAsset.data?.mainCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainCopy', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="서브 텍스트 (최대 3줄)" maxChars={lim.subMax} maxLines={3} multiline={true} textColorClass="text-purple-300" value={activeAsset.data?.subCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'subCopy', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="전체 배경 이미지 URL" value={activeAsset.data?.bgImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bgImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    {[1, 2, 3].map(i => (
+                                      <React.Fragment key={i}>
+                                        <div className="col-span-2 border-t border-[#1a1c26] mt-2 pt-2 text-[10px] font-bold text-slate-400">하단 배너 {i} 설정</div>
+                                        <div>
+                                          <CopyInputWithSpec label={`배너 ${i} 1줄`} maxChars={lim.cardMax} maxLines={1} value={activeAsset.data?.[`card${i}Title`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Title`, e.target.value)} />
+                                        </div>
+                                        <div>
+                                          <CopyInputWithSpec label={`배너 ${i} 2줄`} maxChars={lim.cardMax} maxLines={1} textColorClass="text-yellow-400" value={activeAsset.data?.[`card${i}Sub`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Sub`, e.target.value)} />
+                                        </div>
+                                        <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.[`card${i}Img`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Img`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                        <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.[`card${i}Landing`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Landing`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                      </React.Fragment>
+                                    ))}
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'BIG_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 19, subMax: 19 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <select value={activeAsset.data?.subType === '가입하기형' ? '가입하기형' : '기본형'} onChange={e => handleAssetChange(activeAsset.id, 'subType', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                                        <option value="기본형">기본형 빅배너 (좌 텍스트 + 우 이미지)</option>
+                                        <option value="가입하기형">월정액 가입 빅배너 (구매창 직행)</option>
+                                      </select>
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="메인 텍스트 1줄" maxChars={lim.mainMax} maxLines={2} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="서브 텍스트 2줄" maxChars={lim.mainMax} maxLines={1} textColorClass="text-orange-400" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="보조 설명" maxChars={lim.mainMax} maxLines={1} textColorClass="text-slate-300" value={activeAsset.data?.desc || ''} onChange={e => handleAssetChange(activeAsset.id, 'desc', e.target.value)} />
+                                    </div>
+                                    {activeAsset.data?.subType === '가입하기형' && (
+                                      <div className="col-span-2"><input type="text" placeholder="월정액 로고 이미지 URL" value={activeAsset.data?.logoImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'logoImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    )}
+                                    <div className="col-span-2"><input type="text" placeholder="배경/우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'GENERAL_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 20, subMax: 20, cardMax: 8 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <select value={activeAsset.data?.colType || '2단'} onChange={e => handleAssetChange(activeAsset.id, 'colType', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                                        <option value="1단">1단 배너 (세로형)</option>
+                                        <option value="2단">2단 배너 (기본 가로형)</option>
+                                        <option value="3단">3단 배너 (와이드형)</option>
+                                      </select>
+                                    </div>
+                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-pink-400">1. 좌 프리뷰 영역</div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="프리뷰 메인 텍스트" maxChars={lim.mainMax} maxLines={4} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.previewTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="프리뷰 서브 텍스트" maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.previewSub || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewSub', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="우 프리뷰 이미지 URL" value={activeAsset.data?.previewImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">2. 하단 배너 카드 영역</div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="배너 내 텍스트" maxChars={lim.cardMax} maxLines={3} multiline={true} value={activeAsset.data?.bannerCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerCopy', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="배너 배경 이미지 URL" value={activeAsset.data?.bannerImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'LONG_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 17, subMax: 12 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="상단 텍스트" maxChars={lim.mainMax} maxLines={2} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.copy || ''} onChange={e => handleAssetChange(activeAsset.id, 'copy', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="하단 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'STRIP_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 25, subMax: 25 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="1줄 메인 텍스트" maxChars={lim.mainMax} maxLines={1} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="2줄 서브 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'SYNOPSIS_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 8, subMax: 8 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="1줄 메인 텍스트" maxChars={lim.mainMax} maxLines={1} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="2줄 서브 텍스트" maxChars={lim.subMax} maxLines={1} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2 grid grid-cols-2 gap-3">
+                                      <input type="text" placeholder="우측 뱃지 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                                      <textarea placeholder="뱃지 텍스트 (이미지 없을때)" rows={1} value={activeAsset.data?.badgeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'badgeText', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-400 outline-none focus:border-[#4f3df6] transition-all duration-300 h-9 focus:h-16 resize-none custom-scrollbar leading-snug" />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'PROMO_POPUP' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { btnMax: 9 });
+                                return (
+                                  <>
+                                    <div className="col-span-2"><input type="text" placeholder="중앙 팝업 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div>
+                                      <CopyInputWithSpec label="좌측 버튼 문구" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
+                                    </div>
+                                    <div>
+                                      <CopyInputWithSpec label="우측 닫기 문구" maxChars={lim.btnMax} maxLines={1} textColorClass="text-slate-400" value={activeAsset.data?.closeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'closeText', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {activeAsset.type === 'MINI_EPG_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { btnMax: 5 });
+                                return (
+                                  <>
+                                    <div className="col-span-2"><input type="text" placeholder="썸네일 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="CTA 버튼 텍스트" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
+
+                              {/* 🌟 시트에서 새로 추가된 배너 유형(CUSTOM_BANNER 등)을 위한 동적 입력 폼 */}
+                              {!['TODAY_BTV','GENERAL_SET_BANNER','FULL_PROMO_BANNER','BIG_BANNER','GENERAL_BANNER','LONG_BANNER','STRIP_BANNER','SYNOPSIS_BANNER','PROMO_POPUP','MINI_EPG_BANNER'].includes(activeAsset.type) && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 15, subMax: 20, btnMax: 8 });
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="메인/상단 텍스트" maxChars={lim.mainMax} maxLines={lim.maxLines} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="서브/하단 텍스트" maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="CTA 버튼 문구 (선택)" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2"><input type="text" placeholder="배너 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder={`랜딩 URL (${matchedSpec?.landing || '시놉시스, 메뉴 등'})`} value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
                             </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="메인 타이틀 (1줄, 최대 25자)" maxChars={25} maxLines={1} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="서브 카피 (1줄, 최대 25자)" maxChars={25} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'SYNOPSIS_BANNER' && (
-                          <>
-                            <div className="col-span-2 bg-[#0a0812]/60 border border-[#262833] rounded-lg px-3 py-2 text-[10px] text-slate-400">
-                              📌 <b className="text-white">시놉시스 배너 규격:</b> 최대 2줄 / 텍스트 줄당 최대 8자
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="메인 타이틀 (최대 8자)" maxChars={8} maxLines={1} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="고지 문구/서브 (최대 8자)" maxChars={8} maxLines={1} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
-                            </div>
-                            <div className="col-span-2 grid grid-cols-2 gap-3">
-                              <input type="text" placeholder="우측 뱃지 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                              <textarea placeholder="뱃지 텍스트 (이미지 없을때)" rows={1} value={activeAsset.data?.badgeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'badgeText', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-400 outline-none focus:border-[#4f3df6] transition-all duration-300 h-9 focus:h-16 resize-none custom-scrollbar leading-snug" />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'PROMO_POPUP' && (
-                          <>
-                            <div className="col-span-2"><input type="text" placeholder="중앙 팝업 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div>
-                              <CopyInputWithSpec label="좌측 버튼 문구" maxChars={8} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
-                            </div>
-                            <div>
-                              <CopyInputWithSpec label="우측 닫기 문구" maxChars={6} maxLines={1} textColorClass="text-slate-400" value={activeAsset.data?.closeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'closeText', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                        
-                        {activeAsset.type === 'MINI_EPG_BANNER' && (
-                          <>
-                            <div className="col-span-2"><input type="text" placeholder="썸네일 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                            <div className="col-span-2">
-                              <CopyInputWithSpec label="버튼 문구 (예: 감상하기)" maxChars={6} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
-                            </div>
-                            <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                          </>
-                        )}
-                      </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -4143,7 +4301,6 @@
                         </h2>
                       </div>
                       <div className="flex gap-2.5 flex-wrap">
-                        {/* 🌟 [UX 6] 유저플로우(Mermaid) 모달 열기 버튼 */}
                         <button onClick={() => setIsFlowModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold hover:bg-cyan-500/20 transition-colors">
                           <GitMerge size={14}/> 유저플로우
                         </button>
@@ -4152,7 +4309,6 @@
                           <MessageSquare size={14}/> 메모 추가
                         </button>
 
-                        {/* 🌟 [UX 5] 현재 배너 복제 버튼 */}
                         <button onClick={() => duplicateAsset(activeAsset)} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#d946ef]/10 text-[#e879f9] border border-[#d946ef]/30 rounded-lg text-xs font-bold hover:bg-[#d946ef]/20 transition-colors">
                           <Copy size={14}/> 배너 복제
                         </button>
@@ -4239,7 +4395,7 @@
 
           </main>
 
-          {/* 🌟 [UX 6] 시안 편집 화면용 유저플로우(Mermaid) 확인 및 코드 편집 모달 */}
+          {/* 시안 편집 화면용 유저플로우(Mermaid) 확인 및 코드 편집 모달 */}
           {isFlowModalOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200" onClick={() => setIsFlowModalOpen(false)}>
               <div className="bg-[#12141c] w-full max-w-4xl border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 max-h-[88vh]" onClick={e => e.stopPropagation()}>
@@ -4362,6 +4518,21 @@
                       <p className="text-xs text-slate-500 leading-relaxed mt-auto pt-4 border-t border-[#262833]">{spec.desc}</p>
                     </div>
                   ))}
+
+                  {/* 🌟 시트에 새로 추가된 배너 유형(예: 월정액 가입 빅배너, 편성표 배너, WING UI 배너 등) 자동 표시 */}
+                  {sheetBannerSpecs
+                    .filter(s => s.type === 'CUSTOM_BANNER' || !BANNER_SPECS.some(b => b.name.replace(/\s+/g, '') === s.bannerName.replace(/\s+/g, '')))
+                    .map((s) => (
+                      <div key={s.id} onClick={() => addAsset(s.type, s.bannerName)} className="bg-[#1a1c26] border border-[#262833] rounded-2xl p-6 cursor-pointer hover:border-[#32d782] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(50,215,130,0.15)] transition-all flex flex-col h-full group">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="p-3 bg-[#0a0812] border border-[#303340] rounded-xl text-[#32d782] group-hover:bg-[#32d782] group-hover:text-black transition-colors"><Sparkles size={24} /></div>
+                          <span className="text-[10px] font-bold bg-[#0a0812] border border-[#303340] text-[#32d782] px-2 py-1 rounded-md">시트 연동 ({String(s.targetable).includes('불가') ? 'MASS전용' : '타겟가능'})</span>
+                        </div>
+                        <h4 className="text-lg font-bold text-white mb-1 group-hover:text-[#32d782] transition-colors">{s.bannerName}</h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed mb-3 line-clamp-2">{s.feature}</p>
+                        <p className="text-[10px] text-slate-500 leading-snug mt-auto pt-3 border-t border-[#262833] whitespace-pre-wrap">{s.textSpec}</p>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
