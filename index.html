@@ -46,38 +46,69 @@
     .ai-chat-body strong { color: #ffffff; font-weight: 900; }
     .ai-chat-body hr { border-color: #303340; margin: 16px 0; }
 
-    /* Mermaid 시뮬레이터 노드 폭 찌그러짐 및 세로 글씨 방지 스타일 */
-    #mermaid-export-area svg { max-width: none !important; height: auto !important; }
-    #mermaid-export-area .node foreignObject { overflow: visible !important; }
+    /* 🌟 [수정] Mermaid 박스 어긋남 방지 및 마우스 클릭 인터랙션 스타일 */
+    #mermaid-export-area svg {
+      max-width: 100% !important;
+      height: auto !important;
+      display: block;
+      margin: 0 auto;
+    }
+    #mermaid-export-area .node {
+      cursor: pointer !important;
+      transition: filter 0.15s ease;
+    }
+    #mermaid-export-area .node:hover rect,
+    #mermaid-export-area .node:hover polygon {
+      stroke: #32d782 !important;
+      stroke-width: 2.5px !important;
+      filter: drop-shadow(0 0 8px rgba(50, 215, 130, 0.35));
+    }
+    #mermaid-export-area .node.selected-mermaid-node rect,
+    #mermaid-export-area .node.selected-mermaid-node polygon {
+      stroke: #ec4899 !important;
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 12px rgba(236, 72, 153, 0.55));
+    }
+    #mermaid-export-area .node rect,
+    #mermaid-export-area .node polygon,
+    #mermaid-export-area .node circle {
+      fill: #161822 !important;
+      stroke: #4f3df6 !important;
+      stroke-width: 1.5px !important;
+      rx: 10px !important;
+      ry: 10px !important;
+    }
+    #mermaid-export-area .edgePath .path {
+      stroke: #64748b !important;
+      stroke-width: 1.5px !important;
+    }
+    #mermaid-export-area .arrowheadPath {
+      fill: #64748b !important;
+    }
+    #mermaid-export-area .node foreignObject {
+      overflow: visible !important;
+    }
     #mermaid-export-area .nodeLabel,
     #mermaid-export-area .label div {
-      min-width: 140px !important;
-      max-width: 175px !important;
-      white-space: normal !important;
+      white-space: nowrap !important;
       word-break: keep-all !important;
-      overflow-wrap: break-word !important;
       text-align: center !important;
       line-height: 1.35 !important;
-      font-size: 12px !important;
+      font-size: 11px !important;
       font-weight: 700 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 4px 6px !important;
+      color: #f1f5f9 !important;
+      padding: 4px 8px !important;
       box-sizing: border-box !important;
     }
     #mermaid-export-area .nodeLabel img,
     #mermaid-export-area .label img {
-      width: 120px !important;
-      min-width: 120px !important;
-      height: 68px !important;
-      max-width: none !important;
+      width: 96px !important;
+      height: 54px !important;
       object-fit: cover !important;
       border-radius: 6px !important;
-      margin: 0 auto 6px auto !important;
+      margin: 2px auto 6px auto !important;
       display: block !important;
-      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
     }
 
     /* 다크 모드 FullCalendar 커스텀 테마 */
@@ -141,8 +172,113 @@
       PanelLeftClose, Database, Clock, AlertTriangle, BarChart3, Filter, Zap, Check, Edit3, RotateCcw
     } from 'lucide-react';
     
-    const MermaidViewer = ({ code }) => {
+    // 🌟 Mermaid 코드 양방향 파서 (코드 <-> 노드/간선 객체 자동 변환)
+    const FLOW_THUMB_OPTIONS = [
+      { label: '아이콘 없음 (일반 단계 박스)', url: '' },
+      { label: 'Today B tv', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/today_btv.png' },
+      { label: '일반/2단/세트 배너', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_2col.png' },
+      { label: '풀프로모션', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/full_promo.png' },
+      { label: '빅배너', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/big_banner.png' },
+      { label: '롱배너', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/long_banner.png' },
+      { label: '띠배너', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/strip_banner.png' },
+      { label: '시놉시스 배너', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/synopsis_banner.png' },
+      { label: 'TV 팝업', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/promo_popup.png' },
+      { label: '실시간/미니 EPG 배너', url: 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/mini_epg.png' }
+    ];
+
+    const parseMermaidGraph = (code = '') => {
+      const nodesMap = {};
+      const edges = [];
+      if (!code) return { nodes: [], edges: [] };
+
+      const normalized = code.replace(/\\n/g, '<br/>');
+
+      // 1. 노드 정의 추출: A["..."] 또는 A[...] 또는 A("...")
+      const nodeRegex = /(?:^|[\s;]|-->|---)\s*([A-Za-z0-9_]+)\s*(?:\[\s*"([\s\S]*?)"\s*\]|\(\s*"([\s\S]*?)"\s*\)|\[\s*([^\[\]"\n]+?)\s*\])/g;
+      let m;
+      while ((m = nodeRegex.exec(normalized)) !== null) {
+        const id = m[1];
+        if (id === 'graph' || id === 'subgraph' || id === 'end' || id === 'style' || id === 'classDef') continue;
+        const rawContent = (m[2] ?? m[3] ?? m[4] ?? '').trim();
+        const imgMatch = rawContent.match(/<img[^>]+src=['"]([^'"]+)['"][^>]*>/i);
+        const imgUrl = imgMatch ? imgMatch[1] : '';
+        const textOnly = rawContent
+          .replace(/<img[^>]*>/gi, '')
+          .replace(/^(?:<br\s*\/?>|\s)+/i, '')
+          .replace(/(?:<br\s*\/?>)+/gi, '\n')
+          .trim();
+        const lines = textOnly.split('\n').map(s => s.trim()).filter(Boolean);
+        nodesMap[id] = {
+          id,
+          title: lines[0] || id,
+          subText: lines.slice(1).join(' '),
+          imgUrl
+        };
+      }
+
+      // 2. 화살표 간선(Edge) 추출: A --> B 또는 A -->|label| B
+      const cleanLines = normalized.split('\n');
+      cleanLines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('graph ') || trimmed.startsWith('flowchart ') || trimmed.startsWith('style ') || trimmed.startsWith('classDef ')) return;
+        // 정의부([...])를 제거한 순수 노드 ID 간 연결 파악
+        const stripped = trimmed
+          .replace(/\[\s*"[\s\S]*?"\s*\]/g, '')
+          .replace(/\(\s*"[\s\S]*?"\s*\)/g, '')
+          .replace(/\[\s*[^\[\]"\n]+?\s*\]/g, '');
+
+        const edgeRegex = /([A-Za-z0-9_]+)\s*--+>\|?([^|]*)\|?\s*([A-Za-z0-9_]+)/g;
+        let em;
+        while ((em = edgeRegex.exec(stripped)) !== null) {
+          const from = em[1];
+          const label = (em[2] || '').trim();
+          const to = em[3];
+          if (!nodesMap[from]) nodesMap[from] = { id: from, title: from, subText: '', imgUrl: '' };
+          if (!nodesMap[to]) nodesMap[to] = { id: to, title: to, subText: '', imgUrl: '' };
+          if (!edges.some(e => e.from === from && e.to === to)) {
+            edges.push({ id: `e-${from}-${to}-${edges.length}`, from, to, label });
+          }
+        }
+      });
+
+      return { nodes: Object.values(nodesMap), edges };
+    };
+
+    const serializeMermaidGraph = (nodes, edges) => {
+      if (!nodes || nodes.length === 0) return '';
+      const lines = ['graph TD'];
+      nodes.forEach(n => {
+        const parts = [];
+        if (n.imgUrl) parts.push(`<img src='${n.imgUrl}' width='120' height='68'/>`);
+        if (n.title) parts.push(n.title.replace(/"/g, "'"));
+        if (n.subText) parts.push(n.subText.replace(/"/g, "'"));
+        const label = parts.join('<br/>') || n.id;
+        lines.push(`  ${n.id}["${label}"]`);
+      });
+      edges.forEach(e => {
+        if (nodes.some(n => n.id === e.from) && nodes.some(n => n.id === e.to)) {
+          if (e.label) lines.push(`  ${e.from} -->|${e.label}| ${e.to}`);
+          else lines.push(`  ${e.from} --> ${e.to}`);
+        }
+      });
+      return lines.join('\n');
+    };
+
+    // 🌟 마우스 클릭으로 노드를 바로 선택·수정·삭제할 수 있는 인터랙티브 MermaidViewer
+    const MermaidViewer = ({ code, onChange, selectedNodeId: externalSelectedId, onSelectNode }) => {
       const containerRef = useRef(null);
+      const [zoom, setZoom] = useState(1);
+      const [internalSelectedId, setInternalSelectedId] = useState(null);
+      const activeNodeId = externalSelectedId !== undefined ? externalSelectedId : internalSelectedId;
+
+      const setSelectedId = (id) => {
+        if (onSelectNode) onSelectNode(id);
+        else setInternalSelectedId(id);
+      };
+
+      const parsed = parseMermaidGraph(code);
+      const selectedNode = parsed.nodes.find(n => n.id === activeNodeId) || null;
+
       useEffect(() => {
         if (code && containerRef.current && window.mermaid) {
           containerRef.current.innerHTML = ''; 
@@ -150,20 +286,394 @@
             startOnLoad: false,
             theme: 'dark',
             securityLevel: 'loose',
-            flowchart: { htmlLabels: true, nodeSpacing: 35, rankSpacing: 55, padding: 12 },
-            themeCSS: `
-              .nodeLabel { font-size: 12px !important; min-width: 140px !important; max-width: 175px !important; white-space: normal !important; word-break: keep-all !important; text-align: center !important; }
-              .nodeLabel img { width: 120px !important; min-width: 120px !important; height: 68px !important; max-width: none !important; margin: 0 auto 6px auto !important; display: block !important; }
-            `
+            flowchart: { htmlLabels: true, useMaxWidth: false, nodeSpacing: 30, rankSpacing: 45, padding: 14, curve: 'basis' }
           });
-          window.mermaid.render(`mermaid-${Date.now()}`, code).then(({svg}) => {
-            if(containerRef.current) containerRef.current.innerHTML = svg;
+
+          const normalizedCode = code.replace(/\\n/g, '<br/>');
+
+          window.mermaid.render(`mermaid-${Date.now()}`, normalizedCode).then(({svg}) => {
+            if (containerRef.current) {
+              containerRef.current.innerHTML = svg;
+              const svgEl = containerRef.current.querySelector('svg');
+              if (svgEl) {
+                const viewBox = svgEl.getAttribute('viewBox');
+                if (viewBox) {
+                  const parts = viewBox.split(/\s+|,/).map(Number);
+                  if (parts.length === 4 && parts[2] > 0) {
+                    svgEl.style.width = `${Math.min(parts[2], 460)}px`;
+                    svgEl.style.maxWidth = '100%';
+                    svgEl.style.height = 'auto';
+                  }
+                }
+
+                // 🌟 각 SVG 노드에 마우스 클릭 이벤트 바인딩!
+                const nodeEls = svgEl.querySelectorAll('.node');
+                nodeEls.forEach(nodeEl => {
+                  const rawDomId = nodeEl.id || '';
+                  // Mermaid DOM ID 예: "flowchart-A-12" -> 노드 ID "A" 추출
+                  const matchedNode = parsed.nodes.find(n => {
+                    const regex = new RegExp(`^flowchart-${n.id}-\\d+$`);
+                    return regex.test(rawDomId) || rawDomId === n.id;
+                  });
+                  if (matchedNode) {
+                    if (matchedNode.id === activeNodeId) {
+                      nodeEl.classList.add('selected-mermaid-node');
+                    }
+                    nodeEl.addEventListener('click', (ev) => {
+                      ev.stopPropagation();
+                      setSelectedId(matchedNode.id);
+                    });
+                  }
+                });
+              }
+            }
           }).catch(e => console.error("Mermaid Render Error:", e));
         }
-      }, [code]);
+      }, [code, activeNodeId]);
+
+      const handleQuickNodeUpdate = (field, val) => {
+        if (!selectedNode || !onChange) return;
+        const nextNodes = parsed.nodes.map(n => n.id === selectedNode.id ? { ...n, [field]: val } : n);
+        onChange(serializeMermaidGraph(nextNodes, parsed.edges));
+      };
+
+      const handleQuickNodeDelete = () => {
+        if (!selectedNode || !onChange) return;
+        const nextNodes = parsed.nodes.filter(n => n.id !== selectedNode.id);
+        const nextEdges = parsed.edges.filter(e => e.from !== selectedNode.id && e.to !== selectedNode.id);
+        setSelectedId(null);
+        onChange(serializeMermaidGraph(nextNodes, nextEdges));
+      };
       
       if (!code) return null;
-      return <div id="mermaid-export-area" ref={containerRef} className="w-full h-full overflow-auto custom-scrollbar p-6 flex items-start justify-center [&>svg]:mx-auto [&>svg]:block" />;
+      return (
+        <div className="relative w-full h-full flex flex-col overflow-hidden" onClick={() => setSelectedId(null)}>
+          {/* 상단 안내 & 줌 컨트롤 바 */}
+          <div className="absolute top-3 left-3 z-20 pointer-events-none">
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-[#12141c]/90 border border-[#303340] text-slate-400 backdrop-blur">
+              🖱️ 박스를 클릭하면 문구 수정/삭제가 가능합니다
+            </span>
+          </div>
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-[#12141c]/90 border border-[#303340] rounded-lg p-1 shadow-lg backdrop-blur" onClick={e => e.stopPropagation()}>
+            <button type="button" onClick={() => setZoom(z => Math.max(0.6, +(z - 0.15).toFixed(2)))} className="px-2 py-0.5 text-xs font-black text-slate-400 hover:text-white">-</button>
+            <button type="button" onClick={() => setZoom(1)} className="px-1.5 py-0.5 text-[10px] font-bold text-slate-300 hover:text-[#7387ff]">{Math.round(zoom * 100)}%</button>
+            <button type="button" onClick={() => setZoom(z => Math.min(1.6, +(z + 0.15).toFixed(2)))} className="px-2 py-0.5 text-xs font-black text-slate-400 hover:text-white">+</button>
+          </div>
+
+          {/* 메인 다이어그램 캔버스 */}
+          <div className="flex-1 w-full h-full overflow-auto custom-scrollbar p-6 pt-12 flex items-start justify-center">
+            <div
+              id="mermaid-export-area"
+              ref={containerRef}
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', transition: 'transform 0.15s ease' }}
+              className="w-full flex justify-center"
+            />
+          </div>
+
+          {/* 🌟 Step 2 등에서 노드를 클릭했을 때 하단에 즉시 뜨는 인라인 마우스 편집 팝오버 (onChange가 있고 외부 에디터 모달이 아닐 때 표시) */}
+          {onChange && !onSelectNode && selectedNode && (
+            <div
+              onClick={e => e.stopPropagation()}
+              className="p-3.5 bg-[#12141c] border-t border-pink-500/40 shadow-2xl space-y-2.5 animate-in slide-in-from-bottom-2 z-30"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-pink-400 flex items-center gap-1.5">
+                  <Edit3 size={12} /> 선택된 박스 편집 ({selectedNode.id})
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleQuickNodeDelete}
+                    className="px-2 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 rounded text-[10px] font-bold flex items-center gap-1"
+                  >
+                    <Trash2 size={11} /> 이 박스 삭제
+                  </button>
+                  <button type="button" onClick={() => setSelectedId(null)} className="p-1 text-slate-400 hover:text-white"><X size={13} /></button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 mb-0.5">1줄 타이틀 (GNB/배너명)</label>
+                  <input
+                    type="text"
+                    value={selectedNode.title}
+                    onChange={e => handleQuickNodeUpdate('title', e.target.value)}
+                    className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-1.5 text-xs text-white font-bold outline-none focus:border-pink-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 mb-0.5">2줄 보조 설명 (카피/상품명)</label>
+                  <input
+                    type="text"
+                    value={selectedNode.subText}
+                    onChange={e => handleQuickNodeUpdate('subText', e.target.value)}
+                    placeholder="비워두면 1줄만 표시"
+                    className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-pink-400"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // 🌟 Step 3 [유저플로우] 버튼 클릭 시 열리는 노코드(No-Code) 비주얼 플로우 에디터 모달
+    const InteractiveFlowEditorModal = ({ mermaidCode, setMermaidCode, onClose }) => {
+      const [selectedNodeId, setSelectedNodeId] = useState(null);
+      const [showRawCode, setShowRawCode] = useState(false);
+      const [newEdgeFrom, setNewEdgeFrom] = useState('');
+      const [newEdgeTo, setNewEdgeTo] = useState('');
+
+      const { nodes, edges } = parseMermaidGraph(mermaidCode);
+      const activeNode = nodes.find(n => n.id === selectedNodeId) || nodes[0] || null;
+
+      useEffect(() => {
+        if (!selectedNodeId && nodes.length > 0) {
+          setSelectedNodeId(nodes[0].id);
+        }
+      }, [ nodes.length ]);
+
+      const updateGraph = (nextNodes, nextEdges) => {
+        setMermaidCode(serializeMermaidGraph(nextNodes, nextEdges));
+      };
+
+      const handleNodeFieldChange = (id, field, val) => {
+        const nextNodes = nodes.map(n => n.id === id ? { ...n, [field]: val } : n);
+        updateGraph(nextNodes, edges);
+      };
+
+      const handleDeleteNode = (id) => {
+        const nextNodes = nodes.filter(n => n.id !== id);
+        const nextEdges = edges.filter(e => e.from !== id && e.to !== id);
+        if (selectedNodeId === id) setSelectedNodeId(nextNodes[0]?.id || null);
+        updateGraph(nextNodes, nextEdges);
+      };
+
+      const handleAddNode = () => {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let newId = `N${nodes.length + 1}`;
+        for (let ch of alphabet) {
+          if (!nodes.some(n => n.id === ch)) { newId = ch; break; }
+        }
+        const newNode = { id: newId, title: '새 단계 입력', subText: '상세 내용', imgUrl: '' };
+        const nextNodes = [...nodes, newNode];
+        const nextEdges = [...edges];
+        // 현재 선택된 노드가 있으면 자동으로 화살표 연결
+        if (activeNode) {
+          nextEdges.push({ id: `e-${activeNode.id}-${newId}`, from: activeNode.id, to: newId, label: '' });
+        }
+        setSelectedNodeId(newId);
+        updateGraph(nextNodes, nextEdges);
+      };
+
+      const handleAddEdge = () => {
+        const fromId = newEdgeFrom || activeNode?.id || nodes[0]?.id;
+        const toId = newEdgeTo || nodes[nodes.length - 1]?.id;
+        if (!fromId || !toId || fromId === toId) return;
+        if (edges.some(e => e.from === fromId && e.to === toId)) return;
+        updateGraph(nodes, [...edges, { id: `e-${fromId}-${toId}-${Date.now()}`, from: fromId, to: toId, label: '' }]);
+      };
+
+      const handleDeleteEdge = (edgeId) => {
+        updateGraph(nodes, edges.filter(e => e.id !== edgeId));
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200" onClick={onClose}>
+          <div className="bg-[#12141c] w-full max-w-5xl border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 h-[84vh]" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <GitMerge size={18} className="text-cyan-400"/> 인터랙티브 유저플로우 에디터
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">좌측 다이어그램에서 박스를 마우스로 클릭하면 우측에서 문구·썸네일 수정 및 삭제가 즉시 반영됩니다.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddNode}
+                  className="px-3 py-1.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow"
+                >
+                  <Plus size={14} /> 새 박스(단계) 추가
+                </button>
+                <button onClick={onClose} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white transition-colors"><X size={18}/></button>
+              </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-[#0a0812]">
+              {/* 좌측: 인터랙티브 다이어그램 프리뷰 (7칸) */}
+              <div className="lg:col-span-7 h-full overflow-hidden border-b lg:border-b-0 lg:border-r border-[#262833] flex items-center justify-center relative">
+                {mermaidCode ? (
+                  <MermaidViewer
+                    code={mermaidCode}
+                    onChange={setMermaidCode}
+                    selectedNodeId={activeNode?.id}
+                    onSelectNode={setSelectedNodeId}
+                  />
+                ) : (
+                  <div className="text-center space-y-3">
+                    <p className="text-xs text-slate-500">등록된 유저플로우가 없습니다.</p>
+                    <button onClick={handleAddNode} className="px-4 py-2 bg-[#4f3df6] text-white rounded-xl text-xs font-bold">+ 첫 단계 박스 만들기</button>
+                  </div>
+                )}
+              </div>
+
+              {/* 우측: 노코드 마우스 편집 패널 (5칸) */}
+              <div className="lg:col-span-5 h-full overflow-y-auto custom-scrollbar p-5 space-y-5 bg-[#12141c]">
+                {/* 1. 전체 노드 칩 목록 */}
+                <div>
+                  <label className="block text-[11px] font-black text-slate-300 mb-2">1. 단계(박스) 선택 ({nodes.length}개)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {nodes.map(n => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => setSelectedNodeId(n.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${activeNode?.id === n.id ? 'bg-pink-500/20 border-pink-500 text-white shadow' : 'bg-[#0a0812] border-[#262833] text-slate-400 hover:text-white'}`}
+                      >
+                        <span className="text-[10px] font-mono text-pink-400">[{n.id}]</span>
+                        <span className="truncate max-w-[120px]">{n.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. 선택된 노드 상세 수정 폼 */}
+                {activeNode && (
+                  <div className="bg-[#0a0812] border border-pink-500/30 rounded-2xl p-4 space-y-3.5">
+                    <div className="flex items-center justify-between border-b border-[#262833] pb-2.5">
+                      <span className="text-xs font-black text-pink-400">✏️ [{activeNode.id}] 박스 내용 수정</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteNode(activeNode.id)}
+                        className="px-2.5 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 rounded-lg text-[11px] font-bold flex items-center gap-1"
+                      >
+                        <Trash2 size={12} /> 이 박스 삭제
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">배너 썸네일 아이콘 선택</label>
+                      <select
+                        value={activeNode.imgUrl || ''}
+                        onChange={e => handleNodeFieldChange(activeNode.id, 'imgUrl', e.target.value)}
+                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400"
+                      >
+                        {FLOW_THUMB_OPTIONS.map(opt => (
+                          <option key={opt.label} value={opt.url}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">1줄 메인 타이틀 (예: [홈/TV방송] 롱배너)</label>
+                      <input
+                        type="text"
+                        value={activeNode.title}
+                        onChange={e => handleNodeFieldChange(activeNode.id, 'title', e.target.value)}
+                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs font-bold text-white outline-none focus:border-pink-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">2줄 서브 문구 (예: 대표 카피 또는 시놉시스명)</label>
+                      <input
+                        type="text"
+                        value={activeNode.subText}
+                        onChange={e => handleNodeFieldChange(activeNode.id, 'subText', e.target.value)}
+                        placeholder="비워두면 1줄만 표시됩니다"
+                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-pink-400"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. 화살표(연결선) 관리 */}
+                <div className="bg-[#0a0812] border border-[#262833] rounded-2xl p-4 space-y-3">
+                  <div className="text-xs font-black text-slate-300">🔗 화살표(이동 동선) 연결 관리</div>
+                  <div className="space-y-1.5 max-h-[130px] overflow-y-auto custom-scrollbar">
+                    {edges.length === 0 ? (
+                      <div className="text-[11px] text-slate-500 py-2 text-center">연결된 화살표가 없습니다.</div>
+                    ) : (
+                      edges.map(edge => {
+                        const fromNode = nodes.find(n => n.id === edge.from);
+                        const toNode = nodes.find(n => n.id === edge.to);
+                        return (
+                          <div key={edge.id} className="flex items-center justify-between bg-[#12141c] border border-[#262833] rounded-lg px-3 py-1.5 text-xs">
+                            <div className="flex items-center gap-1.5 truncate pr-2">
+                              <span className="font-bold text-white truncate max-w-[110px]">{fromNode?.title || edge.from}</span>
+                              <span className="text-[#7387ff] font-black">➔</span>
+                              <span className="font-bold text-cyan-300 truncate max-w-[110px]">{toNode?.title || edge.to}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteEdge(edge.id)}
+                              className="text-slate-500 hover:text-red-400 p-1"
+                              title="연결 끊기"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {nodes.length >= 2 && (
+                    <div className="pt-2 border-t border-[#1e202b] flex items-center gap-1.5">
+                      <select
+                        value={newEdgeFrom || activeNode?.id || nodes[0]?.id || ''}
+                        onChange={e => setNewEdgeFrom(e.target.value)}
+                        className="flex-1 bg-[#12141c] border border-[#303340] rounded-lg px-2 py-1.5 text-[11px] text-white outline-none"
+                      >
+                        {nodes.map(n => <option key={n.id} value={n.id}>[{n.id}] {n.title}</option>)}
+                      </select>
+                      <span className="text-slate-500 text-xs">➔</span>
+                      <select
+                        value={newEdgeTo || nodes[nodes.length - 1]?.id || ''}
+                        onChange={e => setNewEdgeTo(e.target.value)}
+                        className="flex-1 bg-[#12141c] border border-[#303340] rounded-lg px-2 py-1.5 text-[11px] text-white outline-none"
+                      >
+                        {nodes.map(n => <option key={n.id} value={n.id}>[{n.id}] {n.title}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddEdge}
+                        className="px-2.5 py-1.5 bg-[#1a1c26] hover:bg-[#4f3df6] text-white border border-[#303340] rounded-lg text-[11px] font-bold shrink-0"
+                      >
+                        연결
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 고급: 원본 코드 토글 (평소에는 숨김) */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawCode(!showRawCode)}
+                    className="text-[10px] font-bold text-slate-500 hover:text-slate-300 underline"
+                  >
+                    {showRawCode ? '▲ 원본 Mermaid 코드 숨기기' : '▼ 고급: 원본 Mermaid 코드 직접 보기'}
+                  </button>
+                  {showRawCode && (
+                    <textarea
+                      value={mermaidCode}
+                      onChange={e => setMermaidCode(e.target.value)}
+                      className="mt-2 w-full h-28 bg-[#0a0812] border border-[#303340] rounded-xl p-2.5 text-[11px] font-mono text-slate-300 outline-none resize-none custom-scrollbar"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
+              <button onClick={onClose} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold shadow-lg">편집 완료 및 닫기</button>
+            </div>
+          </div>
+        </div>
+      );
     };
 
     const GNB_OPTIONS = ['홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널', '광고 홈', '콘텐츠', '기타'];
@@ -784,7 +1294,7 @@
     // ====================================================================================
     // 🌟 Step 2. AI 프로모션 기획 뷰
     // ====================================================================================
-    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onResetMermaid, onMoveToEditor }) => {
+    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onUpdateMermaid, onResetMermaid, onMoveToEditor }) => {
       const [inputValue, setInputValue] = useState('');
       const [isLoading, setIsLoading] = useState(false);
       const [pendingAiPayload, setPendingAiPayload] = useState(null); 
@@ -1283,7 +1793,15 @@
             </div>
             <div className="flex-1 overflow-hidden custom-scrollbar bg-[#0a0812] relative">
               {displayMermaid ? (
-                <MermaidViewer code={displayMermaid} />
+                <MermaidViewer
+                  code={displayMermaid}
+                  onChange={(newCode) => {
+                    if (pendingAiPayload) {
+                      setPendingAiPayload(prev => ({ ...prev, mermaidCode: newCode }));
+                    }
+                    if (onUpdateMermaid) onUpdateMermaid(newCode);
+                  }}
+                />
               ) : (
                 <div className="flex flex-col items-center justify-center text-slate-500 opacity-50 absolute inset-0">
                   <LayoutTemplate size={32} className="mb-3" />
@@ -4492,6 +5010,7 @@
                 mermaidCode={mermaidCode}
                 onResetMermaid={() => setMermaidCode('')}
                 onMoveToEditor={handleMoveToEditor}
+                onUpdateMermaid={setMermaidCode}
               />
             )}
 
@@ -4624,31 +5143,11 @@
 
           {/* 시안 편집 화면용 유저플로우(Mermaid) 확인 및 코드 편집 모달 */}
           {isFlowModalOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200" onClick={() => setIsFlowModalOpen(false)}>
-              <div className="bg-[#12141c] w-full max-w-4xl border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 max-h-[88vh]" onClick={e => e.stopPropagation()}>
-                <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
-                  <h3 className="text-base font-black text-white flex items-center gap-2"><GitMerge size={18} className="text-cyan-400"/> 캠페인 유저플로우 확인 및 편집</h3>
-                  <button onClick={() => setIsFlowModalOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white transition-colors"><X size={16}/></button>
-                </div>
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-[#0a0812]">
-                  <div className="lg:col-span-7 h-[420px] lg:h-auto overflow-auto custom-scrollbar border-b lg:border-b-0 lg:border-r border-[#262833] flex items-center justify-center">
-                    {mermaidCode ? <MermaidViewer code={mermaidCode} /> : <div className="text-xs text-slate-500">등록된 유저플로우 코드가 없습니다. 우측에 코드를 입력해 보세요.</div>}
-                  </div>
-                  <div className="lg:col-span-5 p-4 flex flex-col bg-[#12141c]">
-                    <label className="text-xs font-bold text-slate-300 mb-2">Mermaid 코드 직접 편집 (Jira 전송 시 자동 반영)</label>
-                    <textarea
-                      value={mermaidCode}
-                      onChange={e => setMermaidCode(e.target.value)}
-                      placeholder="graph TD..."
-                      className="flex-1 min-h-[220px] bg-[#0a0812] border border-[#303340] rounded-xl p-3 text-xs font-mono text-slate-200 outline-none focus:border-cyan-400 resize-none custom-scrollbar"
-                    />
-                  </div>
-                </div>
-                <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
-                  <button onClick={() => setIsFlowModalOpen(false)} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold">확인 및 닫기</button>
-                </div>
-              </div>
-            </div>
+            <InteractiveFlowEditorModal
+              mermaidCode={mermaidCode}
+              setMermaidCode={setMermaidCode}
+              onClose={() => setIsFlowModalOpen(false)}
+            />
           )}
 
           {isSettingsOpen && (
