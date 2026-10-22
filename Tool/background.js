@@ -97,6 +97,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(e => sendResponse({ isLogged: false }));
     return true;
   }
+  if (message.action === "CANCEL_JIRA_ISSUE") {
+    cancelOrDeleteJiraIssue(message.data)
+      .then(res => sendResponse(res))
+      .catch(err => sendResponse({ status: "error", message: err.message }));
+    return true;
+  }
 });
 
 async function createJiraHierarchy(data, sourceTabId) {
@@ -368,4 +374,87 @@ async function createJiraHierarchy(data, sourceTabId) {
   } catch (error) {
     if (sourceTabId) chrome.scripting.executeScript({ target: { tabId: sourceTabId }, func: (errMsg) => alert("🚨 Jira 전송 에러 상세 정보:\n\n" + errMsg), args: [error.message] }).catch(e=>e);
   }
+}
+// 🌟 [신규 추가] 프로모션 삭제/취소 시 Jira 상위 티켓 및 하위 Sub-task 일괄 삭제(또는 취소 표기)
+async function cancelOrDeleteJiraIssue(data) {
+  const baseUrl = "https://jira.skbroadband.com";
+  const rawKey = String(data.jiraKey || "").trim();
+  if (!rawKey || rawKey === "-") return { status: "skipped", message: "연결된 Jira 키 없음" };
+
+  // URL 형태("https://.../browse/BTVMKT-123")로 들어와도 순수 Key("BTVMKT-123")만 추출
+  const issueKey = rawKey.split('/').pop().trim();
+  if (!issueKey) return { status: "skipped" };
+
+  // 1. 기존 이슈 정보 및 하위 일감(Sub-tasks) 목록 조회
+  const pRes = await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include'
+  });
+  const pData = await pRes.json();
+  const subtasks = pData.fields?.subtasks || [];
+
+  // 2. 1차 시도: Jira 이슈 완전 삭제 (deleteSubtasks=true 파라미터로 하위 일감까지 일괄 삭제 시도)
+  try {
+    const delRes = await fetch(`${baseUrl}/rest/api/2/issue/${issueKey}?deleteSubtasks=true`, {
+      method: 'DELETE',
+      headers: { 'X-Atlassian-Token': 'no-check' },
+      credentials: 'include'
+    });
+    if (delRes.ok || delRes.status === 204) {
+      return { status: "deleted", issueKey };
+    }
+  } catch (delErr) {
+    console.warn(`⚠️ [${issueKey}] 직접 삭제 권한 없음, 취소 상태 표기로 전환합니다.`);
+  }
+
+  // 3. 2차 안전장치(Fallback): 사내 Jira 정책상 삭제(DELETE) 권한이 막혀있는 경우 -> 제목/본문을 [🚫프로모션취소]로 덮어쓰고 댓글 알림!
+  await deleteAllAttachments(baseUrl, issueKey);
+  const prevSummary = pData.fields?.summary || data.campaignName || "캠페인";
+  const canceledSummary = prevSummary.startsWith("[🚫취소됨]") ? prevSummary : `[🚫취소됨] ${prevSummary}`;
+
+  await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' },
+    credentials: 'include',
+    body: JSON.stringify({
+      fields: {
+        summary: canceledSummary,
+        description: "<div style='padding:16px;background:#fff0f0;border:2px solid #ff4d4f;border-radius:8px;color:#cf1322;font-weight:bold;font-size:14px;'>🚫 본 캠페인 프로모션은 취소(삭제) 처리되어 모든 배너 편성 및 슬롯 예약이 해제되었습니다. 세팅을 진행하지 마세요.</div>"
+      }
+    })
+  });
+
+  // 하위 일감(Sub-task)들도 모두 [🚫취소됨]으로 일괄 변경
+  for (const sub of subtasks) {
+    try {
+      await deleteAllAttachments(baseUrl, sub.key);
+      const subSum = sub.fields?.summary || "배너 일감";
+      await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${sub.key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fields: {
+            summary: subSum.startsWith("[🚫취소됨]") ? subSum : `[🚫취소됨] ${subSum}`,
+            description: "<p style='color:#cf1322;font-weight:bold;'>🚫 상위 캠페인이 취소되어 본 배너 편성도 취소되었습니다.</p>"
+          }
+        })
+      });
+    } catch (e) {}
+  }
+
+  // 부모 티켓에 취소 안내 댓글 등록
+  try {
+    await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' },
+      credentials: 'include',
+      body: JSON.stringify({
+        body: `🚫 [시스템 자동 알림] 본 프로모션(${data.campaignName || issueKey})이 어드민 대시보드에서 삭제(취소) 처리되었습니다. 배너 편성 및 세팅을 중단해 주세요.`
+      })
+    });
+  } catch (e) {}
+
+  return { status: "marked_canceled", issueKey };
 }
