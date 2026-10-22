@@ -107,6 +107,10 @@
     #schedule-calendar .fc-event:hover { opacity: 0.92; transform: translateY(-1px); }
     #schedule-calendar .event-start { background: linear-gradient(90deg, rgba(79, 61, 246, 0.28) 0%, rgba(79, 61, 246, 0.14) 100%) !important; border-left: 3px solid #7387ff !important; color: #e0e7ff !important; }
     #schedule-calendar .event-start .fc-event-title { color: #e0e7ff !important; }
+    #schedule-calendar .event-pending { background: linear-gradient(90deg, rgba(234, 179, 8, 0.25) 0%, rgba(234, 179, 8, 0.12) 100%) !important; border-left: 3px solid #eab308 !important; color: #fef08a !important; }
+    #schedule-calendar .event-pending .fc-event-title { color: #fef08a !important; }
+    #schedule-calendar .event-banner-only { background: linear-gradient(90deg, rgba(50, 215, 130, 0.24) 0%, rgba(50, 215, 130, 0.10) 100%) !important; border-left: 3px solid #32d782 !important; color: #bbf7d0 !important; }
+    #schedule-calendar .event-banner-only .fc-event-title { color: #bbf7d0 !important; }
     #schedule-calendar .event-unassigned { background: linear-gradient(90deg, rgba(239, 68, 68, 0.28) 0%, rgba(239, 68, 68, 0.14) 100%) !important; border-left: 3px solid #ef4444 !important; color: #fecaca !important; }
     #schedule-calendar .event-unassigned .fc-event-title { color: #fecaca !important; }
     #schedule-calendar .event-end { background: rgba(30, 41, 59, 0.65) !important; border-left: 3px solid #64748b !important; color: #94a3b8 !important; }
@@ -724,7 +728,7 @@
         );
       }
 
-      // 🌟 [신규] 시트에 새로 추가된 배너 유형(CUSTOM_BANNER: 편성표 배너, WING UI 배너 등)을 위한 범용 스마트 프리뷰 렌더러
+      // 시트에 새로 추가된 배너 유형(CUSTOM_BANNER) 범용 스마트 프리뷰 렌더러
       return (
         <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0 flex items-center justify-center p-10">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -778,7 +782,7 @@
     };
 
     // ====================================================================================
-    // 🌟 AI 프로모션 기획 뷰 (요청 부서, 담당자 이름, 주기성 여부 + [🔄 기획 초기화] 포함)
+    // 🌟 Step 2. AI 프로모션 기획 뷰
     // ====================================================================================
     const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onResetMermaid, onMoveToEditor }) => {
       const [inputValue, setInputValue] = useState('');
@@ -913,7 +917,6 @@
 
               const rawText = await response.text();
               if (rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html')) {
-                console.error("🚨 [서버 반환 HTML 원본]:", rawText);
                 throw new Error("프록시 지연으로 HTML 에러 페이지가 수신되었습니다.");
               }
 
@@ -924,7 +927,6 @@
               break;
             } catch (err) {
               lastError = err.message;
-              console.warn(`[통신 튐 방어] ${attempt}차 시도 실패, 1.5초 후 재시도합니다...`, lastError);
               if (attempt < 3) await new Promise(r => setTimeout(r, 1500));
             }
           }
@@ -965,7 +967,7 @@
               });
           
               if (!displayAiText) {
-                displayAiText = "매니저님, 우측 **'비주얼 유저플로우 시뮬레이터'**에 플로우차트가 렌더링되었습니다! 확인해 보시고, 하단의 **[완성된 기획안으로 시안 편집 이동 〉]** 버튼을 눌러주세요.";
+                displayAiText = "매니저님, 우측 **'비주얼 유저플로우 시뮬레이터'**에 플로우차트가 렌더링되었습니다! 확인해 보시고, 하단의 **[Step 3. 프로모션 시안 편집 이동 〉]** 버튼을 눌러주세요.";
               }
             }
           }
@@ -1015,7 +1017,7 @@
             <div className="px-5 py-4 border-b border-[#262833] bg-[#12141c] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-full bg-[#4f3df6]/20 flex items-center justify-center"><Bot size={16} className="text-[#7387ff]" /></div>
-                <h2 className="text-white font-bold text-[15px] tracking-tight">AI 캠페인 기획</h2>
+                <h2 className="text-white font-bold text-[15px] tracking-tight">Step 2. AI 캠페인 기획</h2>
               </div>
             </div>
             
@@ -1037,7 +1039,7 @@
                   <div className="w-7 h-7 rounded-full bg-[#262833] flex items-center justify-center shrink-0"><Bot size={14} className="text-slate-300" /></div>
                   <div className="bg-[#1a1c26] border border-[#303340] rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2">
                     <Loader2 size={14} className="text-[#7387ff] animate-spin" />
-                    <span className="text-xs text-slate-400 font-medium">AI 기획 및 시안 동기화 중...</span>
+                    <span className="text-xs text-slate-400 font-medium">슬롯 여유도 확인 및 시안 동기화 중...</span>
                   </div>
                 </div>
               )}
@@ -1069,7 +1071,6 @@
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#06070a]">
-              {/* === SECTION 1 === */}
               <div className="mb-7">
                 <div className="border-b border-[#262833] pb-2 mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-[#4f3df6] rounded-full"></div>
@@ -1139,7 +1140,6 @@
                 </div>
               </div>
 
-              {/* === SECTION 2 === */}
               <div>
                 <div className="border-b border-[#262833] pb-2 mb-4 flex items-center gap-2">
                   <div className="w-1.5 h-4 bg-pink-500 rounded-full"></div>
@@ -1196,9 +1196,9 @@
                 {(() => {
                   let statusColor, StatusIcon, statusText, isSpinning = false;
                   if (campaignMeta.target !== 'TARGET') {
-                    statusColor = 'slate'; StatusIcon = CheckCircle; statusText = 'MASS 캠페인 모드';
+                    statusColor = 'slate'; StatusIcon = CheckCircle; statusText = 'MASS 캠페인 모드 (Capa 차감 없음)';
                   } else if (campaignMeta.isCapaChecked) {
-                    statusColor = 'emerald'; StatusIcon = CheckCircle; statusText = 'Capa 검증 통과 완료';
+                    statusColor = 'emerald'; StatusIcon = CheckCircle; statusText = '타겟 Capa 검증 완료';
                   } else {
                     statusColor = 'pink'; StatusIcon = Loader2; statusText = 'Capa 검증 대기 중...'; isSpinning = true;
                   }
@@ -1210,7 +1210,7 @@
                   const c = colorMap[statusColor];
                   const subText = campaignMeta.target !== 'TARGET'
                     ? '전체 고객 대상이므로 타겟 Capa 검증이 생략됩니다.'
-                    : '* 캘린더 모수 확인기 또는 AI 대화를 통해 자동 승인됩니다.';
+                    : '* Step 1. 프로모션 Capa 시뮬레이터 또는 AI 대화를 통해 검증됩니다.';
                 
                   return (
                     <div className={`p-3.5 rounded-xl border transition-colors ${c.bg} ${c.border} pointer-events-none select-none flex flex-col items-center justify-center gap-1.5`}>
@@ -1224,7 +1224,6 @@
                 })()}
               </div>
 
-              {/* 이미지 팝업 모달 */}
               {showPreviewModal && (
                 <div className="fixed inset-0 bg-[#0a0812]/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
                   <div className="bg-[#12141c] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-xl w-full ring-1 ring-[#4f3df6]/30">
@@ -1255,7 +1254,6 @@
               )}
             </div>
 
-            {/* 중앙 기획 폼 하단 시안 생성 요청 버튼 */}
             <div className="p-5 bg-[#12141c] border-t border-[#262833] shrink-0">
               <button
                 type="button"
@@ -1294,7 +1292,6 @@
               )}
             </div>
 
-            {/* 3단 화면 맨 아래 고정된 이동 버튼 */}
             <div className="p-5 bg-[#12141c] border-t border-[#262833]">
               <button
                 onClick={() => {
@@ -1319,7 +1316,7 @@
                     : "bg-[#262833] text-slate-500 cursor-not-allowed border border-[#303340] shadow-none"
                 }`}
               >
-                {pendingAiPayload ? "완성된 기획안으로 시안 편집 이동 〉" : "⚠️ 시안(에셋) 데이터가 생성되어야 이동 가능합니다"}
+                {pendingAiPayload ? "Step 3. 프로모션 시안 편집 이동 〉" : "🔒 시안(에셋) 데이터가 생성되어야 Step 3가 열립니다"}
               </button>
             </div>
           </div>
@@ -1330,26 +1327,123 @@
 
     // ======= [Part 2 시작: Part 1의 맨 마지막 줄 바로 아래에 붙여넣으세요] =======
 
+    // 공통 날짜/모수 정규화 헬퍼
+    const cleanScheduleDateStr = (dateVal) => {
+      if (!dateVal) return "";
+      let str = String(dateVal).trim();
+      if (str.includes("T")) str = str.split("T")[0];
+      if (str.includes(" ")) str = str.split(" ")[0];
+      str = str.replace(/[.\/]/g, "-");
+      const parts = str.split("-").map(v => v.trim()).filter(Boolean);
+      if (parts.length === 3) {
+        let [y, m, d] = parts;
+        if (y.length === 2) y = "20" + y;
+        return `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+      }
+      return "";
+    };
+
+    const formatTargetKor = (num) => {
+      if (typeof num !== 'number' || isNaN(num) || num === 0) return "0만";
+      const sign = num < 0 ? "-" : "";
+      const abs = Math.abs(num);
+      if (abs >= 10000) return sign + Math.round(abs / 10000).toLocaleString('ko-KR') + "만";
+      if (abs >= 1000) return sign + Math.round(abs / 1000).toLocaleString('ko-KR') + "천";
+      return sign + Math.round(abs / 100).toLocaleString('ko-KR') + "백";
+    };
+
+    const extractTargetNum = (item) => {
+      if (!item) return 0;
+      let targetValue = 0;
+      Object.keys(item).forEach(k => {
+        const nk = k.replace(/\s+/g, '');
+        if (nk === '타겟수' || nk === '타겟수(만)' || nk === '전체타겟수' || nk === '발송모수' || nk === 'targetSize') {
+          const cleanNum = String(item[k]).replace(/[^0-9]/g, '');
+          if (cleanNum) targetValue = Number(cleanNum);
+        }
+      });
+      return targetValue;
+    };
+
+    const checkItemHasCoupon = (item) => {
+      if (!item) return false;
+      const ch = String(item['채널'] || item['필터'] || '').toUpperCase();
+      const cpnCol = String(item['쿠폰 여부'] || item['오퍼분류'] || item['쿠폰'] || item.hasCoupon || '').toUpperCase();
+      return ch.includes('쿠폰') || cpnCol.includes('쿠폰') || cpnCol === 'Y' || cpnCol.includes('포함') || (parseInt(String(item['쿠폰'] || '0').replace(/[^0-9]/g, ''), 10) > 0);
+    };
+
+    const extractCampaignTitle = (item) => {
+      if (!item) return "제목 없음";
+      const direct = item['캠페인 명'] || item['캠페인명'] || item.campaignName || item['제목'] || item['Title'];
+      if (direct && String(direct).trim()) return String(direct).trim();
+      return "제목 없음";
+    };
+
+    const extractDeptName = (item) => String(item?.['요청 부서'] || item?.['부서'] || item?.department || '').trim();
+    const extractMarketerName = (item) => String(item?.['담당자 이름'] || item?.['마케터'] || item?.marketer || '').trim();
+    const extractCycleName = (item) => String(item?.['주기성 여부'] || item?.['주기'] || item?.cycle || '단발성').trim();
+
+    const checkIsWiredDept = (item) => {
+      const dept = extractDeptName(item);
+      return dept.includes('밸류애드팀') || dept.includes('유선');
+    };
+
+    const calcDateOffset = (dateStr, offsetDays, fallbackStr) => {
+      const clean = cleanScheduleDateStr(dateStr) || fallbackStr;
+      const d = new Date(`${clean}T00:00:00`);
+      if (isNaN(d.getTime())) return fallbackStr;
+      d.setDate(d.getDate() + offsetDays);
+      const tzOffset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
+    };
+
+    const formatShortDayLabel = (dateStr) => {
+      const clean = cleanScheduleDateStr(dateStr);
+      if (!clean) return "-";
+      const d = new Date(`${clean}T00:00:00`);
+      if (isNaN(d.getTime())) return clean;
+      const days = ['일','월','화','수','목','금','토'];
+      return `${clean.slice(5).replace('-', '/')}(${days[d.getDay()]})`;
+    };
+
+    const calcDailyLimit = (type, dateStr, fallbackStr) => {
+      const clean = cleanScheduleDateStr(dateStr) || fallbackStr;
+      const d = new Date(`${clean}T00:00:00`);
+      if (type === 'banner') return (!isNaN(d.getTime()) && d.getDay() === 4) ? 2700000 : 2800000;
+      if (type === 'coupon') return 2700000;
+      return 0;
+    };
+
+    const calcDailyUsed = (type, dateStr, sourceArr = [], exWired = false) => {
+      if (!dateStr) return 0;
+      return sourceArr.reduce((sum, item) => {
+        const st = String(item['상태'] || '').trim();
+        if (st === '미반영' || st === '취소' || st === '제외') return sum;
+        if (exWired && checkIsWiredDept(item)) return sum;
+        const start = cleanScheduleDateStr(item['시작일']);
+        if (start !== dateStr) return sum;
+        const filterText = String(item['채널'] || item['필터'] || '').toUpperCase();
+        const targetValue = extractTargetNum(item);
+        if (type === 'banner' && (filterText.includes('SEG') || filterText.includes('배너'))) return sum + targetValue;
+        if (type === 'coupon' && checkItemHasCoupon(item)) return sum + targetValue;
+        return sum;
+      }, 0);
+    };
+
     // ====================================================================================
-    // 🌟 [프리징 버그 해결 완료] 다크 모드 캠페인 스케줄 & Capa 대시보드 뷰
+    // 🌟 Step 1. 프로모션 Capa 뷰 (월간 캘린더 제거 경량화 + MASS 패스트트랙 + 단일 스마트 버튼)
     // ====================================================================================
-    const ScheduleDashboardView = ({ onStartPlanWithDate, onOpenCampaignEditor }) => {
+    const Step1CapaView = ({ onProceedToStep2, onOpenIntegratedStatus }) => {
       const todayObj = new Date();
       const todayLocalStr = new Date(todayObj.getTime() - (todayObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
       const [rawSourceData, setRawSourceData] = useState([]);
       const [isLoading, setIsLoading] = useState(true);
       const [isAssigning, setIsAssigning] = useState(false);
-
-      // 캘린더 필터 상태
-      const [typeFilters, setTypeFilters] = useState([]);
-      const [dateFilters, setDateFilters] = useState(['start']);
       const [excludeWired, setExcludeWired] = useState(false);
-      const [onlyUnassigned, setOnlyUnassigned] = useState(false);
-      const [searchText, setSearchText] = useState('');
       const [channelBarFilter, setChannelBarFilter] = useState('');
 
-      // 우측 상단 Capa 시뮬레이터 & 빠른 시작 상태
+      // 발송 모수 시뮬레이터 상태
       const [capaDate, setCapaDate] = useState(todayLocalStr);
       const [capaEndDate, setCapaEndDate] = useState(todayLocalStr);
       const [capaTarget, setCapaTarget] = useState('');
@@ -1358,13 +1452,7 @@
       const [capaToast, setCapaToast] = useState(false);
       const [capaCoupon, setCapaCoupon] = useState(true);
 
-      const [currentCalMonth, setCurrentCalMonth] = useState({ year: todayObj.getFullYear(), month: todayObj.getMonth() });
-
-      // 모달 상태
-      const [detailModal, setDetailModal] = useState(null);
-      const [editEventForm, setEditEventForm] = useState(null);
-      const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
-
+      // 단순 Capa 신청서 모달 상태
       const [isReqModalOpen, setIsReqModalOpen] = useState(false);
       const [isSubmittingReq, setIsSubmittingReq] = useState(false);
       const [reqStatusMsg, setReqStatusMsg] = useState('');
@@ -1376,7 +1464,7 @@
         startDate: todayLocalStr,
         endDate: todayLocalStr,
         uiVersions: ['5.0'],
-        channels: ['타겟배너'],
+        channels: ['쿠폰'],
         gnb: '홈',
         cycle: '단발성',
         couponYn: '쿠폰',
@@ -1386,113 +1474,8 @@
         marketer: localStorage.getItem('myMarketerName') || ''
       });
 
-      const calendarNodeRef = useRef(null);
-      const calendarInstanceRef = useRef(null);
       const monthlyChartRef = useRef(null);
       const monthlyChartInstanceRef = useRef(null);
-      const tooltipRef = useRef(null);
-      const filteredEventsRef = useRef([]);
-      const rawDataRef = useRef([]);
-
-      const cleanDateStr = (dateVal) => {
-        if (!dateVal) return "";
-        let str = String(dateVal).trim();
-        if (str.includes("T")) str = str.split("T")[0];
-        if (str.includes(" ")) str = str.split(" ")[0];
-        str = str.replace(/[.\/]/g, "-");
-        const parts = str.split("-").map(v => v.trim()).filter(Boolean);
-        if (parts.length === 3) {
-          let [y, m, d] = parts;
-          if (y.length === 2) y = "20" + y;
-          return `${y.padStart(4, "0")}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-        }
-        return "";
-      };
-
-      const formatTargetNumber = (num) => {
-        if (typeof num !== 'number' || isNaN(num) || num === 0) return "0만";
-        const sign = num < 0 ? "-" : "";
-        const abs = Math.abs(num);
-        if (abs >= 10000) return sign + Math.round(abs / 10000).toLocaleString('ko-KR') + "만";
-        if (abs >= 1000) return sign + Math.round(abs / 1000).toLocaleString('ko-KR') + "천";
-        return sign + Math.round(abs / 100).toLocaleString('ko-KR') + "백";
-      };
-
-      const getTargetValue = (item) => {
-        if (!item) return 0;
-        let targetValue = 0;
-        Object.keys(item).forEach(k => {
-          const nk = k.replace(/\s+/g, '');
-          if (nk === '타겟수' || nk === '타겟수(만)' || nk === '전체타겟수' || nk === '발송모수') {
-            const cleanNum = String(item[k]).replace(/[^0-9]/g, '');
-            if (cleanNum) targetValue = Number(cleanNum);
-          }
-        });
-        return targetValue;
-      };
-
-      const checkHasCouponItem = (item) => {
-        if (!item) return false;
-        const ch = String(item['채널'] || item['필터'] || '').toUpperCase();
-        const cpnCol = String(item['쿠폰 여부'] || item['오퍼분류'] || item['쿠폰'] || '').toUpperCase();
-        return ch.includes('쿠폰') || cpnCol.includes('쿠폰') || cpnCol === 'Y' || cpnCol.includes('포함') || (parseInt(String(item['쿠폰'] || '0').replace(/[^0-9]/g, ''), 10) > 0);
-      };
-
-      const getCampaignTitle = (item) => {
-        if (!item) return "제목 없음";
-        const direct = item['캠페인 명'] || item['캠페인명'] || item['제목'] || item['Title'];
-        if (direct && String(direct).trim()) return String(direct).trim();
-        return "제목 없음";
-      };
-
-      const getDeptName = (item) => String(item?.['요청 부서'] || item?.['부서'] || '').trim();
-      const getMarketerName = (item) => String(item?.['담당자 이름'] || item?.['마케터'] || '').trim();
-      const getCycleName = (item) => String(item?.['주기성 여부'] || item?.['주기'] || '단발성').trim();
-
-      const isWiredDept = (item) => {
-        const dept = getDeptName(item);
-        return dept.includes('밸류애드팀') || dept.includes('유선');
-      };
-
-      const getDateOffset = (dateStr, offsetDays) => {
-        const clean = cleanDateStr(dateStr) || todayLocalStr;
-        const d = new Date(`${clean}T00:00:00`);
-        if (isNaN(d.getTime())) return todayLocalStr;
-        d.setDate(d.getDate() + offsetDays);
-        const tzOffset = d.getTimezoneOffset() * 60000;
-        return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
-      };
-
-      const getDayLabel = (dateStr) => {
-        const clean = cleanDateStr(dateStr);
-        if (!clean) return "-";
-        const d = new Date(`${clean}T00:00:00`);
-        if (isNaN(d.getTime())) return clean;
-        const days = ['일','월','화','수','목','금','토'];
-        return `${clean.slice(5).replace('-', '/')}(${days[d.getDay()]})`;
-      };
-
-      const getDailyCapa = (type, dateStr) => {
-        const clean = cleanDateStr(dateStr) || todayLocalStr;
-        const d = new Date(`${clean}T00:00:00`);
-        if (type === 'banner') return (!isNaN(d.getTime()) && d.getDay() === 4) ? 2700000 : 2800000;
-        if (type === 'coupon') return 2700000;
-        return 0;
-      };
-
-      const getDailyUsed = (type, dateStr, sourceArr = rawSourceData, exWired = excludeWired) => {
-        if (!dateStr) return 0;
-        return sourceArr.reduce((sum, item) => {
-          if (exWired && isWiredDept(item)) return sum;
-          const start = cleanDateStr(item['시작일']);
-          if (start !== dateStr) return sum;
-          const filterText = String(item['채널'] || item['필터'] || '').toUpperCase();
-          const targetValue = getTargetValue(item);
-          if (type === 'banner' && (filterText.includes('SEG') || filterText.includes('배너'))) return sum + targetValue;
-          if (type === 'coupon' && checkHasCouponItem(item)) return sum + targetValue;
-          return sum;
-        }, 0);
-      };
 
       const fetchScheduleData = async () => {
         setIsLoading(true);
@@ -1501,10 +1484,8 @@
           const json = await res.json();
           if (json && json.status === 'success' && Array.isArray(json.data)) {
             setRawSourceData(json.data);
-            rawDataRef.current = json.data;
           } else if (Array.isArray(json)) {
             setRawSourceData(json);
-            rawDataRef.current = json;
           }
         } catch (err) {
           console.error("스케줄 로드 실패:", err);
@@ -1514,111 +1495,6 @@
       };
 
       useEffect(() => { fetchScheduleData(); }, []);
-
-      // 🌟 이벤트 클릭 시 editEventForm과 detailModal을 동기(Synchronous)로 동시에 세팅하여 프리징 방지
-      const openEventDetailModal = (rawProps, fallbackDateStr = todayLocalStr) => {
-        if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-        const d = { ...(rawProps || {}) };
-        const sDate = cleanDateStr(d._calStart || d['시작일']) || cleanDateStr(fallbackDateStr) || todayLocalStr;
-        const eDate = cleanDateStr(d._calEnd || d['종료일']) || sDate;
-        const title = d._rawTitle || getCampaignTitle(d);
-
-        setEditEventForm({
-          _rowIndex: d._rowIndex,
-          uniqueCode: d.uniqueCode || '',
-          campaignName: title,
-          startDate: sDate,
-          endDate: eDate,
-          channel: d['채널'] || d['필터'] || '타겟배너',
-          gnb: d['GNB'] || '홈',
-          cycle: getCycleName(d),
-          couponYn: checkHasCouponItem(d) ? '쿠폰' : '미포함',
-          targetSize: String(getTargetValue(d) || 0),
-          department: getDeptName(d) || 'Btv큐레이션팀',
-          marketer: getMarketerName(d) || ''
-        });
-
-        setDetailModal({
-          type: 'EVENT',
-          title: title,
-          data: d,
-          dateStr: sDate
-        });
-      };
-
-      const handleUpdateEventSchedule = async () => {
-        if (!editEventForm) return;
-        setIsUpdatingEvent(true);
-        try {
-          const targetNum = Number(String(editEventForm.targetSize).replace(/[^0-9]/g, '')) || 0;
-          const scheduleItem = {
-            _rowIndex: editEventForm._rowIndex,
-            uniqueCode: editEventForm.uniqueCode,
-            "캠페인 명": editEventForm.campaignName,
-            "시작일": editEventForm.startDate,
-            "종료일": editEventForm.endDate || editEventForm.startDate,
-            "채널": editEventForm.channel,
-            "GNB": editEventForm.gnb,
-            "주기성 여부": editEventForm.cycle,
-            "쿠폰 여부": editEventForm.couponYn,
-            "타겟 수": targetNum,
-            "요청 부서": editEventForm.department,
-            "담당자 이름": editEventForm.marketer
-          };
-          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "updateSchedule", scheduleItem })
-          });
-          const json = await res.json();
-          if (json.status === 'success') {
-            if (Array.isArray(json.data)) {
-              setRawSourceData(json.data);
-              rawDataRef.current = json.data;
-            } else {
-              await fetchScheduleData();
-            }
-            alert("✅ 일정 변경 및 실행시각 재배정이 완료되었습니다!");
-            setDetailModal(null);
-          } else {
-            alert("⚠️ 수정 실패: " + (json.message || "오류 발생"));
-          }
-        } catch (err) {
-          alert("⚠️ 통신 오류: " + err.message);
-        } finally {
-          setIsUpdatingEvent(false);
-        }
-      };
-
-      const handleDeleteEventSchedule = async () => {
-        if (!editEventForm) return;
-        if (!window.confirm(`[${editEventForm.campaignName}] 스케줄을 시트에서 완전히 삭제하시겠습니까?`)) return;
-        setIsUpdatingEvent(true);
-        try {
-          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "deleteSchedule", scheduleItem: editEventForm })
-          });
-          const json = await res.json();
-          if (json.status === 'success') {
-            if (Array.isArray(json.data)) {
-              setRawSourceData(json.data);
-              rawDataRef.current = json.data;
-            } else {
-              await fetchScheduleData();
-            }
-            alert("🗑️ 스케줄이 삭제되었습니다.");
-            setDetailModal(null);
-          } else {
-            alert("⚠️ 삭제 실패: " + (json.message || "오류 발생"));
-          }
-        } catch (err) {
-          alert("⚠️ 통신 오류: " + err.message);
-        } finally {
-          setIsUpdatingEvent(false);
-        }
-      };
 
       const handleAssignExecutionTimes = async () => {
         setIsAssigning(true);
@@ -1630,14 +1506,10 @@
           });
           const json = await res.json();
           if (json.status === 'success') {
-            if (Array.isArray(json.data)) {
-              setRawSourceData(json.data);
-              rawDataRef.current = json.data;
-            } else {
-              await fetchScheduleData();
-            }
+            if (Array.isArray(json.data)) setRawSourceData(json.data);
+            else await fetchScheduleData();
             const s = json.summary || {};
-            alert(`✅ 실행시각 자동배정 완료!\n• 확정 배정: ${s.assignedCount || 0}건\n• 배정 불가(미반영): ${s.failedCount || 0}건`);
+            alert(`✅ 스케줄 확정 및 실행시각 자동배정 완료!\n• 일정 확정: ${s.assignedCount || 0}건\n• 미반영(슬랙 알림 발송): ${s.failedCount || 0}건`);
           } else {
             alert("⚠️ 자동배정 실패: " + (json.message || "알 수 없는 오류"));
           }
@@ -1648,262 +1520,20 @@
         }
       };
 
-      const openSimpleCapaModalWithPrefill = (customDate = null) => {
-        const sDate = customDate || capaDate || todayLocalStr;
-        const eDate = customDate || (capaEndDate >= sDate ? capaEndDate : sDate);
-        const selectedChs = [];
-        if (capaTvPopup) selectedChs.push('TV팝업');
-        if (capaBanner) selectedChs.push('타겟배너');
-        if (capaToast) selectedChs.push('토스트팝업');
-        if (selectedChs.length === 0 && capaCoupon) selectedChs.push('쿠폰');
-        if (selectedChs.length === 0) selectedChs.push('타겟배너');
-
-        const rawTargetNum = String(capaTarget || '').replace(/[^0-9]/g, '');
-
-        setReqForm(prev => ({
-          ...prev,
-          startDate: sDate,
-          endDate: eDate,
-          channels: selectedChs,
-          couponYn: capaCoupon ? '쿠폰' : '미포함',
-          totalTarget: rawTargetNum || prev.totalTarget,
-          department: localStorage.getItem('myDepartment') || prev.department || 'Btv큐레이션팀',
-          marketer: localStorage.getItem('myMarketerName') || prev.marketer || ''
-        }));
-        setIsReqModalOpen(true);
-      };
-
-      const handleMoveToAiPlannerFromSim = (customDate = null) => {
-        const sDate = customDate || capaDate || todayLocalStr;
-        const eDate = customDate || (capaEndDate >= sDate ? capaEndDate : sDate);
-        const hasVisualAsset = capaBanner || capaTvPopup;
-
-        if (!hasVisualAsset) {
-          const confirmSkip = window.confirm(
-            "💡 선택하신 조건(쿠폰 단독 또는 토스트팝업)은 배너/TV팝업 이미지 시안 제작이 필요하지 않습니다.\n\nAI 시안 기획을 건너뛰고 바로 [① 단순 Capa 반영] 창으로 연결할까요?\n(취소를 누르면 AI 시안 기획 화면으로 이동합니다.)"
-          );
-          if (confirmSkip) {
-            openSimpleCapaModalWithPrefill(sDate);
-            return;
-          }
-        }
-
-        const selectedChs = [];
-        if (capaTvPopup) selectedChs.push('TV팝업');
-        if (capaBanner) selectedChs.push('타겟배너');
-        if (capaToast) selectedChs.push('토스트팝업');
-        if (capaCoupon) selectedChs.push('쿠폰');
-
-        const formattedTarget = capaTarget ? parseAndFormatKoreanNumber(capaTarget) : '';
-        const isTargetMode = Boolean(formattedTarget && formattedTarget !== '0');
-
-        onStartPlanWithDate && onStartPlanWithDate({
-          startDate: sDate,
-          dueDate: eDate,
-          target: isTargetMode ? 'TARGET' : 'MASS',
-          targetSize: formattedTarget,
-          hasCoupon: capaCoupon ? 'Y' : 'N',
-          channels: selectedChs.join(', ') || '타겟배너',
-          bannerTypes: capaTvPopup && capaBanner ? 'GENERAL_BANNER, PROMO_POPUP' : (capaTvPopup ? 'PROMO_POPUP' : 'GENERAL_BANNER'),
-          isCapaChecked: capaSimResults.length > 0 && capaSimResults.every(r => r.ok),
-          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
-          marketer: localStorage.getItem('myMarketerName') || ''
-        });
-      };
-
-      const buildFilteredEvents = () => {
-        const processed = [];
-        rawSourceData.forEach((item, idx) => {
-          if (excludeWired && isWiredDept(item)) return;
-          const status = String(item['상태'] || '').trim();
-          const execTime = String(item['실행시각'] || '').trim();
-          const isUnassigned = status === '미반영' || execTime.includes('배정 불가');
-          if (onlyUnassigned && !isUnassigned) return;
-
-          const startVal = cleanDateStr(item['시작일']);
-          const endVal = cleanDateStr(item['종료일']) || startVal;
-          const rawTitle = getCampaignTitle(item);
-          const timePrefix = execTime && !execTime.includes('배정 불가') && execTime !== '상시(MASS)' ? `[${execTime}] ` : (isUnassigned ? `[⚠️미반영] ` : '');
-          const displayTitle = `${timePrefix}${rawTitle}`;
-
-          const filterText = String(item['채널'] || item['필터'] || '').toUpperCase();
-
-          if (searchText && !rawTitle.toUpperCase().includes(searchText.toUpperCase())) return;
-
-          if (typeFilters.length > 0) {
-            const hasTV = typeFilters.includes("TV") && filterText.includes("TV");
-            const hasToast = typeFilters.includes("토스트팝업") && filterText.includes("토스트");
-            const hasCoupon = typeFilters.includes("쿠폰") && checkHasCouponItem(item);
-            const hasSeg = typeFilters.includes("Seg채널") && (filterText.includes("SEG") || filterText.includes("배너"));
-            if (!(hasTV || hasToast || hasCoupon || hasSeg)) return;
-          }
-
-          if (startVal && dateFilters.includes('start')) {
-            processed.push({
-              id: `ev-start-${idx}`,
-              title: displayTitle,
-              start: startVal,
-              allDay: true,
-              className: isUnassigned ? 'event-unassigned' : 'event-start',
-              extendedProps: { ...item, _rawTitle: rawTitle, type: 'start', sortOrder: isUnassigned ? 0 : 1, _calStart: startVal, _calEnd: endVal }
-            });
-          }
-          if (endVal && startVal !== endVal && dateFilters.includes('end')) {
-            processed.push({
-              id: `ev-end-${idx}`,
-              title: `[종료] ${rawTitle}`,
-              start: endVal,
-              allDay: true,
-              className: 'event-end',
-              extendedProps: { ...item, _rawTitle: rawTitle, type: 'end', sortOrder: 2, _calStart: startVal, _calEnd: endVal }
-            });
-          }
-        });
-        return processed;
-      };
-
-      const refreshCalendarCellBadges = () => {
-        if (!calendarNodeRef.current) return;
-        const events = filteredEventsRef.current;
-        const rawArr = rawDataRef.current;
-
-        calendarNodeRef.current.querySelectorAll('.calendar-day-target-sum').forEach(el => {
-          const dateStr = el.getAttribute('data-date');
-          if (!dateStr) return;
-          const dayStartEvents = events.filter(e => e.extendedProps?.type === 'start' && e.start === dateStr);
-          const totalTarget = dayStartEvents.reduce((sum, e) => sum + getTargetValue(e.extendedProps), 0);
-          el.innerText = totalTarget > 0 ? `(${formatTargetNumber(totalTarget)})` : '';
-
-          const cellEl = el.closest('.fc-daygrid-day');
-          if (cellEl) {
-            let capaEl = cellEl.querySelector('.calendar-day-capa-remain');
-            if (!capaEl) {
-              capaEl = document.createElement('div');
-              capaEl.className = 'calendar-day-capa-remain';
-              cellEl.appendChild(capaEl);
-            }
-            const bannerRemain = Math.max(getDailyCapa('banner', dateStr) - getDailyUsed('banner', dateStr, rawArr, excludeWired), 0);
-            const couponRemain = Math.max(getDailyCapa('coupon', dateStr) - getDailyUsed('coupon', dateStr, rawArr, excludeWired), 0);
-            capaEl.innerText = `B ${formatTargetNumber(bannerRemain)} · C ${formatTargetNumber(couponRemain)}`;
-          }
-
-          const topEl = el.parentElement;
-          if (topEl) {
-            const oldBadge = topEl.querySelector('.calendar-congestion-badge');
-            if (oldBadge) oldBadge.remove();
-            const bannerUsed = getDailyUsed('banner', dateStr, rawArr, excludeWired);
-            const congestionClass = bannerUsed < 1000000 ? 'green' : (bannerUsed < 2000000 ? 'yellow' : 'red');
-            const badge = document.createElement('span');
-            badge.className = `calendar-congestion-badge ${congestionClass}`;
-            badge.setAttribute('title', `배너 사용: ${formatTargetNumber(bannerUsed)}`);
-            topEl.appendChild(badge);
-          }
-        });
-      };
-
-      useEffect(() => {
-        if (!calendarNodeRef.current || typeof window.FullCalendar === 'undefined') return;
-        const filtered = buildFilteredEvents();
-        filteredEventsRef.current = filtered;
-
-        if (!calendarInstanceRef.current) {
-          const cal = new window.FullCalendar.Calendar(calendarNodeRef.current, {
-            initialView: 'dayGridMonth',
-            locale: 'ko',
-            events: filtered,
-            dayMaxEvents: 5,
-            height: 'auto',
-            eventOrder: 'sortOrder,title',
-            eventClick: (info) => {
-              info.jsEvent.stopPropagation();
-              openEventDetailModal(info.event.extendedProps, info.event.startStr);
-            },
-            dateClick: (info) => {
-              if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-              const dayCampaigns = filteredEventsRef.current.filter(e => e.extendedProps?.type === 'start' && e.start === info.dateStr);
-              setCapaDate(info.dateStr);
-              setCapaEndDate(info.dateStr);
-              setDetailModal({
-                type: 'DATE',
-                title: `${info.dateStr} 발송 캠페인 및 실행시각 현황`,
-                data: dayCampaigns,
-                dateStr: info.dateStr
-              });
-            },
-            dayCellDidMount: (info) => {
-              const cellEl = info.el;
-              const topEl = cellEl.querySelector('.fc-daygrid-day-top');
-              const offset = info.date.getTimezoneOffset() * 60000;
-              const dStr = new Date(info.date.getTime() - offset).toISOString().split('T')[0];
-
-              if (topEl && !topEl.querySelector('.calendar-day-target-sum')) {
-                const sumEl = document.createElement('span');
-                sumEl.className = 'calendar-day-target-sum';
-                sumEl.setAttribute('data-date', dStr);
-                topEl.appendChild(sumEl);
-              }
-
-              cellEl.addEventListener('mouseenter', (ev) => {
-                if (!tooltipRef.current) return;
-                const dayEvs = filteredEventsRef.current.filter(e => e.extendedProps?.type === 'start' && e.start === dStr);
-                let tvC = 0, toastC = 0, cpnC = 0, segC = 0;
-                let tvSum = 0, toastSum = 0, cpnSum = 0, segSum = 0;
-                dayEvs.forEach(c => {
-                  const p = c.extendedProps;
-                  const f = String(p['채널'] || p['필터'] || '').toUpperCase();
-                  const tv = getTargetValue(p);
-                  if (f.includes('TV')) { tvC++; tvSum += tv; }
-                  if (f.includes('토스트')) { toastC++; toastSum += tv; }
-                  if (checkHasCouponItem(p)) { cpnC++; cpnSum += tv; }
-                  if (f.includes('SEG') || f.includes('배너')) { segC++; segSum += tv; }
-                });
-                tooltipRef.current.innerHTML = `
-                  <span class="text-indigo-300 font-bold">TV:</span> ${tvC}건(${formatTargetNumber(tvSum)}) <span class="text-slate-600 mx-1">|</span>
-                  <span class="text-slate-300 font-bold">토스트:</span> ${toastC}건(${formatTargetNumber(toastSum)}) <span class="text-slate-600 mx-1">|</span>
-                  <span class="text-pink-300 font-bold">쿠폰:</span> ${cpnC}건(${formatTargetNumber(cpnSum)}) <span class="text-slate-600 mx-1">|</span>
-                  <span class="text-emerald-300 font-bold">배너:</span> ${segC}건(${formatTargetNumber(segSum)})
-                `;
-                tooltipRef.current.style.display = 'block';
-                tooltipRef.current.style.left = (ev.pageX + 12) + 'px';
-                tooltipRef.current.style.top = (ev.pageY + 12) + 'px';
-              });
-              cellEl.addEventListener('mousemove', (ev) => {
-                if (!tooltipRef.current || tooltipRef.current.style.display === 'none') return;
-                tooltipRef.current.style.left = (ev.pageX + 12) + 'px';
-                tooltipRef.current.style.top = (ev.pageY + 12) + 'px';
-              });
-              cellEl.addEventListener('mouseleave', () => {
-                if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-              });
-            },
-            datesSet: (info) => {
-              const currentDate = info.view.currentStart;
-              const y = currentDate.getFullYear();
-              const m = currentDate.getMonth();
-              setCurrentCalMonth(prev => (prev.year === y && prev.month === m) ? prev : { year: y, month: m });
-              setTimeout(refreshCalendarCellBadges, 0);
-            }
-          });
-          cal.render();
-          calendarInstanceRef.current = cal;
-        } else {
-          calendarInstanceRef.current.removeAllEvents();
-          calendarInstanceRef.current.addEventSource(filtered);
-        }
-        setTimeout(refreshCalendarCellBadges, 50);
-      }, [rawSourceData, typeFilters, dateFilters, excludeWired, onlyUnassigned, searchText]);
-
+      // 월별 차트 렌더링
       useEffect(() => {
         if (!monthlyChartRef.current || typeof window.Chart === 'undefined') return;
         const monthMap = {};
         rawSourceData.forEach(item => {
-          if (excludeWired && isWiredDept(item)) return;
-          const start = cleanDateStr(item['시작일']);
+          const st = String(item['상태'] || '').trim();
+          if (st === '취소' || st === '제외') return;
+          if (excludeWired && checkIsWiredDept(item)) return;
+          const start = cleanScheduleDateStr(item['시작일']);
           if (!start || start.length < 7) return;
           const mKey = start.slice(0, 7);
           if (!monthMap[mKey]) monthMap[mKey] = { monthKey: mKey, label: `${Number(mKey.split('-')[1])}월`, tv: 0, toast: 0, target: 0 };
           const fText = String(item['채널'] || item['필터'] || '').toUpperCase();
-          const tVal = getTargetValue(item);
+          const tVal = extractTargetNum(item);
           if (fText.includes('TV')) monthMap[mKey].tv += 1;
           if (fText.includes('토스트')) monthMap[mKey].toast += 1;
           monthMap[mKey].target += tVal;
@@ -1932,54 +1562,62 @@
             scales: {
               x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 'bold' } } },
               y: { beginAtZero: true, position: 'left', ticks: { color: '#64748b', precision: 0, callback: v => `${v}건`, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
-              yTarget: { beginAtZero: true, position: 'right', ticks: { color: '#32d782', callback: v => formatTargetNumber(v), font: { size: 10 } }, grid: { drawOnChartArea: false } }
+              yTarget: { beginAtZero: true, position: 'right', ticks: { color: '#32d782', callback: v => formatTargetKor(v), font: { size: 10 } }, grid: { drawOnChartArea: false } }
             }
           }
         });
       }, [rawSourceData, excludeWired]);
 
+      // 이번 달 요약
       const monthlySummary = (() => {
         let tvCount = 0, toastCount = 0, couponCount = 0, segCount = 0;
         let tvSum = 0, toastSum = 0, couponSum = 0, segSum = 0;
+        const curYear = todayObj.getFullYear();
+        const curMonth = todayObj.getMonth();
         rawSourceData.forEach(item => {
-          if (excludeWired && isWiredDept(item)) return;
-          const start = cleanDateStr(item['시작일']);
+          const st = String(item['상태'] || '').trim();
+          if (st === '취소' || st === '제외') return;
+          if (excludeWired && checkIsWiredDept(item)) return;
+          const start = cleanScheduleDateStr(item['시작일']);
           if (!start) return;
           const parts = start.split('-');
-          if (Number(parts[0]) === currentCalMonth.year && (Number(parts[1]) - 1) === currentCalMonth.month) {
+          if (Number(parts[0]) === curYear && (Number(parts[1]) - 1) === curMonth) {
             const fText = String(item['채널'] || item['필터'] || '').toUpperCase();
-            const tv = getTargetValue(item);
+            const tv = extractTargetNum(item);
             if (fText.includes('TV')) { tvCount++; tvSum += tv; }
             if (fText.includes('토스트')) { toastCount++; toastSum += tv; }
-            if (checkHasCouponItem(item)) { couponCount++; couponSum += tv; }
+            if (checkItemHasCoupon(item)) { couponCount++; couponSum += tv; }
             if (fText.includes('SEG') || fText.includes('배너')) { segCount++; segSum += tv; }
           }
         });
         return { tvCount, toastCount, couponCount, segCount, tvSum, toastSum, couponSum, segSum };
       })();
 
+      // 향후 7일 주간 잔여 슬롯 데이터
       const weeklyData = (() => {
         const list = [];
         for (let i = 0; i < 7; i++) {
-          const dStr = getDateOffset(todayLocalStr, i);
-          const bCapa = getDailyCapa('banner', dStr);
-          const bUsed = getDailyUsed('banner', dStr);
-          const cCapa = getDailyCapa('coupon', dStr);
-          const cUsed = getDailyUsed('coupon', dStr);
+          const dStr = calcDateOffset(todayLocalStr, i, todayLocalStr);
+          const bCapa = calcDailyLimit('banner', dStr, todayLocalStr);
+          const bUsed = calcDailyUsed('banner', dStr, rawSourceData, excludeWired);
+          const cCapa = calcDailyLimit('coupon', dStr, todayLocalStr);
+          const cUsed = calcDailyUsed('coupon', dStr, rawSourceData, excludeWired);
 
           let tvTarget = 0, toastTarget = 0;
           rawSourceData.forEach(item => {
-            if (excludeWired && isWiredDept(item)) return;
-            if (cleanDateStr(item['시작일']) !== dStr) return;
+            const st = String(item['상태'] || '').trim();
+            if (st === '미반영' || st === '취소' || st === '제외') return;
+            if (excludeWired && checkIsWiredDept(item)) return;
+            if (cleanScheduleDateStr(item['시작일']) !== dStr) return;
             const f = String(item['채널'] || item['필터'] || '').toUpperCase();
-            const tv = getTargetValue(item);
+            const tv = extractTargetNum(item);
             if (f.includes('TV')) tvTarget += tv;
             if (f.includes('토스트')) toastTarget += tv;
           });
 
           list.push({
             dateStr: dStr,
-            label: getDayLabel(dStr),
+            label: formatShortDayLabel(dStr),
             bannerCapa: bCapa, bannerUsed: bUsed, bannerRemain: bCapa - bUsed,
             couponCapa: cCapa, couponUsed: cUsed, couponRemain: cCapa - cUsed,
             tvPopup: tvTarget, toastPopup: toastTarget
@@ -1988,48 +1626,128 @@
         return list;
       })();
 
-      const unassignedCampaigns = rawSourceData.filter(item => {
+      const unassignedCount = rawSourceData.filter(item => {
         const st = String(item['상태'] || '').trim();
         const tm = String(item['실행시각'] || '').trim();
         return st === '미반영' || tm.includes('배정 불가');
-      });
+      }).length;
+
+      const pendingCount = rawSourceData.filter(item => String(item['상태'] || '').trim() === '대기 중').length;
+
+      // 시뮬레이터 결과 계산
+      const targetNumVal = Number(String(capaTarget).replace(/[^0-9]/g, '')) || 0;
+      const hasVisualChannel = capaBanner || capaTvPopup;
+      const hasAnyChannel = capaBanner || capaTvPopup || capaToast || capaCoupon;
 
       const capaSimResults = (() => {
-        const tVal = Number(String(capaTarget).replace(/[^0-9]/g, '')) || 0;
         const checks = [
-          { type: 'banner', label: '배너', checked: capaBanner },
-          { type: 'coupon', label: '쿠폰', checked: capaCoupon }
+          { type: 'banner', label: '타겟 배너', checked: capaBanner },
+          { type: 'coupon', label: 'B tv 쿠폰', checked: capaCoupon }
         ].filter(c => c.checked);
-        if (!capaDate || !tVal || checks.length === 0) return [];
+        if (!capaDate || !targetNumVal || checks.length === 0) return [];
 
         return checks.map(c => {
-          const capa = getDailyCapa(c.type, capaDate);
-          const used = getDailyUsed(c.type, capaDate);
+          const capa = calcDailyLimit(c.type, capaDate, todayLocalStr);
+          const used = calcDailyUsed(c.type, capaDate, rawSourceData, excludeWired);
           const remain = Math.max(capa - used, 0);
-          const ok = remain >= tVal;
+          const ok = remain >= targetNumVal;
           const recos = [];
           if (!ok) {
             for (let i = -2; i <= 2; i++) {
               if (i === 0) continue;
-              const altDate = getDateOffset(capaDate, i);
-              const altRemain = Math.max(getDailyCapa(c.type, altDate) - getDailyUsed(c.type, altDate), 0);
-              if (altRemain >= tVal) recos.push({ dateStr: altDate, label: `${getDayLabel(altDate)} 잔여 ${formatTargetNumber(altRemain)}` });
+              const altDate = calcDateOffset(capaDate, i, todayLocalStr);
+              const altRemain = Math.max(calcDailyLimit(c.type, altDate, todayLocalStr) - calcDailyUsed(c.type, altDate, rawSourceData, excludeWired), 0);
+              if (altRemain >= targetNumVal) recos.push({ dateStr: altDate, label: `${formatShortDayLabel(altDate)} 잔여 ${formatTargetKor(altRemain)}` });
             }
           }
-          return { ...c, capa, used, remain, ok, recos, requested: tVal };
+          return { ...c, capa, used, remain, ok, recos, requested: targetNumVal };
         });
       })();
 
+      const isAllCapaOk = capaSimResults.length === 0 ? (targetNumVal > 0) : capaSimResults.every(r => r.ok);
+
+      // 🌟 [4번 요구사항] MASS + 쿠폰 없음 프로모션 패스트트랙 버튼 핸들러
+      const handleStartMassFastTrack = () => {
+        onProceedToStep2 && onProceedToStep2({
+          startDate: capaDate || todayLocalStr,
+          dueDate: capaEndDate >= capaDate ? capaEndDate : (capaDate || todayLocalStr),
+          target: 'MASS',
+          targetSize: '',
+          hasCoupon: 'N',
+          couponBenefit: '',
+          channels: 'MASS 배너',
+          isCapaChecked: true,
+          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || ''
+        });
+      };
+
+      // 🌟 [2번 & 3번 요구사항] 조건에 따라 유동적으로 동작하는 단일 스마트 액션 핸들러
+      const handleDynamicSmartAction = () => {
+        if (!hasAnyChannel) {
+          alert("⚠️ 최소 1개 이상의 발송 채널 또는 쿠폰 조건을 선택해 주세요.");
+          return;
+        }
+        if (!targetNumVal || targetNumVal <= 0) {
+          alert("⚠️ 타겟 발송 모수(명)를 입력해 주세요.\n(타겟/쿠폰이 없는 전체 고객 대상 프로모션은 상단의 [🚀 MASS 프로모션 바로 기획] 버튼을 이용해 주세요!)");
+          return;
+        }
+        if (!isAllCapaOk) {
+          alert("🚨 선택하신 일자의 잔여 Capa 한도가 부족합니다. 추천 대체일로 시작일을 변경하거나 모수를 조정해 주세요.");
+          return;
+        }
+
+        const sDate = capaDate || todayLocalStr;
+        const eDate = capaEndDate >= sDate ? capaEndDate : sDate;
+
+        // Case A: 배너/TV팝업 없이 오직 쿠폰 또는 토스트팝업만 선택된 경우 -> 단순 Capa 신청서 모달 오픈
+        if (!hasVisualChannel) {
+          const selectedChs = [];
+          if (capaToast) selectedChs.push('토스트팝업');
+          if (capaCoupon) selectedChs.push('쿠폰');
+          setReqForm(prev => ({
+            ...prev,
+            startDate: sDate,
+            endDate: eDate,
+            channels: selectedChs.length > 0 ? selectedChs : ['쿠폰'],
+            couponYn: capaCoupon ? '쿠폰' : '미포함',
+            totalTarget: String(targetNumVal),
+            department: localStorage.getItem('myDepartment') || prev.department || 'Btv큐레이션팀',
+            marketer: localStorage.getItem('myMarketerName') || prev.marketer || ''
+          }));
+          setIsReqModalOpen(true);
+          return;
+        }
+
+        // Case B: 타겟배너 또는 TV팝업(이미지 시안 제작 필요)이 포함된 경우 -> 무조건 TARGET + Capa 검증 완료 상태로 Step 2 이동!
+        const selectedChs = [];
+        if (capaTvPopup) selectedChs.push('TV팝업');
+        if (capaBanner) selectedChs.push('타겟배너');
+        if (capaToast) selectedChs.push('토스트팝업');
+        if (capaCoupon) selectedChs.push('쿠폰');
+
+        onProceedToStep2 && onProceedToStep2({
+          startDate: sDate,
+          dueDate: eDate,
+          target: 'TARGET', // 🌟 3번 요구사항: 타겟 배너/채널 선택 시 무조건 TARGET으로 설정
+          targetSize: targetNumVal.toLocaleString(),
+          hasCoupon: capaCoupon ? 'Y' : 'N',
+          channels: selectedChs.join(', '),
+          bannerTypes: capaTvPopup && capaBanner ? 'GENERAL_BANNER, PROMO_POPUP' : (capaTvPopup ? 'PROMO_POPUP' : 'GENERAL_BANNER'),
+          isCapaChecked: true, // 🌟 3번 요구사항: Capa 검증 완료 상태로 전달
+          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || ''
+        });
+      };
+
+      // 단순 Capa 신청서 제출 (대기 중 상태로 적재)
       const handleSimpleRequestSubmit = async (e) => {
         e.preventDefault();
         if (!reqForm.campaignName || !reqForm.startDate) {
           return alert("캠페인 명과 시작일은 필수입니다.");
         }
-        if (reqForm.uiVersions.length === 0 || reqForm.channels.length === 0) {
-          return alert("UI버전과 채널을 1개 이상 선택해 주세요.");
-        }
         setIsSubmittingReq(true);
-        setReqStatusMsg("시트 반영 및 실행시각 자동 배정 중...");
+        setReqStatusMsg("캠페인 스케줄 시트에 '대기 중' 상태로 등록 중...");
 
         localStorage.setItem('myDepartment', reqForm.department);
         localStorage.setItem('myMarketerName', reqForm.marketer);
@@ -2057,24 +1775,21 @@
           "부서": reqForm.department,
           "담당자 이름": reqForm.marketer,
           "마케터": reqForm.marketer,
-          "반영 여부": "Y"
+          "반영 여부": "N",
+          "상태": "대기 중"
         };
 
         try {
           const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "submitSchedule", scheduleItem })
+            body: JSON.stringify({ action: "submitSchedule", scheduleItem, autoAssign: false })
           });
           const json = await res.json();
           if (json.status === 'success') {
-            if (Array.isArray(json.data)) {
-              setRawSourceData(json.data);
-              rawDataRef.current = json.data;
-            } else {
-              await fetchScheduleData();
-            }
-            setReqStatusMsg("✅ 스케줄 시트 반영 및 실행시각 자동 배정이 완료되었습니다!");
+            if (Array.isArray(json.data)) setRawSourceData(json.data);
+            else await fetchScheduleData();
+            setReqStatusMsg("✅ 스케줄 요청이 '대기 중' 상태로 등록되었습니다!");
             setTimeout(() => {
               setIsReqModalOpen(false);
               setReqStatusMsg('');
@@ -2093,44 +1808,40 @@
         const keyword = (marketerSearch || reqForm.marketer || '').trim().toUpperCase();
         if (!keyword) return [];
         return rawSourceData.filter(item => {
-          const m = getMarketerName(item).toUpperCase();
+          const m = extractMarketerName(item).toUpperCase();
           return m.includes(keyword);
         }).slice(-15).reverse();
       })();
 
       return (
         <div className="flex-1 h-full overflow-y-auto custom-scrollbar bg-[#06070a] p-6 space-y-6">
-          <div ref={tooltipRef} style={{ display: 'none' }} className="fixed z-[9999] pointer-events-none bg-[#12141c]/95 border border-[#303340] px-3.5 py-2 rounded-xl shadow-2xl text-xs text-slate-200 backdrop-blur-md" />
-
-          {/* 1. 상단 타이틀 & 액션 바 */}
+          {/* 1. 상단 헤더 & MASS 패스트트랙 바 */}
           <div className="bg-gradient-to-r from-[#12141c] to-[#1a1c26] border border-[#262833] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
             <div>
-              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2.5">
-                <CalendarDays size={22} className="text-[#7387ff]" /> 프로모션 캘린더 & Capa 스케줄러
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">일별 잔여 Capa 확인 후 [① 단순 Capa 반영] 또는 [② AI 시안 기획]으로 즉시 진행할 수 있습니다.</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#4f3df6] text-white">STEP 1</span>
+                <h2 className="text-xl font-black text-white tracking-tight">프로모션 Capa 검증 & 시작하기</h2>
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">타겟/쿠폰 발송 모수를 먼저 검증하거나, 타겟·쿠폰이 없는 MASS 배너 프로모션은 우측 패스트트랙 버튼으로 바로 기획을 시작하세요.</p>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
+              {/* 🌟 4번 요구사항: MASS + 쿠폰 없는 프로모션 바로 기획 버튼 */}
+              <button
+                onClick={handleStartMassFastTrack}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-600/25 transition-all"
+              >
+                <Sparkles size={14} /> 🚀 MASS 프로모션 바로 기획 (타겟/쿠폰 없음) 〉
+              </button>
+
               <button
                 onClick={handleAssignExecutionTimes}
                 disabled={isAssigning || isLoading}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
               >
                 <Zap size={14} className={isAssigning ? "animate-bounce" : ""} />
-                {isAssigning ? "시간 배정 중..." : "실행시각 자동배정"}
+                {isAssigning ? "확정 배정 중..." : `스케줄 확정 및 시간배정 (${pendingCount}건 대기)`}
               </button>
-              <button
-                onClick={() => openSimpleCapaModalWithPrefill()}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-white border border-[#303340] rounded-xl text-xs font-bold transition-all"
-              >
-                <Plus size={14} className="text-[#32d782]" /> ① 단순 Capa 반영
-              </button>
-              <button
-                onClick={() => handleMoveToAiPlannerFromSim()}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg shadow-[#4f3df6]/30 transition-all"
-              >
-                <Bot size={14} /> ② AI 시안 기획 이동 〉
-              </button>
+
               <button
                 onClick={fetchScheduleData}
                 disabled={isLoading}
@@ -2141,82 +1852,85 @@
             </div>
           </div>
 
-          {/* 2. 월별 발송 추이 차트 + 캠페인 발송 모수 확인 & 빠른 시작 */}
+          {/* 2. 월별 발송 추이 차트 + 발송 모수 시뮬레이터 (단일 스마트 버튼 탑재) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* 좌측: 월별 발송 추이 */}
             <div className="lg:col-span-7 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2"><BarChart3 size={16} className="text-[#7387ff]" /> 월별 발송 건수 추이</h3>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2"><BarChart3 size={16} className="text-[#7387ff]" /> 월별 발송 건수 및 타겟 모수 추이</h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">시작일 기준 TV팝업·토스트팝업 발송 건수와 전체 타겟 모수</p>
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#4f3df6]/15 text-[#7387ff] border border-[#4f3df6]/30">
-                  {currentCalMonth.year}년 {currentCalMonth.month + 1}월 기준
-                </span>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 cursor-pointer">
+                  <input type="checkbox" checked={excludeWired} onChange={e => setExcludeWired(e.target.checked)} className="accent-[#4f3df6]" />
+                  유선(밸류애드팀) 제외
+                </label>
               </div>
 
-              <div className="h-[175px] w-full relative my-1">
+              <div className="h-[180px] w-full relative my-1">
                 <canvas ref={monthlyChartRef} />
               </div>
 
               <div className="mt-4 pt-3 border-t border-[#1e202b]">
-                <div className="text-[11px] font-bold text-slate-400 mb-2">선택 월({currentCalMonth.month + 1}월) 채널별 발송 요약</div>
+                <div className="text-[11px] font-bold text-slate-400 mb-2">이번 달({todayObj.getMonth() + 1}월) 채널별 누적 발송 요약</div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3">
                     <div className="text-[10px] font-bold text-slate-400">TV팝업</div>
-                    <div className="text-base font-black text-white mt-1">{monthlySummary.tvCount}건 <span className="text-[11px] text-[#7387ff] font-bold">({formatTargetNumber(monthlySummary.tvSum)})</span></div>
+                    <div className="text-base font-black text-white mt-1">{monthlySummary.tvCount}건 <span className="text-[11px] text-[#7387ff] font-bold">({formatTargetKor(monthlySummary.tvSum)})</span></div>
                   </div>
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3">
                     <div className="text-[10px] font-bold text-slate-400">토스트팝업</div>
-                    <div className="text-base font-black text-white mt-1">{monthlySummary.toastCount}건 <span className="text-[11px] text-slate-400 font-bold">({formatTargetNumber(monthlySummary.toastSum)})</span></div>
+                    <div className="text-base font-black text-white mt-1">{monthlySummary.toastCount}건 <span className="text-[11px] text-slate-400 font-bold">({formatTargetKor(monthlySummary.toastSum)})</span></div>
                   </div>
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3">
                     <div className="text-[10px] font-bold text-slate-400">쿠폰</div>
-                    <div className="text-base font-black text-white mt-1">{monthlySummary.couponCount}건 <span className="text-[11px] text-pink-400 font-bold">({formatTargetNumber(monthlySummary.couponSum)})</span></div>
+                    <div className="text-base font-black text-white mt-1">{monthlySummary.couponCount}건 <span className="text-[11px] text-pink-400 font-bold">({formatTargetKor(monthlySummary.couponSum)})</span></div>
                   </div>
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3">
                     <div className="text-[10px] font-bold text-slate-400">타겟배너 (Seg)</div>
-                    <div className="text-base font-black text-white mt-1">{monthlySummary.segCount}건 <span className="text-[11px] text-[#32d782] font-bold">({formatTargetNumber(monthlySummary.segSum)})</span></div>
+                    <div className="text-base font-black text-white mt-1">{monthlySummary.segCount}건 <span className="text-[11px] text-[#32d782] font-bold">({formatTargetKor(monthlySummary.segSum)})</span></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="lg:col-span-5 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+            {/* 🌟 우측: 발송 모수 확인기 & 유동적 단일 스마트 버튼 */}
+            <div className="lg:col-span-5 bg-[#0f111a] border border-[#262833] rounded-2xl p-5 flex flex-col justify-between shadow-xl ring-1 ring-[#4f3df6]/30">
               <div>
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">📨 캠페인 발송 모수 확인 & 빠른 시작</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">일정·모수·채널 검증 후 단순 Capa 반영 또는 AI 시안 기획으로 연결합니다.</p>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">📨 타겟/쿠폰 발송 모수 확인기</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">선택한 채널 조합에 따라 하단 진행 버튼이 자동으로 변환됩니다.</p>
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-pink-500/15 text-pink-400 border border-pink-500/30">±2일 추천</span>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-pink-500/15 text-pink-400 border border-pink-500/30">TARGET 검증</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2.5 mb-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">시작일</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">시작일 *</label>
                     <input type="date" value={capaDate} onChange={e => { setCapaDate(e.target.value); if (capaEndDate < e.target.value) setCapaEndDate(e.target.value); }} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">종료일</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">종료일 *</label>
                     <input type="date" value={capaEndDate} onChange={e => setCapaEndDate(e.target.value)} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">타겟 수 (명)</label>
-                    <input type="text" value={capaTarget} onChange={e => setCapaTarget(e.target.value)} onBlur={e => setCapaTarget(parseAndFormatKoreanNumber(e.target.value))} placeholder="예: 50만" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                    <label className="block text-[10px] font-bold text-pink-400 mb-1">타겟 모수 (명) *</label>
+                    <input type="text" value={capaTarget} onChange={e => setCapaTarget(e.target.value)} onBlur={e => setCapaTarget(parseAndFormatKoreanNumber(e.target.value))} placeholder="예: 50만" className="w-full bg-[#0a0812] border border-pink-500/50 rounded-lg px-2.5 py-2 text-xs text-white font-bold outline-none focus:border-pink-500" />
                   </div>
                 </div>
 
                 <div className="mb-3">
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5">발송 채널 및 쿠폰 조건 선택</label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1.5">발송 채널 및 쿠폰 여부 선택 (시안 필요 여부에 따라 자동 분기)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaBanner ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
                       <input type="checkbox" checked={capaBanner} onChange={e => setCapaBanner(e.target.checked)} className="accent-[#4f3df6]" /> 타겟배너
                     </label>
                     <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaTvPopup ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
                       <input type="checkbox" checked={capaTvPopup} onChange={e => setCapaTvPopup(e.target.checked)} className="accent-[#4f3df6]" /> TV팝업
                     </label>
-                    <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaToast ? 'bg-slate-500/20 border-slate-400 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
-                      <input type="checkbox" checked={capaToast} onChange={e => setCapaToast(e.target.checked)} className="accent-slate-400" /> 토스트팝업
+                    <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaToast ? 'bg-amber-500/20 border-amber-400 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
+                      <input type="checkbox" checked={capaToast} onChange={e => setCapaToast(e.target.checked)} className="accent-amber-400" /> 토스트팝업
                     </label>
                     <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaCoupon ? 'bg-pink-500/20 border-pink-500 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
                       <input type="checkbox" checked={capaCoupon} onChange={e => setCapaCoupon(e.target.checked)} className="accent-pink-500" /> 쿠폰발급
@@ -2224,10 +1938,16 @@
                   </div>
                 </div>
 
-                <div className="space-y-2 max-h-[125px] overflow-y-auto custom-scrollbar">
-                  {capaSimResults.length === 0 ? (
-                    <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 text-center text-xs text-slate-500">
-                      시작일과 타겟 수를 입력하면 배너/쿠폰 잔여 Capa 가능 여부가 표시됩니다.
+                {/* 검증 결과 영역 */}
+                <div className="space-y-2 max-h-[130px] overflow-y-auto custom-scrollbar">
+                  {!targetNumVal ? (
+                    <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 text-center text-xs text-slate-400">
+                      👆 <b className="text-pink-400">타겟 모수(명)</b>를 입력하시면 일일 잔여 Capa 검증 결과와 진행 버튼이 활성화됩니다.
+                    </div>
+                  ) : capaSimResults.length === 0 ? (
+                    <div className="bg-[#12141c] border border-[#32d782]/40 rounded-xl p-3 text-xs text-[#32d782] font-bold flex items-center justify-between">
+                      <span>✅ 선택한 채널(TV팝업/토스트팝업) 모수 확인 완료</span>
+                      <span>요청 {formatTargetKor(targetNumVal)}</span>
                     </div>
                   ) : (
                     capaSimResults.map(res => (
@@ -2235,15 +1955,15 @@
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="text-xs font-bold text-white">{res.label} CAPA 판정</span>
                           <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${res.ok ? 'bg-[#32d782]/20 text-[#32d782]' : 'bg-red-500/20 text-red-400'}`}>
-                            {res.ok ? '발송 가능' : '한도 초과 (불가)'}
+                            {res.ok ? '발송 가능 (검증 통과)' : '한도 초과 (불가)'}
                           </span>
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          한도 {formatTargetNumber(res.capa)} · 기사용 {formatTargetNumber(res.used)} · <b className="text-white">잔여 {formatTargetNumber(res.remain)}</b>
+                          일 한도 {formatTargetKor(res.capa)} · 기사용 {formatTargetKor(res.used)} · <b className="text-white">잔여 {formatTargetKor(res.remain)}</b>
                         </div>
                         {!res.ok && (
                           <div className="mt-1 text-[11px] text-[#7387ff] font-bold flex flex-wrap items-center gap-1.5">
-                            <span>💡 추천일:</span>
+                            <span>💡 추천 대체일:</span>
                             {res.recos.length > 0 ? res.recos.map(r => (
                               <button key={r.dateStr} onClick={() => { setCapaDate(r.dateStr); setCapaEndDate(r.dateStr); }} className="underline hover:text-white">
                                 {r.label}
@@ -2257,45 +1977,69 @@
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#1e202b] grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => openSimpleCapaModalWithPrefill()}
-                  className="py-3 px-3 bg-[#1a1c26] hover:bg-[#262833] text-white border border-[#303340] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow"
-                >
-                  <PlusCircle size={14} className="text-[#32d782] shrink-0" />
-                  <span>① 단순 Capa 반영</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMoveToAiPlannerFromSim()}
-                  className="py-3 px-3 bg-gradient-to-r from-[#4f3df6] to-[#6252ff] hover:from-[#3b2bc7] hover:to-[#4f3df6] text-white rounded-xl text-xs font-bold shadow-lg shadow-[#4f3df6]/25 transition-all flex items-center justify-center gap-1.5"
-                >
-                  <Bot size={14} className="shrink-0" />
-                  <span>② AI 시안 기획 〉</span>
-                </button>
+              {/* 🌟 2번 요구사항: 담당자의 채널 선택에 따라 유동적으로 변환되는 단일 스마트 버튼 */}
+              <div className="mt-4 pt-3 border-t border-[#1e202b]">
+                {!hasVisualChannel ? (
+                  <button
+                    type="button"
+                    onClick={handleDynamicSmartAction}
+                    disabled={!targetNumVal || !isAllCapaOk || !hasAnyChannel}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-[#262833] disabled:to-[#262833] disabled:text-slate-500 text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <PlusCircle size={15} />
+                    <span>
+                      {!targetNumVal
+                        ? "⚠️ 타겟 모수를 입력하면 단순 Capa 신청이 활성화됩니다"
+                        : !isAllCapaOk
+                          ? "🚨 Capa 한도 초과 — 일자 또는 모수를 조정해 주세요"
+                          : "📝 단순 Capa 신청서 작성 (배너 시안 불필요 · 스케줄 즉시 등록)"}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDynamicSmartAction}
+                    disabled={!targetNumVal || !isAllCapaOk}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4f3df6] to-[#6252ff] hover:from-[#3b2bc7] hover:to-[#4f3df6] disabled:from-[#262833] disabled:to-[#262833] disabled:text-slate-500 text-white rounded-xl text-xs font-black shadow-lg shadow-[#4f3df6]/25 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Bot size={15} />
+                    <span>
+                      {!targetNumVal
+                        ? "🔒 타겟 모수를 입력해야 Step 2(AI 시안 기획)로 이동할 수 있습니다"
+                        : !isAllCapaOk
+                          ? "🚨 Capa 한도 초과 — 추천 대체일을 선택하거나 모수를 조정해 주세요"
+                          : `🤖 검증된 TARGET(${formatTargetKor(targetNumVal)}) 조건으로 Step 2. AI 시안 기획 이동 〉`}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          {/* 3. 주간 채널별 잔여 슬롯 & AI 운영 리스크 알림 */}
+          {/* 3. 향후 7일 주간 채널별 잔여 슬롯 표 & 그래프 */}
           <div className="bg-[#0f111a] border border-[#262833] rounded-2xl p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2"><Clock size={16} className="text-cyan-400" /> 향후 7일 주간 채널별 잔여 슬롯 & 운영 리스크</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">오늘 기준 7일간 배너/쿠폰 잔여 용량과 미반영 캠페인을 실시간으로 감지합니다.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">날짜 행을 클릭하면 상단 모수 확인기의 시작일로 자동 입력됩니다. 전체 월간 캘린더는 좌측 하단 [통합 프로모션 현황]에서 확인하세요.</p>
               </div>
+              <button
+                onClick={() => onOpenIntegratedStatus && onOpenIntegratedStatus('CALENDAR')}
+                className="px-3.5 py-2 bg-[#1a1c26] hover:bg-[#262833] text-[#7387ff] border border-[#303340] rounded-xl text-xs font-bold flex items-center gap-1.5"
+              >
+                <CalendarDays size={14} /> 전체 월간 캘린더/목록 현황 보기 〉
+              </button>
             </div>
 
             <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 flex flex-wrap items-center gap-3">
               <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[#4f3df6]/20 text-[#7387ff] border border-[#4f3df6]/40">AI Alert</span>
               <div className="flex flex-wrap items-center gap-2">
-                {unassignedCampaigns.length > 0 && (
+                {unassignedCount > 0 && (
                   <button
-                    onClick={() => setOnlyUnassigned(!onlyUnassigned)}
-                    className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 transition-all ${onlyUnassigned ? 'bg-red-500 text-white border-red-400' : 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25'}`}
+                    onClick={() => onOpenIntegratedStatus && onOpenIntegratedStatus('CALENDAR')}
+                    className="text-xs font-bold px-3 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 flex items-center gap-1.5"
                   >
-                    <AlertTriangle size={12} /> 미반영(시간 배정 불가) 캠페인 {unassignedCampaigns.length}건 {onlyUnassigned ? '(필터 해제)' : '(클릭 시 달력 필터)'}
+                    <AlertTriangle size={12} /> 미반영(시간 배정 불가) 캠페인 {unassignedCount}건 — 현황 탭에서 일정 변경 필요
                   </button>
                 )}
                 {weeklyData.filter(d => d.bannerRemain <= 500000 || d.couponRemain <= 500000).map(d => (
@@ -2303,7 +2047,7 @@
                     ⚠️ {d.label} 잔여 50만 이하 주의
                   </span>
                 ))}
-                {unassignedCampaigns.length === 0 && weeklyData.every(d => d.bannerRemain > 500000 && d.couponRemain > 500000) && (
+                {unassignedCount === 0 && weeklyData.every(d => d.bannerRemain > 500000 && d.couponRemain > 500000) && (
                   <span className="text-xs font-bold text-[#32d782] flex items-center gap-1.5">
                     <CheckCircle size={14} /> 향후 7일간 Capa 초과 위험 및 미반영 캠페인이 없습니다.
                   </span>
@@ -2331,7 +2075,7 @@
                         <tr key={item.dateStr} className="hover:bg-[#1a1c26]/60 transition-colors cursor-pointer" onClick={() => { setCapaDate(item.dateStr); setCapaEndDate(item.dateStr); }}>
                           <td className="py-2.5 px-3 font-bold text-white">{item.label}</td>
                           <td className={`py-2.5 px-3 font-bold ${item.bannerRemain <= 0 ? 'text-red-400' : 'text-[#32d782]'}`}>
-                            {formatTargetNumber(Math.max(item.bannerRemain, 0))}
+                            {formatTargetKor(Math.max(item.bannerRemain, 0))}
                           </td>
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-2">
@@ -2342,7 +2086,7 @@
                             </div>
                           </td>
                           <td className={`py-2.5 px-3 font-bold ${item.couponRemain <= 0 ? 'text-red-400' : 'text-pink-400'}`}>
-                            {formatTargetNumber(Math.max(item.couponRemain, 0))}
+                            {formatTargetKor(Math.max(item.couponRemain, 0))}
                           </td>
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-2">
@@ -2394,7 +2138,7 @@
                           <div className="flex-1 h-5 bg-[#0a0812] border border-[#262833] rounded-md overflow-hidden relative">
                             <div className="h-full bg-gradient-to-r from-[#4f3df6] to-cyan-400 transition-all duration-300" style={{ width: `${widthPct}%` }} />
                           </div>
-                          <span className="text-xs font-bold text-[#7387ff] w-14 text-right shrink-0">{formatTargetNumber(val)}</span>
+                          <span className="text-xs font-bold text-[#7387ff] w-14 text-right shrink-0">{formatTargetKor(val)}</span>
                         </div>
                       );
                     });
@@ -2404,301 +2148,21 @@
             </div>
           </div>
 
-          {/* 4. 캘린더 컨트롤 필터 바 */}
-          <div className="bg-[#0f111a] border border-[#262833] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-slate-400 mr-1"><Filter size={12} className="inline mr-1" />채널:</span>
-                {['TV', '토스트팝업', '쿠폰', 'Seg채널'].map(ch => {
-                  const active = typeFilters.includes(ch);
-                  return (
-                    <button
-                      key={ch}
-                      onClick={() => setTypeFilters(active ? typeFilters.filter(x => x !== ch) : [...typeFilters, ch])}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${active ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-[#7387ff]' : 'bg-[#12141c] border-[#262833] text-slate-400 hover:text-white'}`}
-                    >
-                      {ch === 'TV' ? 'TV팝업' : ch}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="h-4 w-[1px] bg-[#262833]" />
-
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
-                <input type="checkbox" checked={excludeWired} onChange={e => setExcludeWired(e.target.checked)} className="accent-[#4f3df6]" />
-                유선(밸류애드팀) 제외
-              </label>
-
-              <div className="h-4 w-[1px] bg-[#262833]" />
-
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300 cursor-pointer">
-                  <input type="checkbox" checked={dateFilters.includes('start')} onChange={e => setDateFilters(e.target.checked ? [...dateFilters, 'start'] : dateFilters.filter(x => x !== 'start'))} className="accent-[#4f3df6]" />
-                  <span className="w-2 h-2 rounded-full bg-[#7387ff] inline-block" /> 시작일
-                </label>
-                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 cursor-pointer">
-                  <input type="checkbox" checked={dateFilters.includes('end')} onChange={e => setDateFilters(e.target.checked ? [...dateFilters, 'end'] : dateFilters.filter(x => x !== 'end'))} className="accent-[#4f3df6]" />
-                  <span className="w-2 h-2 rounded-full bg-slate-500 inline-block" /> 종료일
-                </label>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="hidden xl:flex items-center gap-2 text-[11px] text-slate-400 mr-2">
-                <span className="flex items-center gap-1"><span className="calendar-congestion-badge green" /> 100만 미만</span>
-                <span className="flex items-center gap-1"><span className="calendar-congestion-badge yellow" /> 100~200만</span>
-                <span className="flex items-center gap-1"><span className="calendar-congestion-badge red" /> 200만 이상</span>
-              </div>
-              <div className="relative w-[220px]">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  value={searchText}
-                  onChange={e => setSearchText(e.target.value)}
-                  placeholder="캠페인명 검색..."
-                  className="w-full bg-[#0a0812] border border-[#303340] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#4f3df6]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 5. 메인 FullCalendar 영역 */}
-          <div id="schedule-calendar" ref={calendarNodeRef} className="shadow-2xl" />
-
-          {/* 모달 A: 이벤트 상세 수정/삭제/시안점프 모달 & 일자별 요약 모달 */}
-          {detailModal && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => setDetailModal(null)}>
-              <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b border-[#262833] bg-[#0f111a] flex items-center justify-between">
-                  <h3 className="text-sm font-black text-white truncate pr-2">{detailModal.title}</h3>
-                  <button onClick={() => setDetailModal(null)} className="p-1 text-slate-400 hover:text-white"><X size={16} /></button>
-                </div>
-
-                {detailModal.type === 'EVENT' ? (
-                  editEventForm && (
-                    <div className="p-5 space-y-3.5 text-xs text-slate-300 max-h-[75vh] overflow-y-auto custom-scrollbar">
-                      {(() => {
-                        const st = String(detailModal.data?.['상태'] || '대기 중').trim();
-                        const tm = String(detailModal.data?.['실행시각'] || '미배정').trim();
-                        const isUnassigned = st === '미반영' || tm.includes('배정 불가');
-                        const reqNum = Number(String(editEventForm.targetSize).replace(/[^0-9]/g, '')) || 0;
-                        const altDates = [];
-                        if (isUnassigned && reqNum > 0 && editEventForm.startDate) {
-                          for (let i = -2; i <= 3; i++) {
-                            if (i === 0) continue;
-                            const dStr = getDateOffset(editEventForm.startDate, i);
-                            const bRem = Math.max(getDailyCapa('banner', dStr) - getDailyUsed('banner', dStr), 0);
-                            const cRem = Math.max(getDailyCapa('coupon', dStr) - getDailyUsed('coupon', dStr), 0);
-                            if (bRem >= reqNum && (editEventForm.couponYn !== '쿠폰' || cRem >= reqNum)) {
-                              altDates.push({ dateStr: dStr, label: `${getDayLabel(dStr)} (배너 잔여 ${formatTargetNumber(bRem)})` });
-                            }
-                          }
-                        }
-                        return (
-                          <div className={`p-3 rounded-xl border ${isUnassigned ? 'bg-red-500/10 border-red-500/30' : 'bg-[#0a0812] border-[#262833]'}`}>
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-400">현재 배정 상태</span>
-                              <span className={`font-black px-2 py-0.5 rounded-full text-[11px] ${isUnassigned ? 'bg-red-500/20 text-red-400' : 'bg-[#32d782]/20 text-[#32d782]'}`}>
-                                {st} · {tm}
-                              </span>
-                            </div>
-                            {isUnassigned && altDates.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-red-500/20">
-                                <div className="text-[11px] font-bold text-amber-300 mb-1">💡 여유 슬롯이 있는 추천 대체일 (클릭 시 시작일 즉시 변경):</div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {altDates.map(a => (
-                                    <button
-                                      key={a.dateStr}
-                                      type="button"
-                                      onClick={() => setEditEventForm({...editEventForm, startDate: a.dateStr, endDate: editEventForm.endDate < a.dateStr ? a.dateStr : editEventForm.endDate})}
-                                      className="px-2 py-1 rounded bg-[#1a1c26] hover:bg-[#4f3df6] text-slate-200 hover:text-white border border-[#303340] text-[10px] font-bold transition-colors"
-                                    >
-                                      {a.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2">
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">캠페인 명</label>
-                          <input type="text" value={editEventForm.campaignName} onChange={e => setEditEventForm({...editEventForm, campaignName: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">시작일</label>
-                          <input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm({...editEventForm, startDate: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">종료일</label>
-                          <input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm({...editEventForm, endDate: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">타겟 수 (명)</label>
-                          <input type="text" value={editEventForm.targetSize} onChange={e => setEditEventForm({...editEventForm, targetSize: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">쿠폰 여부</label>
-                          <select value={editEventForm.couponYn} onChange={e => setEditEventForm({...editEventForm, couponYn: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
-                            <option value="쿠폰">쿠폰 (포함)</option>
-                            <option value="미포함">미포함</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">채널</label>
-                          <input type="text" value={editEventForm.channel} onChange={e => setEditEventForm({...editEventForm, channel: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">편성 GNB</label>
-                          <input type="text" value={editEventForm.gnb} onChange={e => setEditEventForm({...editEventForm, gnb: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">요청 부서</label>
-                          <input type="text" value={editEventForm.department} onChange={e => setEditEventForm({...editEventForm, department: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-400 mb-1">담당자 이름</label>
-                          <input type="text" value={editEventForm.marketer} onChange={e => setEditEventForm({...editEventForm, marketer: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-[#1e202b] flex flex-wrap items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={handleDeleteEventSchedule}
-                          disabled={isUpdatingEvent}
-                          className="px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1"
-                        >
-                          <Trash2 size={13} /> 삭제
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const targetData = detailModal.data;
-                              setDetailModal(null);
-                              onOpenCampaignEditor && onOpenCampaignEditor(targetData);
-                            }}
-                            className="px-3.5 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-[#7387ff] border border-[#303340] rounded-xl text-xs font-bold flex items-center gap-1.5"
-                          >
-                            <LayoutTemplate size={13} /> 배너 시안 열기
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleUpdateEventSchedule}
-                            disabled={isUpdatingEvent}
-                            className="px-4 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 disabled:opacity-50"
-                          >
-                            <Zap size={13} /> {isUpdatingEvent ? "처리 중..." : "수정 및 시간 재배정"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    {(() => {
-                      const dStr = detailModal.dateStr;
-                      const bRemain = Math.max(getDailyCapa('banner', dStr) - getDailyUsed('banner', dStr), 0);
-                      const cRemain = Math.max(getDailyCapa('coupon', dStr) - getDailyUsed('coupon', dStr), 0);
-                      return (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-[#0a0812] border border-[#262833] rounded-xl p-3">
-                            <div className="text-[10px] text-slate-400 font-bold">타겟 배너 잔여 CAPA</div>
-                            <div className="text-base font-black text-[#32d782] mt-1">{formatTargetNumber(bRemain)}</div>
-                          </div>
-                          <div className="bg-[#0a0812] border border-[#262833] rounded-xl p-3">
-                            <div className="text-[10px] text-slate-400 font-bold">B tv 쿠폰 잔여 CAPA</div>
-                            <div className="text-base font-black text-pink-400 mt-1">{formatTargetNumber(cRemain)}</div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    <div>
-                      {(() => {
-                        const dayList = Array.isArray(detailModal.data) ? detailModal.data : [];
-                        return (
-                          <>
-                            <div className="text-xs font-bold text-slate-300 mb-2">시작 캠페인 목록 ({dayList.length}건)</div>
-                            {dayList.length === 0 ? (
-                              <div className="text-xs text-slate-500 py-6 text-center bg-[#0a0812] rounded-xl border border-[#262833]">해당 일자에 시작하는 캠페인이 없습니다.</div>
-                            ) : (
-                              <div className="space-y-2">
-                                {dayList.map((ev, i) => {
-                                  const p = ev.extendedProps || {};
-                                  return (
-                                    <div
-                                      key={i}
-                                      onClick={() => openEventDetailModal(p, detailModal.dateStr)}
-                                      className="bg-[#0a0812] hover:bg-[#1a1c26] border border-[#262833] rounded-xl p-3 flex items-center justify-between text-xs cursor-pointer transition-colors"
-                                    >
-                                      <div className="truncate pr-3">
-                                        <div className="font-bold text-white truncate">{p._rawTitle || getCampaignTitle(p)}</div>
-                                        <div className="text-[10px] text-slate-400 mt-0.5">{p['채널'] || p['필터'] || '-'} · {getDeptName(p) || '-'} {getMarketerName(p)}</div>
-                                      </div>
-                                      <div className="text-right shrink-0">
-                                        <span className="text-[11px] font-bold text-[#7387ff] block">{formatTargetNumber(getTargetValue(p))}</span>
-                                        <span className="text-[10px] text-emerald-400">{p['실행시각'] || '미배정'}</span>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-
-                    <div className="pt-2 grid grid-cols-2 gap-2.5">
-                      <button
-                        onClick={() => {
-                          const targetDate = detailModal.dateStr;
-                          setDetailModal(null);
-                          openSimpleCapaModalWithPrefill(targetDate);
-                        }}
-                        className="py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-200 border border-[#303340] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
-                      >
-                        <PlusCircle size={14} className="text-[#32d782]" /> ① 단순 Capa 반영
-                      </button>
-                      <button
-                        onClick={() => {
-                          const targetDate = detailModal.dateStr;
-                          setDetailModal(null);
-                          handleMoveToAiPlannerFromSim(targetDate);
-                        }}
-                        className="py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg flex items-center justify-center gap-1.5"
-                      >
-                        <Bot size={14} /> ② AI 시안 기획 〉
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 모달 B: ① 단순 Capa 반영 모달 */}
+          {/* 단순 Capa 신청 모달 (시안 불필요 건 전용) */}
           {isReqModalOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in zoom-in-95 duration-150">
               <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[88vh]">
                 <div className="p-5 border-b border-[#262833] bg-[#0f111a] flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-black text-white">① 단순 캠페인 Capa 반영 (시안 불필요)</h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">쿠폰 단독 발송이나 기제작 소재 캠페인을 '캠페인 스케줄' 시트에 즉시 반영하고 실행시각을 배정합니다.</p>
+                    <h3 className="text-base font-black text-white">📝 단순 캠페인 Capa 신청 (배너 시안 불필요)</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">'캠페인 스케줄' 시트에 [대기 중] 상태로 적재되며, 일일 배치(또는 자동배정 버튼) 실행 시 확정됩니다.</p>
                   </div>
                   <button onClick={() => setIsReqModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white"><X size={18} /></button>
                 </div>
 
                 <div className="p-6 overflow-y-auto custom-scrollbar space-y-4 bg-[#0a0812]">
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400 font-medium">담당자 이름으로 과거 신청 이력을 불러와 폼을 빠르게 채울 수 있습니다.</span>
+                    <span className="text-xs text-slate-400 font-medium">담당자 이름으로 과거 신청 이력을 불러와 빠르게 채울 수 있습니다.</span>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -2728,27 +2192,27 @@
                             type="button"
                             onClick={() => {
                               const chText = String(h['채널'] || h['필터'] || '');
-                              const chs = ['TV팝업', '타겟배너', '토스트팝업', '쿠폰'].filter(c => chText.includes(c));
+                              const chs = ['쿠폰', '토스트팝업'].filter(c => chText.includes(c));
                               setReqForm({
-                                campaignName: getCampaignTitle(h),
-                                startDate: cleanDateStr(h['시작일']) || todayLocalStr,
-                                endDate: cleanDateStr(h['종료일']) || todayLocalStr,
+                                campaignName: extractCampaignTitle(h),
+                                startDate: cleanScheduleDateStr(h['시작일']) || todayLocalStr,
+                                endDate: cleanScheduleDateStr(h['종료일']) || todayLocalStr,
                                 uiVersions: String(h['UI버전'] || '5.0').split(',').map(s => s.trim()).filter(Boolean),
                                 channels: chs.length > 0 ? chs : ['쿠폰'],
                                 gnb: h['GNB'] || '홈',
-                                cycle: getCycleName(h),
-                                couponYn: checkHasCouponItem(h) ? '쿠폰' : '미포함',
-                                totalTarget: String(getTargetValue(h) || ''),
+                                cycle: extractCycleName(h),
+                                couponYn: checkItemHasCoupon(h) ? '쿠폰' : '미포함',
+                                totalTarget: String(extractTargetNum(h) || ''),
                                 segIdCount: h['SEG ID 수'] || '1개',
-                                department: getDeptName(h) || 'Btv큐레이션팀',
-                                marketer: getMarketerName(h) || marketerSearch
+                                department: extractDeptName(h) || 'Btv큐레이션팀',
+                                marketer: extractMarketerName(h) || marketerSearch
                               });
                               setShowHistoryList(false);
                             }}
                             className="w-full p-3 text-left hover:bg-[#1a1c26] transition-colors"
                           >
-                            <div className="text-xs font-bold text-white">{getCampaignTitle(h)}</div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{cleanDateStr(h['시작일'])} ~ {cleanDateStr(h['종료일'])} · {h['채널'] || h['필터'] || '-'} · 타겟 {formatTargetNumber(getTargetValue(h))}</div>
+                            <div className="text-xs font-bold text-white">{extractCampaignTitle(h)}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">{cleanScheduleDateStr(h['시작일'])} ~ {cleanScheduleDateStr(h['종료일'])} · {h['채널'] || h['필터'] || '-'} · 타겟 {formatTargetKor(extractTargetNum(h))}</div>
                           </button>
                         ))
                       )}
@@ -2782,12 +2246,12 @@
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-400 mb-1">채널 (다중 선택)</label>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">채널 (시안 불필요 채널)</label>
                       <div className="flex gap-1.5">
-                        {['쿠폰', '토스트팝업', '타겟배너', 'TV팝업'].map(ch => {
+                        {['쿠폰', '토스트팝업'].map(ch => {
                           const checked = reqForm.channels.includes(ch);
                           return (
-                            <button type="button" key={ch} onClick={() => setReqForm({...reqForm, channels: checked ? reqForm.channels.filter(x => x !== ch) : [...reqForm.channels, ch]})} className={`flex-1 py-2 rounded-lg text-[11px] font-bold border ${checked ? 'bg-[#4f3df6]/20 border-[#4f3df6] text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
+                            <button type="button" key={ch} onClick={() => setReqForm({...reqForm, channels: checked ? reqForm.channels.filter(x => x !== ch) : [...reqForm.channels, ch]})} className={`flex-1 py-2 rounded-lg text-[11px] font-bold border ${checked ? 'bg-amber-500/20 border-amber-400 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
                               {ch}
                             </button>
                           );
@@ -2834,8 +2298,8 @@
 
                 <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end gap-2">
                   <button type="button" onClick={() => setIsReqModalOpen(false)} className="px-4 py-2 bg-[#1a1c26] text-slate-300 rounded-lg text-xs font-bold">닫기</button>
-                  <button type="submit" form="simpleScheduleForm" disabled={isSubmittingReq} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold shadow-lg disabled:opacity-50">
-                    {isSubmittingReq ? "처리 중..." : "스케줄 반영 및 시간 자동배정"}
+                  <button type="submit" form="simpleScheduleForm" disabled={isSubmittingReq} className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-black rounded-lg text-xs font-black shadow-lg disabled:opacity-50">
+                    {isSubmittingReq ? "처리 중..." : "스케줄 요청 등록 (대기 중 적재)"}
                   </button>
                 </div>
               </div>
@@ -2846,183 +2310,904 @@
     };
 
     // ====================================================================================
-    // 프로모션 관리(과거 캠페인 목록 조회/불러오기) 뷰
+    // 🌟 [6번 요구사항 완벽 구현] 🗂️ 통합 프로모션 현황 뷰 (캘린더 뷰 + 리스트 뷰 통합 및 유형별 맞춤 액션)
     // ====================================================================================
-    const PromotionListView = ({ onLoadCampaign, onDuplicateCampaign }) => {
-      const [campaigns, setCampaigns] = useState([]);
-      const [isLoading, setIsLoading] = useState(true);
-      const [error, setError] = useState(null);
+    const IntegratedStatusView = ({ initialMode = 'CALENDAR', onLoadCampaign, onDuplicateCampaign, onStartPlanWithDate }) => {
+      const todayObj = new Date();
+      const todayLocalStr = new Date(todayObj.getTime() - (todayObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
-      const fetchCampaigns = async () => {
+      const [viewMode, setViewMode] = useState(initialMode); // 'CALENDAR' | 'LIST'
+      const [scheduleData, setScheduleData] = useState([]);
+      const [campaignData, setCampaignData] = useState([]);
+      const [isLoading, setIsLoading] = useState(true);
+      const [isAssigning, setIsAssigning] = useState(false);
+
+      // 공통 필터 상태
+      const [categoryFilter, setCategoryFilter] = useState('ALL'); // 'ALL' | 'INTEGRATED' | 'CAPA_ONLY' | 'BANNER_ONLY'
+      const [typeFilters, setTypeFilters] = useState([]);
+      const [dateFilters, setDateFilters] = useState(['start']);
+      const [excludeWired, setExcludeWired] = useState(false);
+      const [onlyUnassigned, setOnlyUnassigned] = useState(false);
+      const [searchText, setSearchText] = useState('');
+
+      // 모달 상태
+      const [detailModal, setDetailModal] = useState(null);
+      const [editEventForm, setEditEventForm] = useState(null);
+      const [isUpdatingEvent, setIsUpdatingEvent] = useState(false);
+
+      const calendarNodeRef = useRef(null);
+      const calendarInstanceRef = useRef(null);
+      const tooltipRef = useRef(null);
+      const filteredEventsRef = useRef([]);
+      const scheduleRef = useRef([]);
+
+      // 두 시트('캠페인 스케줄' + '요청 접수') 데이터 동시 로드
+      const fetchAllStatusData = async () => {
         setIsLoading(true);
-        setError(null);
         try {
-          const response = await fetch("https://btv-proxy.alcheminos.workers.dev?action=getCampaigns");
-          if (!response.ok) throw new Error("서버와 통신할 수 없습니다.");
-          const data = await response.json();
-          
-          if (data && data.status === 'error') {
-            throw new Error(data.message || "서버에서 데이터를 불러오지 못했습니다.");
-          }
-          if (!Array.isArray(data)) {
-            throw new Error("서버에서 올바른 목록 형식을 받지 못했습니다.");
-          }
-          
-          setCampaigns(data);
-        } catch (err) { 
-          console.error("캠페인 로드 실패", err); 
-          setError(err.message || "목록을 불러오는 중 문제가 발생했습니다."); 
-          setCampaigns([]);
-        } finally { 
-          setIsLoading(false); 
+          const [schedRes, campRes] = await Promise.all([
+            fetch("https://btv-proxy.alcheminos.workers.dev?action=getScheduleData").then(r => r.json()).catch(() => ({ data: [] })),
+            fetch("https://btv-proxy.alcheminos.workers.dev?action=getCampaigns").then(r => r.json()).catch(() => [])
+          ]);
+          const sList = (schedRes && Array.isArray(schedRes.data)) ? schedRes.data : (Array.isArray(schedRes) ? schedRes : []);
+          const cList = Array.isArray(campRes) ? campRes : [];
+          setScheduleData(sList);
+          scheduleRef.current = sList;
+          setCampaignData(cList);
+        } catch (err) {
+          console.error("통합 현황 로드 실패:", err);
+        } finally {
+          setIsLoading(false);
         }
       };
 
-      useEffect(() => { fetchCampaigns(); }, []);
+      useEffect(() => { fetchAllStatusData(); }, []);
 
-      const handleLoad = (item) => {
-        const meta = item.meta || {
-          campaignName: item.campaignName, target: item.target, targetSize: item.targetSize,
-          startDate: item.startDate, dueDate: item.dueDate, hasCoupon: item.hasCoupon, 
-          couponBenefit: item.couponBenefit, externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl,
-          product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations,
-          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
-          marketer: localStorage.getItem('myMarketerName') || ''
-        };
-        meta.parentJiraKey = item.jiraKey ? String(item.jiraKey).split('/').pop() : '';
-        meta.uniqueCode = item.uniqueCode || meta.uniqueCode || '';
-        onLoadCampaign(meta, item.assets || [], item.mermaidCode || "");
+      // 🌟 '캠페인 스케줄'과 '요청 접수(배너 시안)'를 uniqueCode / 캠페인명으로 조인하여 통합 아이템 생성
+      const unifiedItems = (() => {
+        const map = {};
+
+        // 1. 배너 시안 캠페인('요청 접수') 먼저 등록
+        campaignData.forEach(c => {
+          const code = String(c.uniqueCode || '').trim();
+          const name = String(c.campaignName || '').trim();
+          const key = code || `NAME_${name}`;
+          map[key] = {
+            key,
+            uniqueCode: code,
+            campaignName: name,
+            startDate: cleanScheduleDateStr(c.startDate),
+            dueDate: cleanScheduleDateStr(c.dueDate) || cleanScheduleDateStr(c.startDate),
+            department: c.department || c.meta?.department || 'Btv큐레이션팀',
+            marketer: c.marketer || c.meta?.marketer || '',
+            hasBannerAssets: Array.isArray(c.assets) && c.assets.length > 0,
+            hasSchedule: false,
+            bannerRecord: c,
+            scheduleRecord: null,
+            category: 'BANNER_ONLY' // 기본: 🖼️ 시안 전용 (MASS 배너)
+          };
+        });
+
+        // 2. 스케줄 데이터('캠페인 스케줄') 병합
+        scheduleData.forEach((s, idx) => {
+          const st = String(s['상태'] || '').trim();
+          if (st === '취소' || st === '제외') return;
+
+          const code = String(s.uniqueCode || '').trim();
+          const name = extractCampaignTitle(s);
+          let matchedKey = null;
+          if (code && map[code]) matchedKey = code;
+          else {
+            const found = Object.values(map).find(item => item.campaignName === name && item.startDate === cleanScheduleDateStr(s['시작일']));
+            if (found) matchedKey = found.key;
+          }
+
+          if (matchedKey) {
+            map[matchedKey].hasSchedule = true;
+            map[matchedKey].scheduleRecord = s;
+            map[matchedKey].category = map[matchedKey].hasBannerAssets ? 'INTEGRATED' : 'CAPA_ONLY';
+            if (!map[matchedKey].department) map[matchedKey].department = extractDeptName(s);
+            if (!map[matchedKey].marketer) map[matchedKey].marketer = extractMarketerName(s);
+          } else {
+            const newKey = code || `SCHED_${idx}_${name}`;
+            map[newKey] = {
+              key: newKey,
+              uniqueCode: code,
+              campaignName: name,
+              startDate: cleanScheduleDateStr(s['시작일']),
+              dueDate: cleanScheduleDateStr(s['종료일']) || cleanScheduleDateStr(s['시작일']),
+              department: extractDeptName(s),
+              marketer: extractMarketerName(s),
+              hasBannerAssets: false,
+              hasSchedule: true,
+              bannerRecord: null,
+              scheduleRecord: s,
+              category: 'CAPA_ONLY' // ⚡ Capa 전용 (단순 Capa 신청 건)
+            };
+          }
+        });
+
+        return Object.values(map).sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+      })();
+
+      // 필터링된 통합 아이템 목록
+      const filteredUnifiedItems = unifiedItems.filter(u => {
+        if (categoryFilter !== 'ALL' && u.category !== categoryFilter) return false;
+        if (excludeWired && u.scheduleRecord && checkIsWiredDept(u.scheduleRecord)) return false;
+
+        const st = String(u.scheduleRecord?.['상태'] || '').trim();
+        const tm = String(u.scheduleRecord?.['실행시각'] || '').trim();
+        const isUnassigned = st === '미반영' || tm.includes('배정 불가');
+        if (onlyUnassigned && !isUnassigned) return false;
+
+        if (searchText && !u.campaignName.toUpperCase().includes(searchText.toUpperCase())) return false;
+
+        if (typeFilters.length > 0) {
+          const fText = String(u.scheduleRecord?.['채널'] || u.scheduleRecord?.['필터'] || u.bannerRecord?.bannerTypes || '').toUpperCase();
+          const hasTV = typeFilters.includes("TV") && (fText.includes("TV") || fText.includes("POPUP"));
+          const hasToast = typeFilters.includes("토스트팝업") && fText.includes("토스트");
+          const hasCoupon = typeFilters.includes("쿠폰") && (checkItemHasCoupon(u.scheduleRecord) || u.bannerRecord?.hasCoupon === 'Y');
+          const hasSeg = typeFilters.includes("Seg채널") && (fText.includes("SEG") || fText.includes("배너") || u.hasBannerAssets);
+          if (!(hasTV || hasToast || hasCoupon || hasSeg)) return false;
+        }
+        return true;
+      });
+
+      // 상세 모달 열기 (동기 세팅으로 프리징 완벽 방지)
+      const openUnifiedDetailModal = (uItem, fallbackDateStr = todayLocalStr) => {
+        if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+        const s = uItem.scheduleRecord || {};
+        const b = uItem.bannerRecord || {};
+        const sDate = uItem.startDate || fallbackDateStr || todayLocalStr;
+        const eDate = uItem.dueDate || sDate;
+
+        setEditEventForm({
+          _rowIndex: s._rowIndex,
+          uniqueCode: uItem.uniqueCode || '',
+          campaignName: uItem.campaignName,
+          startDate: sDate,
+          endDate: eDate,
+          channel: s['채널'] || s['필터'] || (uItem.hasBannerAssets ? 'MASS 배너' : '쿠폰'),
+          gnb: s['GNB'] || b.gnbLocations || '홈',
+          cycle: extractCycleName(s),
+          couponYn: checkItemHasCoupon(s) || b.hasCoupon === 'Y' ? '쿠폰' : '미포함',
+          targetSize: String(extractTargetNum(s) || b.targetSize || 0),
+          department: uItem.department || 'Btv큐레이션팀',
+          marketer: uItem.marketer || ''
+        });
+
+        setDetailModal({
+          type: 'EVENT',
+          title: uItem.campaignName,
+          uItem: uItem,
+          dateStr: sDate
+        });
       };
 
-      const handleDuplicate = (item) => {
-        const meta = item.meta || {
-          campaignName: `${item.campaignName} (복제본)`, target: item.target, targetSize: item.targetSize,
-          startDate: item.startDate, dueDate: item.dueDate, hasCoupon: item.hasCoupon, couponBenefit: item.couponBenefit,
-          externalGift: item.externalGift || '', conceptCopy: item.conceptCopy, mainImageUrl: item.mainImageUrl,
-          product: item.product, bannerTypes: item.bannerTypes, gnbLocations: item.gnbLocations,
-          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
-          marketer: localStorage.getItem('myMarketerName') || ''
+      // 배너 시안 수정으로 이동
+      const handleEditBannerAssets = (bRecord, sRecord) => {
+        if (!bRecord) return;
+        const meta = bRecord.meta || {
+          campaignName: bRecord.campaignName, target: bRecord.target, targetSize: bRecord.targetSize,
+          startDate: bRecord.startDate, dueDate: bRecord.dueDate, hasCoupon: bRecord.hasCoupon,
+          couponBenefit: bRecord.couponBenefit, conceptCopy: bRecord.conceptCopy, mainImageUrl: bRecord.mainImageUrl,
+          product: bRecord.product, bannerTypes: bRecord.bannerTypes, gnbLocations: bRecord.gnbLocations,
+          department: bRecord.department || extractDeptName(sRecord) || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+          marketer: bRecord.marketer || extractMarketerName(sRecord) || localStorage.getItem('myMarketerName') || ''
         };
-        delete meta.uniqueCode;
-        delete meta.parentJiraKey;
-        const duplicatedAssets = (item.assets || []).map((a, idx) => ({ ...a, id: `asset-dup-${Date.now()}-${idx}` }));
-        onDuplicateCampaign(meta, duplicatedAssets, item.mermaidCode || "");
+        meta.parentJiraKey = bRecord.jiraKey ? String(bRecord.jiraKey).split('/').pop() : '';
+        meta.uniqueCode = bRecord.uniqueCode || meta.uniqueCode || '';
+        onLoadCampaign && onLoadCampaign(meta, bRecord.assets || [], bRecord.mermaidCode || "");
       };
 
-      const isPastCampaign = (startDateStr) => {
-        if (!startDateStr) return false;
-        const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-        return startDateStr < todayStr;
+      // 캠페인 복제 (유형별 분기)
+      const handleDuplicateUnified = (uItem) => {
+        if (uItem.hasBannerAssets && uItem.bannerRecord) {
+          const item = uItem.bannerRecord;
+          const meta = {
+            ...(item.meta || {}),
+            campaignName: `${item.campaignName} (복제본)`,
+            target: item.target,
+            targetSize: item.targetSize,
+            startDate: item.startDate,
+            dueDate: item.dueDate,
+            hasCoupon: item.hasCoupon,
+            couponBenefit: item.couponBenefit,
+            conceptCopy: item.conceptCopy,
+            mainImageUrl: item.mainImageUrl,
+            product: item.product,
+            bannerTypes: item.bannerTypes,
+            gnbLocations: item.gnbLocations,
+            isCapaChecked: true,
+            department: uItem.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
+            marketer: uItem.marketer || localStorage.getItem('myMarketerName') || ''
+          };
+          delete meta.uniqueCode;
+          delete meta.parentJiraKey;
+          const duplicatedAssets = (item.assets || []).map((a, idx) => ({ ...a, id: `asset-dup-${Date.now()}-${idx}` }));
+          onDuplicateCampaign && onDuplicateCampaign(meta, duplicatedAssets, item.mermaidCode || "");
+        } else if (uItem.scheduleRecord) {
+          const s = uItem.scheduleRecord;
+          const tNum = extractTargetNum(s);
+          onStartPlanWithDate && onStartPlanWithDate({
+            campaignName: `${uItem.campaignName} (복제본)`,
+            startDate: uItem.startDate,
+            dueDate: uItem.dueDate,
+            target: tNum > 0 ? 'TARGET' : 'MASS',
+            targetSize: tNum > 0 ? tNum.toLocaleString() : '',
+            hasCoupon: checkItemHasCoupon(s) ? 'Y' : 'N',
+            channels: s['채널'] || s['필터'] || '쿠폰',
+            isCapaChecked: true,
+            department: uItem.department || 'Btv큐레이션팀',
+            marketer: uItem.marketer || ''
+          });
+        }
+      };
+
+      // 스케줄 수정 및 재배정
+      const handleUpdateEventSchedule = async () => {
+        if (!editEventForm) return;
+        setIsUpdatingEvent(true);
+        try {
+          const targetNum = Number(String(editEventForm.targetSize).replace(/[^0-9]/g, '')) || 0;
+          const scheduleItem = {
+            _rowIndex: editEventForm._rowIndex,
+            uniqueCode: editEventForm.uniqueCode,
+            "캠페인 명": editEventForm.campaignName,
+            "시작일": editEventForm.startDate,
+            "종료일": editEventForm.endDate || editEventForm.startDate,
+            "채널": editEventForm.channel,
+            "GNB": editEventForm.gnb,
+            "주기성 여부": editEventForm.cycle,
+            "쿠폰 여부": editEventForm.couponYn,
+            "타겟 수": targetNum,
+            "요청 부서": editEventForm.department,
+            "담당자 이름": editEventForm.marketer
+          };
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateSchedule", scheduleItem })
+          });
+          const json = await res.json();
+          if (json.status === 'success') {
+            await fetchAllStatusData();
+            alert("✅ 일정 변경 및 실행시각 재배정이 완료되었습니다!");
+            setDetailModal(null);
+          } else {
+            alert("⚠️ 수정 실패: " + (json.message || "오류 발생"));
+          }
+        } catch (err) {
+          alert("⚠️ 통신 오류: " + err.message);
+        } finally {
+          setIsUpdatingEvent(false);
+        }
+      };
+
+      // 캠페인/스케줄 취소 및 슬롯 반환
+      const handleCancelOrDeleteUnified = async (uItem) => {
+        const msg = uItem.category === 'INTEGRATED'
+          ? `[${uItem.campaignName}]의 배너 편성과 타겟 스케줄을 모두 취소(삭제)하여 슬롯을 반환하시겠습니까?`
+          : `[${uItem.campaignName}] 항목을 시트에서 삭제하여 슬롯을 반환하시겠습니까?`;
+        if (!window.confirm(msg)) return;
+
+        setIsUpdatingEvent(true);
+        try {
+          if (uItem.hasBannerAssets) {
+            await fetch("https://btv-proxy.alcheminos.workers.dev", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "cancelCampaignAssets",
+                uniqueCode: uItem.uniqueCode,
+                campaignName: uItem.campaignName,
+                alsoDeleteSchedule: uItem.hasSchedule
+              })
+            });
+          } else if (uItem.hasSchedule && uItem.scheduleRecord) {
+            await fetch("https://btv-proxy.alcheminos.workers.dev", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "deleteSchedule",
+                scheduleItem: {
+                  _rowIndex: uItem.scheduleRecord._rowIndex,
+                  uniqueCode: uItem.uniqueCode,
+                  "캠페인 명": uItem.campaignName
+                }
+              })
+            });
+          }
+          await fetchAllStatusData();
+          alert("🗑️ 취소 및 슬롯 반환이 완료되었습니다.");
+          setDetailModal(null);
+        } catch (e) {
+          alert("⚠️ 삭제 실패: " + e.message);
+        } finally {
+          setIsUpdatingEvent(false);
+        }
+      };
+
+      const handleAssignExecutionTimes = async () => {
+        setIsAssigning(true);
+        try {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "assignExecutionTimes" })
+          });
+          const json = await res.json();
+          if (json.status === 'success') {
+            await fetchAllStatusData();
+            const s = json.summary || {};
+            alert(`✅ 실행시각 자동배정 완료!\n• 확정 배정: ${s.assignedCount || 0}건\n• 미반영(슬랙 알림): ${s.failedCount || 0}건`);
+          }
+        } catch (e) {
+          alert("⚠️ 서버 통신 오류: " + e.message);
+        } finally {
+          setIsAssigning(false);
+        }
+      };
+
+      // FullCalendar 이벤트 빌드
+      const buildCalendarEvents = () => {
+        const evs = [];
+        filteredUnifiedItems.forEach((u, idx) => {
+          const s = u.scheduleRecord || {};
+          const status = String(s['상태'] || (u.hasBannerAssets ? '편성 확정' : '대기 중')).trim();
+          const execTime = String(s['실행시각'] || '').trim();
+          const isUnassigned = status === '미반영' || execTime.includes('배정 불가');
+          const isPending = status === '대기 중';
+
+          let badgePrefix = '';
+          let clsName = 'event-start';
+          let sortOrd = 2;
+
+          if (isUnassigned) {
+            badgePrefix = '[⚠️미반영] ';
+            clsName = 'event-unassigned';
+            sortOrd = 0;
+          } else if (isPending && u.hasSchedule) {
+            badgePrefix = '[⏳대기] ';
+            clsName = 'event-pending';
+            sortOrd = 1;
+          } else if (u.category === 'BANNER_ONLY') {
+            badgePrefix = '[🖼️배너] ';
+            clsName = 'event-banner-only';
+            sortOrd = 3;
+          } else if (execTime && execTime !== '상시(MASS)') {
+            badgePrefix = `[${execTime}] `;
+          }
+
+          if (u.startDate && dateFilters.includes('start')) {
+            evs.push({
+              id: `uni-start-${idx}`,
+              title: `${badgePrefix}${u.campaignName}`,
+              start: u.startDate,
+              allDay: true,
+              className: clsName,
+              extendedProps: { uItem: u, type: 'start', sortOrder: sortOrd }
+            });
+          }
+          if (u.dueDate && u.dueDate !== u.startDate && dateFilters.includes('end')) {
+            evs.push({
+              id: `uni-end-${idx}`,
+              title: `[종료] ${u.campaignName}`,
+              start: u.dueDate,
+              allDay: true,
+              className: 'event-end',
+              extendedProps: { uItem: u, type: 'end', sortOrder: 4 }
+            });
+          }
+        });
+        return evs;
+      };
+
+      const refreshCalendarCellBadges = () => {
+        if (!calendarNodeRef.current) return;
+        const rawArr = scheduleRef.current;
+
+        calendarNodeRef.current.querySelectorAll('.calendar-day-target-sum').forEach(el => {
+          const dateStr = el.getAttribute('data-date');
+          if (!dateStr) return;
+          const bUsed = calcDailyUsed('banner', dateStr, rawArr, excludeWired);
+          const cUsed = calcDailyUsed('coupon', dateStr, rawArr, excludeWired);
+          const totalTarget = Math.max(bUsed, cUsed);
+          el.innerText = totalTarget > 0 ? `(${formatTargetKor(totalTarget)})` : '';
+
+          const cellEl = el.closest('.fc-daygrid-day');
+          if (cellEl) {
+            let capaEl = cellEl.querySelector('.calendar-day-capa-remain');
+            if (!capaEl) {
+              capaEl = document.createElement('div');
+              capaEl.className = 'calendar-day-capa-remain';
+              cellEl.appendChild(capaEl);
+            }
+            const bannerRemain = Math.max(calcDailyLimit('banner', dateStr, todayLocalStr) - bUsed, 0);
+            const couponRemain = Math.max(calcDailyLimit('coupon', dateStr, todayLocalStr) - cUsed, 0);
+            capaEl.innerText = `B ${formatTargetKor(bannerRemain)} · C ${formatTargetKor(couponRemain)}`;
+          }
+
+          const topEl = el.parentElement;
+          if (topEl) {
+            const oldBadge = topEl.querySelector('.calendar-congestion-badge');
+            if (oldBadge) oldBadge.remove();
+            const congestionClass = bUsed < 1000000 ? 'green' : (bUsed < 2000000 ? 'yellow' : 'red');
+            const badge = document.createElement('span');
+            badge.className = `calendar-congestion-badge ${congestionClass}`;
+            topEl.appendChild(badge);
+          }
+        });
+      };
+
+      useEffect(() => {
+        if (viewMode !== 'CALENDAR') {
+          if (calendarInstanceRef.current) {
+            calendarInstanceRef.current.destroy();
+            calendarInstanceRef.current = null;
+          }
+          return;
+        }
+        if (!calendarNodeRef.current || typeof window.FullCalendar === 'undefined') return;
+        const filteredEvs = buildCalendarEvents();
+        filteredEventsRef.current = filteredEvs;
+
+        if (!calendarInstanceRef.current) {
+          const cal = new window.FullCalendar.Calendar(calendarNodeRef.current, {
+            initialView: 'dayGridMonth',
+            locale: 'ko',
+            events: filteredEvs,
+            dayMaxEvents: 5,
+            height: 'auto',
+            eventOrder: 'sortOrder,title',
+            eventClick: (info) => {
+              info.jsEvent.stopPropagation();
+              const uItem = info.event.extendedProps?.uItem;
+              if (uItem) openUnifiedDetailModal(uItem, info.event.startStr);
+            },
+            dateClick: (info) => {
+              if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+              const dayEvs = filteredEventsRef.current.filter(e => e.extendedProps?.type === 'start' && e.start === info.dateStr);
+              setDetailModal({
+                type: 'DATE',
+                title: `${info.dateStr} 프로모션 현황 (${dayEvs.length}건)`,
+                data: dayEvs,
+                dateStr: info.dateStr
+              });
+            },
+            dayCellDidMount: (info) => {
+              const cellEl = info.el;
+              const topEl = cellEl.querySelector('.fc-daygrid-day-top');
+              const offset = info.date.getTimezoneOffset() * 60000;
+              const dStr = new Date(info.date.getTime() - offset).toISOString().split('T')[0];
+
+              if (topEl && !topEl.querySelector('.calendar-day-target-sum')) {
+                const sumEl = document.createElement('span');
+                sumEl.className = 'calendar-day-target-sum';
+                sumEl.setAttribute('data-date', dStr);
+                topEl.appendChild(sumEl);
+              }
+            },
+            datesSet: () => {
+              setTimeout(refreshCalendarCellBadges, 0);
+            }
+          });
+          cal.render();
+          calendarInstanceRef.current = cal;
+        } else {
+          calendarInstanceRef.current.removeAllEvents();
+          calendarInstanceRef.current.addEventSource(filteredEvs);
+        }
+        setTimeout(refreshCalendarCellBadges, 50);
+      }, [viewMode, scheduleData, campaignData, categoryFilter, typeFilters, dateFilters, excludeWired, onlyUnassigned, searchText]);
+
+      const renderCategoryBadge = (cat) => {
+        if (cat === 'INTEGRATED') return <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#4f3df6]/20 text-[#7387ff] border border-[#4f3df6]/40">🎨 통합 (시안+Capa)</span>;
+        if (cat === 'CAPA_ONLY') return <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">⚡ Capa 전용</span>;
+        return <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#32d782]/20 text-[#32d782] border border-[#32d782]/40">🖼️ 시안 전용 (MASS)</span>;
       };
 
       return (
-        <div className="flex flex-col h-full w-full bg-[#06070a] overflow-hidden p-6 gap-5">
-          <div className="flex items-center justify-between shrink-0">
+        <div className="flex-1 h-full overflow-y-auto custom-scrollbar bg-[#06070a] p-6 space-y-5">
+          {/* 상단 헤더 & 캘린더/리스트 뷰 토글 스위치 */}
+          <div className="bg-gradient-to-r from-[#12141c] to-[#1a1c26] border border-[#262833] rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
             <div>
-              <h2 className="text-white font-black text-xl tracking-tight flex items-center gap-2"><FolderOpen size={22} className="text-[#7387ff]" /> 프로모션 관리</h2>
-              <p className="text-slate-500 text-xs font-medium mt-1">과거에 만든 캠페인을 확인하고 불러와 수정할 수 있습니다.</p>
+              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2.5">
+                <FolderOpen size={22} className="text-[#7387ff]" /> 통합 프로모션 현황 (캘린더 & 목록)
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Capa 전용 스케줄과 배너 시안 캠페인을 한곳에서 조회하고 유형별로 수정·복제·일정 변경을 수행합니다.</p>
             </div>
-            <button onClick={fetchCampaigns} disabled={isLoading} className="flex items-center gap-1.5 px-4 py-2 bg-[#1a1c26] text-slate-300 rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#262833] hover:text-white transition-colors disabled:opacity-50">
-              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} /> 새로고침
-            </button>
+
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {/* 뷰 전환 토글 */}
+              <div className="bg-[#0a0812] p-1 rounded-xl border border-[#303340] flex items-center">
+                <button
+                  onClick={() => setViewMode('CALENDAR')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-black transition-all ${viewMode === 'CALENDAR' ? 'bg-[#4f3df6] text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                >
+                  <CalendarDays size={14} /> 캘린더 뷰
+                </button>
+                <button
+                  onClick={() => setViewMode('LIST')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-black transition-all ${viewMode === 'LIST' ? 'bg-[#4f3df6] text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                >
+                  <ListTodo size={14} /> 리스트 뷰 ({filteredUnifiedItems.length})
+                </button>
+              </div>
+
+              <button
+                onClick={handleAssignExecutionTimes}
+                disabled={isAssigning || isLoading}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all"
+              >
+                <Zap size={14} /> 실행시각 자동배정
+              </button>
+
+              <button
+                onClick={fetchAllStatusData}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 px-3 py-2 bg-[#12141c] hover:bg-[#262833] text-slate-300 border border-[#303340] rounded-xl text-xs font-bold"
+              >
+                <RefreshCw size={14} className={isLoading ? "animate-spin text-[#7387ff]" : ""} />
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 min-h-0 bg-[#0f111a] border border-[#262833] rounded-2xl overflow-hidden flex flex-col shadow-xl">
-            {isLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-500">
-                <Loader2 size={28} className="animate-spin text-[#7387ff]" />
-                <span className="text-sm font-medium">캠페인 목록을 불러오는 중...</span>
+          {/* 필터 컨트롤 바 */}
+          <div className="bg-[#0f111a] border border-[#262833] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* 프로모션 유형 필터 */}
+              <div className="flex items-center gap-1 bg-[#12141c] p-1 rounded-xl border border-[#262833]">
+                {[
+                  { id: 'ALL', label: '전체 유형' },
+                  { id: 'INTEGRATED', label: '🎨 통합 프로모션' },
+                  { id: 'CAPA_ONLY', label: '⚡ Capa 전용' },
+                  { id: 'BANNER_ONLY', label: '🖼️ 시안 전용' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCategoryFilter(tab.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${categoryFilter === tab.id ? 'bg-[#4f3df6] text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-            ) : error ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-500 px-8 text-center">
-                <Inbox size={32} className="text-slate-700" />
-                <span className="text-sm font-medium text-red-400/80">{error}</span>
-                <button onClick={fetchCampaigns} className="mt-2 px-4 py-1.5 bg-[#1a1c26] border border-[#303340] rounded-lg text-xs text-slate-300 hover:text-white transition-colors">다시 시도</button>
-              </div>
-            ) : campaigns.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-500">
-                <Inbox size={32} className="text-slate-700" />
-                <span className="text-sm font-medium">등록된 캠페인이 없습니다.</span>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-[#1a1c26]">
-                {campaigns.map((item) => {
-                  const safeTargetStr = item.targetSize ? String(item.targetSize).replace(/[^0-9]/g, '') : '';
-                  const displayTargetSize = safeTargetStr ? parseInt(safeTargetStr).toLocaleString() : 0;
-                  
-                  let bannerTypesText = "등록된 배너 없음";
-                  if (item.meta && item.meta.bannerTypes) {
-                    bannerTypesText = item.meta.bannerTypes;
-                  } else if (item.assets && item.assets.length > 0) {
-                    bannerTypesText = item.assets.map(a => a.name || a.type).join(', ');
-                  }
 
-                  const isPast = isPastCampaign(item.startDate);
-    
-                  return (
-                    <div key={item.id} className="bg-[#12141c] border border-[#262833] rounded-xl p-4 transition-all">
-                      <div className="flex items-center w-full">
-                        <div className="w-[33%] min-w-[240px] shrink-0 pr-4">
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <h4 className="text-white font-bold text-[14px] truncate" title={item.campaignName}>{item.campaignName}</h4>
-                            {item.target === 'TARGET' && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1 shrink-0 whitespace-nowrap">
-                                TARGET {displayTargetSize !== 0 && <span className="text-orange-300">({displayTargetSize}명)</span>}
+              <div className="h-4 w-[1px] bg-[#262833]" />
+
+              <button
+                onClick={() => setOnlyUnassigned(!onlyUnassigned)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${onlyUnassigned ? 'bg-red-500 text-white border-red-400' : 'bg-[#12141c] border-[#262833] text-red-400 hover:bg-red-500/15'}`}
+              >
+                <AlertTriangle size={12} /> 미반영만 보기
+              </button>
+
+              {viewMode === 'CALENDAR' && (
+                <>
+                  <div className="h-4 w-[1px] bg-[#262833]" />
+                  <div className="flex items-center gap-2.5">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300 cursor-pointer">
+                      <input type="checkbox" checked={dateFilters.includes('start')} onChange={e => setDateFilters(e.target.checked ? [...dateFilters, 'start'] : dateFilters.filter(x => x !== 'start'))} className="accent-[#4f3df6]" />
+                      시작일
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 cursor-pointer">
+                      <input type="checkbox" checked={dateFilters.includes('end')} onChange={e => setDateFilters(e.target.checked ? [...dateFilters, 'end'] : dateFilters.filter(x => x !== 'end'))} className="accent-[#4f3df6]" />
+                      종료일
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="relative w-[240px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                placeholder="캠페인명 검색..."
+                className="w-full bg-[#0a0812] border border-[#303340] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#4f3df6]"
+              />
+            </div>
+          </div>
+
+          {/* 뷰 모드 1: 캘린더 뷰 */}
+          {viewMode === 'CALENDAR' && (
+            <div id="schedule-calendar" ref={calendarNodeRef} className="shadow-2xl" />
+          )}
+
+          {/* 뷰 모드 2: 리스트 뷰 (유형별 맞춤 액션 버튼 제공) */}
+          {viewMode === 'LIST' && (
+            <div className="bg-[#0f111a] border border-[#262833] rounded-2xl overflow-hidden shadow-xl">
+              {isLoading ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-3 text-slate-500">
+                  <Loader2 size={28} className="animate-spin text-[#7387ff]" />
+                  <span className="text-sm font-medium">통합 프로모션 목록을 불러오는 중...</span>
+                </div>
+              ) : filteredUnifiedItems.length === 0 ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-2 text-slate-500">
+                  <Inbox size={32} className="text-slate-700" />
+                  <span className="text-sm font-medium">조건에 맞는 프로모션이 없습니다.</span>
+                </div>
+              ) : (
+                <div className="divide-y divide-[#1a1c26]">
+                  {filteredUnifiedItems.map((u) => {
+                    const s = u.scheduleRecord || {};
+                    const b = u.bannerRecord || {};
+                    const tSize = extractTargetNum(s) || Number(String(b.targetSize || '0').replace(/[^0-9]/g, '')) || 0;
+                    const schedStatus = String(s['상태'] || (u.hasBannerAssets ? '편성 확정' : '대기 중')).trim();
+                    const execTime = String(s['실행시각'] || '').trim();
+                    const isUnassigned = schedStatus === '미반영' || execTime.includes('배정 불가');
+
+                    const bannerNames = u.hasBannerAssets
+                      ? (b.assets || []).map(a => `${a.name}(${Array.isArray(a.data?.gnb) ? a.data.gnb.join('/') : (a.data?.gnb || '홈')})`).join(', ')
+                      : (s['채널'] || s['필터'] || '배너 시안 없음');
+
+                    return (
+                      <div key={u.key} className="p-4 hover:bg-[#12141c] transition-colors flex flex-wrap items-center justify-between gap-4">
+                        <div className="w-full md:w-[36%] min-w-[260px] pr-2">
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            {renderCategoryBadge(u.category)}
+                            <h4 className="text-white font-bold text-sm truncate max-w-[240px]" title={u.campaignName}>{u.campaignName}</h4>
+                            {tSize > 0 && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400 border border-pink-500/30">
+                                {formatTargetKor(tSize)}
                               </span>
                             )}
-                            {item.status === '확정 완료' && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0 whitespace-nowrap">확정 완료</span>
+                            {u.hasSchedule && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isUnassigned ? 'bg-red-500/20 text-red-400 border border-red-500/40' : schedStatus === '일정 확정' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                                {schedStatus} {execTime ? `(${execTime})` : ''}
+                              </span>
                             )}
                           </div>
                           <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                            <span>{item.startDate} ~ {item.dueDate}</span>
+                            <span>📅 {u.startDate} ~ {u.dueDate}</span>
                             <span>•</span>
-                            <span>수정 {item.updatedAt}</span>
+                            <span>👤 {u.department} {u.marketer}</span>
                           </div>
                         </div>
-    
-                        <div className="flex-1 px-5 text-left hidden md:block border-l border-[#262833] min-w-0 overflow-hidden">
-                          <p className="text-[10px] text-slate-500 mb-0.5 font-bold">포함된 배너 에셋</p>
-                          <p className="text-[12px] text-slate-300 font-medium truncate w-full" title={bannerTypesText}>
-                            {bannerTypesText}
-                          </p>
+
+                        <div className="flex-1 min-w-[200px] border-l border-[#262833] pl-4">
+                          <div className="text-[10px] font-bold text-slate-500 mb-0.5">편성 배너 / 발송 채널 구성</div>
+                          <div className="text-xs text-slate-300 truncate" title={bannerNames}>{bannerNames}</div>
                         </div>
-    
-                        <div className="w-[250px] shrink-0 pl-4 border-l border-[#262833] flex items-center justify-end gap-1.5">
-                          {item.jiraKey && item.jiraKey !== "-" && (
-                            <button 
+
+                        {/* 🌟 6번 요구사항: 캠페인 유형(통합 / Capa전용 / 시안전용)에 따른 맞춤형 액션 버튼 */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {b.jiraKey && b.jiraKey !== "-" && (
+                            <button
                               onClick={() => {
-                                const url = item.jiraKey.startsWith('http') ? item.jiraKey : `https://jira.skbroadband.com/browse/${item.jiraKey}`;
+                                const url = b.jiraKey.startsWith('http') ? b.jiraKey : `https://jira.skbroadband.com/browse/${b.jiraKey}`;
                                 window.open(url, '_blank');
-                              }} 
-                              className="px-3 py-1.5 bg-[#262833] text-slate-300 rounded text-xs font-medium hover:bg-[#303340] hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                              }}
+                              className="px-2.5 py-1.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 rounded-lg text-xs font-bold border border-[#303340] flex items-center gap-1"
+                            >
                               <ExternalLink size={12} /> Jira
                             </button>
                           )}
-                          
-                          <button onClick={() => handleDuplicate(item)} className="px-3 py-1.5 bg-[#d946ef]/10 text-[#e879f9] border border-[#d946ef]/30 rounded text-xs font-bold hover:bg-[#d946ef]/20 transition-colors flex items-center gap-1.5 whitespace-nowrap">
-                            <Copy size={12} /> 복제
-                          </button>
-                          
-                          {!isPast && (
-                            <button onClick={() => handleLoad(item)} className="px-3 py-1.5 bg-[#4f3df6]/10 text-[#7387ff] border border-[#4f3df6]/30 rounded text-xs font-bold hover:bg-[#4f3df6]/20 transition-colors flex items-center gap-1 whitespace-nowrap">
-                              수정 <ChevronRight size={12} />
+
+                          {u.hasSchedule && (
+                            <button
+                              onClick={() => openUnifiedDetailModal(u)}
+                              className="px-2.5 py-1.5 bg-[#1a1c26] hover:bg-[#262833] text-amber-300 rounded-lg text-xs font-bold border border-amber-500/30 flex items-center gap-1"
+                            >
+                              <Clock size={12} /> 일정/모수 변경
                             </button>
                           )}
+
+                          {u.hasBannerAssets && (
+                            <button
+                              onClick={() => handleEditBannerAssets(b, s)}
+                              className="px-3 py-1.5 bg-[#4f3df6]/15 hover:bg-[#4f3df6]/30 text-[#7387ff] border border-[#4f3df6]/40 rounded-lg text-xs font-bold flex items-center gap-1"
+                            >
+                              <Edit3 size={12} /> 시안/편성 수정
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDuplicateUnified(u)}
+                            className="px-2.5 py-1.5 bg-[#d946ef]/10 hover:bg-[#d946ef]/20 text-[#e879f9] border border-[#d946ef]/30 rounded-lg text-xs font-bold flex items-center gap-1"
+                          >
+                            <Copy size={12} /> 복제
+                          </button>
+
+                          <button
+                            onClick={() => handleCancelOrDeleteUnified(u)}
+                            title="편성 취소 및 슬롯 반환"
+                            className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 상세/수정 모달 */}
+          {detailModal && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150" onClick={() => setDetailModal(null)}>
+              <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-[#262833] bg-[#0f111a] flex items-center justify-between">
+                  <h3 className="text-sm font-black text-white truncate pr-2">{detailModal.title}</h3>
+                  <button onClick={() => setDetailModal(null)} className="p-1 text-slate-400 hover:text-white"><X size={16} /></button>
+                </div>
+
+                {detailModal.type === 'EVENT' && detailModal.uItem ? (
+                  <div className="p-5 space-y-4 text-xs text-slate-300 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-between bg-[#0a0812] p-3 rounded-xl border border-[#262833]">
+                      <span>프로모션 유형</span>
+                      {renderCategoryBadge(detailModal.uItem.category)}
                     </div>
-                  );
-                })}
+
+                    {editEventForm && detailModal.uItem.hasSchedule ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="col-span-2">
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">캠페인 명</label>
+                            <input type="text" value={editEventForm.campaignName} onChange={e => setEditEventForm({...editEventForm, campaignName: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">시작일</label>
+                            <input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm({...editEventForm, startDate: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">종료일</label>
+                            <input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm({...editEventForm, endDate: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">타겟 수 (명)</label>
+                            <input type="text" value={editEventForm.targetSize} onChange={e => setEditEventForm({...editEventForm, targetSize: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">쿠폰 여부</label>
+                            <select value={editEventForm.couponYn} onChange={e => setEditEventForm({...editEventForm, couponYn: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
+                              <option value="쿠폰">쿠폰 (포함)</option>
+                              <option value="미포함">미포함</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">요청 부서</label>
+                            <input type="text" value={editEventForm.department} onChange={e => setEditEventForm({...editEventForm, department: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">담당자 이름</label>
+                            <input type="text" value={editEventForm.marketer} onChange={e => setEditEventForm({...editEventForm, marketer: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-[#0a0812] border border-[#262833] rounded-xl p-4 space-y-2">
+                        <div className="flex justify-between"><span className="text-slate-500">편성 기간</span><span className="text-white font-bold">{detailModal.uItem.startDate} ~ {detailModal.uItem.dueDate}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-500">요청 부서 / 담당자</span><span className="text-white">{detailModal.uItem.department} / {detailModal.uItem.marketer}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-500">포함된 배너 수</span><span className="text-[#32d782] font-bold">{(detailModal.uItem.bannerRecord?.assets || []).length}개 배너 에셋</span></div>
+                      </div>
+                    )}
+
+                    <div className="pt-3 border-t border-[#1e202b] flex flex-wrap items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleCancelOrDeleteUnified(detailModal.uItem)}
+                        disabled={isUpdatingEvent}
+                        className="px-3 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center gap-1"
+                      >
+                        <Trash2 size={13} /> 편성 취소/삭제
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetU = detailModal.uItem;
+                            setDetailModal(null);
+                            handleDuplicateUnified(targetU);
+                          }}
+                          className="px-3 py-2.5 bg-[#d946ef]/15 hover:bg-[#d946ef]/25 text-[#e879f9] border border-[#d946ef]/30 rounded-xl text-xs font-bold flex items-center gap-1"
+                        >
+                          <Copy size={13} /> 복제
+                        </button>
+
+                        {detailModal.uItem.hasBannerAssets && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const targetU = detailModal.uItem;
+                              setDetailModal(null);
+                              handleEditBannerAssets(targetU.bannerRecord, targetU.scheduleRecord);
+                            }}
+                            className="px-3.5 py-2.5 bg-[#1a1c26] hover:bg-[#262833] text-[#7387ff] border border-[#303340] rounded-xl text-xs font-bold flex items-center gap-1.5"
+                          >
+                            <LayoutTemplate size={13} /> 배너 시안/편성 수정
+                          </button>
+                        )}
+
+                        {detailModal.uItem.hasSchedule && (
+                          <button
+                            type="button"
+                            onClick={handleUpdateEventSchedule}
+                            disabled={isUpdatingEvent}
+                            className="px-4 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <Zap size={13} /> {isUpdatingEvent ? "처리 중..." : "일정/모수 저장 및 재배정"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {(() => {
+                      const dStr = detailModal.dateStr;
+                      const bRemain = Math.max(calcDailyLimit('banner', dStr, todayLocalStr) - calcDailyUsed('banner', dStr, scheduleData, excludeWired), 0);
+                      const cRemain = Math.max(calcDailyLimit('coupon', dStr, todayLocalStr) - calcDailyUsed('coupon', dStr, scheduleData, excludeWired), 0);
+                      const dayList = Array.isArray(detailModal.data) ? detailModal.data : [];
+                      return (
+                        <>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-[#0a0812] border border-[#262833] rounded-xl p-3">
+                              <div className="text-[10px] text-slate-400 font-bold">타겟 배너 잔여 CAPA</div>
+                              <div className="text-base font-black text-[#32d782] mt-1">{formatTargetKor(bRemain)}</div>
+                            </div>
+                            <div className="bg-[#0a0812] border border-[#262833] rounded-xl p-3">
+                              <div className="text-[10px] text-slate-400 font-bold">B tv 쿠폰 잔여 CAPA</div>
+                              <div className="text-base font-black text-pink-400 mt-1">{formatTargetKor(cRemain)}</div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            {dayList.length === 0 ? (
+                              <div className="text-xs text-slate-500 py-6 text-center bg-[#0a0812] rounded-xl border border-[#262833]">해당 일자에 시작하는 프로모션이 없습니다.</div>
+                            ) : (
+                              dayList.map((ev, i) => {
+                                const u = ev.extendedProps?.uItem;
+                                if (!u) return null;
+                                return (
+                                  <div
+                                    key={i}
+                                    onClick={() => openUnifiedDetailModal(u, detailModal.dateStr)}
+                                    className="bg-[#0a0812] hover:bg-[#1a1c26] border border-[#262833] rounded-xl p-3 flex items-center justify-between text-xs cursor-pointer transition-colors"
+                                  >
+                                    <div className="truncate pr-3 flex items-center gap-2">
+                                      {renderCategoryBadge(u.category)}
+                                      <span className="font-bold text-white truncate">{u.campaignName}</span>
+                                    </div>
+                                    <span className="text-[11px] text-slate-400 shrink-0">{u.department} {u.marketer}</span>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       );
     };
     
+    // ====================================================================================
+    // 🌟 메인 App 컴포넌트 (Step 1 -> Step 2 -> Step 3 단계별 잠금 및 통합 현황 연결)
+    // ====================================================================================
     function App() {
-      const [currentView, setCurrentView] = useState('CALENDAR');
+      // 'STEP1_CAPA' | 'PLANNER' | 'EDITOR' | 'STATUS'
+      const [currentView, setCurrentView] = useState('STEP1_CAPA');
+      const [statusInitialMode, setStatusInitialMode] = useState('CALENDAR');
+
+      // 🌟 5번 요구사항: 단선적(Step-by-Step) 잠금 상태 관리
+      const [unlockedSteps, setUnlockedSteps] = useState({
+        step1: true,
+        step2: false,
+        step3: false
+      });
+
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       const [isNavExpanded, setIsNavExpanded] = useState(false); 
       const [extensionVersion, setExtensionVersion] = useState(null);
@@ -3030,8 +3215,6 @@
       const [jiraSession, setJiraSession] = useState('CHECKING');
       
       const [isFlowModalOpen, setIsFlowModalOpen] = useState(false);
-
-      // 🌟 [동적 규격 연동] 시트에서 실시간으로 불러온 배너 특성 및 텍스트 규격 State
       const [sheetBannerSpecs, setSheetBannerSpecs] = useState([]);
 
       const fetchBannerSpecsFromSheet = async () => {
@@ -3074,7 +3257,6 @@
         fetchBannerSpecsFromSheet();
       }, []);
 
-      // 🌟 현재 선택된 배너(activeAsset)에 대응하는 시트 규격 행을 실시간으로 탐색
       const getMatchedSheetSpec = (asset) => {
         if (!asset || sheetBannerSpecs.length === 0) return null;
         const aName = String(asset.name || '').replace(/\s+/g, '');
@@ -3118,10 +3300,13 @@
       const handleConfigChange = (gnbName, field, value) => setConfigMap(prev => ({ ...prev, [gnbName]: { ...prev[gnbName], [field]: value } }));
       const handleSaveConfig = async () => { setIsSettingsOpen(false); };
 
+      // Step 2 -> Step 3 이동 (Step 3 잠금 해제)
       const handleMoveToEditor = (payload, onInvalid) => {
         setCampaignMeta({ ...aiCampaignMeta });
         if (!payload || payload.action !== "CREATE_CAMPAIGN_ASSETS") {
-          setCurrentView('EDITOR'); return;
+          setUnlockedSteps(prev => ({ ...prev, step3: true }));
+          setCurrentView('EDITOR');
+          return;
         }
         const aiMeta = payload.rawGasData?.meta || {};
         const aiAssets = payload.rawGasData?.assets || [];
@@ -3135,7 +3320,11 @@
         
         if (assets.length > 0) {
           const confirmOverwrite = window.confirm("⚠️ 이미 시안 편집 화면에 작업 중인 배너가 존재합니다.\n새로운 AI 기획안으로 덮어씌우시겠습니까?");
-          if (!confirmOverwrite) { setCurrentView('EDITOR'); return; }
+          if (!confirmOverwrite) {
+            setUnlockedSteps(prev => ({ ...prev, step3: true }));
+            setCurrentView('EDITOR');
+            return;
+          }
         }
 
         const formMainImg = aiCampaignMeta.mainImageUrl || aiMeta.mainImageUrl || '';
@@ -3151,6 +3340,9 @@
           setCampaignMeta(prev => ({ 
             ...prev, 
             ...aiMeta,
+            target: aiCampaignMeta.target || aiMeta.target || prev.target,
+            targetSize: aiCampaignMeta.targetSize || aiMeta.targetSize || prev.targetSize,
+            isCapaChecked: aiCampaignMeta.isCapaChecked || prev.isCapaChecked,
             department: aiCampaignMeta.department || prev.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
             marketer: aiCampaignMeta.marketer || prev.marketer || localStorage.getItem('myMarketerName') || '',
             cycle: aiCampaignMeta.cycle || prev.cycle || '단발성'
@@ -3239,6 +3431,7 @@
             setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: newAssets.map(a => ({ id: a.id, name: a.name })) }));
           }
         }
+        setUnlockedSteps({ step1: true, step2: true, step3: true });
         setCurrentView('EDITOR');
       };
 
@@ -3261,6 +3454,7 @@
                 setAssets(parsed.assets || []);
                 setMermaidCode(parsed.mermaidCode || '');
                 setActiveTabId(parsed.assets[0]?.id || null);
+                setUnlockedSteps({ step1: true, step2: true, step3: true });
                 setCurrentView('EDITOR');
               } else {
                 localStorage.removeItem(AUTOSAVE_KEY);
@@ -3415,10 +3609,10 @@
 
       const handleExport = async () => {
         if (!assets || assets.length === 0) {
-          if (campaignMeta.target !== 'TARGET') return alert("전송할 배너 기획안이 없고, 타겟팅 캠페인도 아닙니다.");
+          return alert("⚠️ 전송할 배너 에셋이 없습니다.\n만약 모든 배너 편성을 취소하시려면 좌측 하단 [통합 프로모션 현황] 탭에서 삭제 버튼을 이용해 주세요.");
         }
         
-        const isConfirmed = window.confirm("Jira 일감 전송 및 캠페인 스케줄 등록을 시작하시겠습니까?\n확인을 누르면 화면 캡처가 시작됩니다.");
+        const isConfirmed = window.confirm("Jira 일감 전송 및 시트 등록을 시작하시겠습니까?\n확인을 누르면 화면 캡처 후 Jira 티켓이 새 탭으로 열립니다.");
         if (!isConfirmed) return;
 
         const meta = campaignMeta || {};
@@ -3467,20 +3661,25 @@
           }
         }
 
-        setExportState({ isExporting: true, progress: 60, msg: "AI 기획 변경 내역 분석 중..." });
+        setExportState({ isExporting: true, progress: 60, msg: "편성 변경 내역 분석 중..." });
 
         const originalAssets = meta.aiOriginalAssets || [];
         const currentAssetIds = assets.map(a => a.id);
-        const addedAssets = assets.filter(a => !a.id.startsWith('ai-asset-') && !originalAssets.find(oa => oa.id === a.id));
+        const addedAssets = assets.filter(a => !originalAssets.find(oa => oa.id === a.id));
         const deletedAssets = originalAssets.filter(oa => !currentAssetIds.includes(oa.id));
 
         let changeLogHtml = "";
+        let changeCommentNote = "";
         if (addedAssets.length > 0 || deletedAssets.length > 0) {
             changeLogHtml += "<div style='background-color:#fff0f0; border:1px solid #ffccc7; padding:15px; border-radius:8px; margin-bottom:20px;'>";
-            changeLogHtml += "<h3 style='color:#e74c3c; margin-top:0;'>🚨 기획 변경 사항 안내</h3><ul style='margin-bottom:0;'>";
-            addedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>➕ 추가된 배너:</b> ${a.name} (수동 추가)</li>`);
-            deletedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>➖ 삭제/제외된 배너:</b> ${a.name}</li>`);
-            changeLogHtml += "</ul><p style='color:#666; font-size:12px; margin-top:10px;'><i>※ 상단 유저플로우는 기획 초안 기준이며, 실제 세팅은 위 변경 사항 및 하단 종합표를 기준으로 진행해 주세요.</i></p></div>";
+            changeLogHtml += "<h3 style='color:#e74c3c; margin-top:0;'>🚨 배너 편성 변경/제외 안내</h3><ul style='margin-bottom:0;'>";
+            addedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>➕ 추가된 배너:</b> ${a.name}</li>`);
+            deletedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>➖ 편성 제외(삭제)된 배너:</b> ${a.name}</li>`);
+            changeLogHtml += "</ul><p style='color:#666; font-size:12px; margin-top:10px;'><i>※ 제외된 배너는 시트 슬롯에서 반환되었으며, 실제 세팅은 하단 최신 종합표를 기준으로 진행해 주세요.</i></p></div>";
+
+            if (deletedAssets.length > 0) {
+              changeCommentNote = `\n⚠️ [편성 제외 안내] 이번 업데이트에서 [${deletedAssets.map(d => d.name).join(', ')}] 배너가 편성 제외되었습니다.`;
+            }
         }
 
         const rawMermaidForJira = mermaidCode ? mermaidCode.replace(/<img[^>]*>/gi, '').trim() : '';
@@ -3583,8 +3782,6 @@
           }
         }));
 
-        if (assets.length === 0) parentTable = "<p>등록된 디자인(배너) 에셋이 없습니다. 타겟팅 운영 요청만 진행됩니다.</p>";
-
         const safeHasCoupon = (meta.hasCoupon || '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
         
         const parentDescText = 
@@ -3606,7 +3803,7 @@
           "<h3>📊 배너 편성 종합표</h3>" + parentTable + "<br><hr><br><p>하위 작업(Sub-task)으로 개별 상세 기획안이 첨부되어 있습니다.</p>";
         
         const mentionString = Array.from(uniqueAssignees).map(id => `[~${id}]`).join(' ');
-        const parentCommentText = `${mentionString}\n담당자님, 신규 캠페인 프로모션이 등록(또는 업데이트) 되었습니다. 각 영역별 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.`;
+        const parentCommentText = `${mentionString}\n담당자님, 캠페인 프로모션이 등록(또는 업데이트) 되었습니다. 각 영역별 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.${changeCommentNote}`;
 
         const uniqueCode = meta.uniqueCode || `BTV-${Date.now().toString(36).toUpperCase()}`;
         const safeTargetSize = String(meta.targetSize || '0').replace(/[^0-9]/g, '');
@@ -3631,13 +3828,17 @@
         const event = new CustomEvent('TEST_JIRA_SEND', { detail: finalData });
         window.dispatchEvent(event);
         
-        setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 잠시 후 Jira가 열립니다." });
+        // 🌟 7번 요구사항 반영: 억지로 목록 탭으로 화면을 전환하지 않고, 현재 화면에서 완료 안내 후 Jira 새 탭만 오픈!
+        setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 새 탭에서 Jira를 확인하세요." });
         localStorage.removeItem(AUTOSAVE_KEY);
-        setTimeout(() => { setExportState({ isExporting: false, progress: 0, msg: '' }); setCurrentView('CALENDAR'); }, 3000);
+        setTimeout(() => {
+          setExportState({ isExporting: false, progress: 0, msg: '' });
+        }, 3500);
       };
       
       const activeAsset = assets.find(a => a.id === activeTabId) || assets[0];
 
+      // 기존 캠페인 수정 로드 (Step 2, Step 3 모두 잠금 해제)
       const handleLoadCampaign = (meta, loadedAssets, loadedMermaid) => {
         localStorage.removeItem(AUTOSAVE_KEY);
         setCampaignMeta(prev => ({ 
@@ -3651,9 +3852,12 @@
           setAssets([]); setActiveTabId(null);
         }
         if (loadedMermaid) setMermaidCode(loadedMermaid); else setMermaidCode('');
-        setCurrentView('EDITOR'); setIsSidebarOpen(true);
+        setUnlockedSteps({ step1: true, step2: true, step3: true });
+        setCurrentView('EDITOR');
+        setIsSidebarOpen(true);
       };
 
+      // 기존 캠페인 복제 로드 (Step 2 잠금 해제 후 기획 탭으로 이동)
       const handleDuplicateCampaign = (meta, loadedAssets, loadedMermaid) => {
         localStorage.removeItem(AUTOSAVE_KEY);
         setCampaignMeta(prev => ({ 
@@ -3667,10 +3871,13 @@
           setAssets([]); setActiveTabId(null);
         }
         if (loadedMermaid) setMermaidCode(loadedMermaid); else setMermaidCode('');
-        setCurrentView('PLANNER'); setIsSidebarOpen(true);
+        setUnlockedSteps(prev => ({ ...prev, step1: true, step2: true }));
+        setCurrentView('PLANNER');
+        setIsSidebarOpen(true);
       };
 
-      const handleStartPlanFromCalendar = (prefillObj) => {
+      // Step 1 -> Step 2 진입 핸들러 (Step 2 잠금 해제 + 챗봇 브리핑)
+      const handleProceedFromStep1ToStep2 = (prefillObj) => {
         setAiCampaignMeta(prev => ({
           ...prev,
           ...prefillObj,
@@ -3680,97 +3887,113 @@
 
         const summaryParts = [];
         if (prefillObj.startDate) summaryParts.push(`일정: **${prefillObj.startDate} ~ ${prefillObj.dueDate || prefillObj.startDate}**`);
-        if (prefillObj.target === 'TARGET') summaryParts.push(`타겟 모수: **${prefillObj.targetSize || '미정'}명**`);
-        else summaryParts.push(`타겟: **MASS (전체 고객)**`);
-        if (prefillObj.channels) summaryParts.push(`채널: **${prefillObj.channels}**`);
-        if (prefillObj.hasCoupon === 'Y') summaryParts.push(`쿠폰: **포함**`);
+        if (prefillObj.target === 'TARGET') {
+          summaryParts.push(`타겟 유형: **TARGET (모수: ${prefillObj.targetSize || '미정'}명 · ✅ Capa 검증 완료)**`);
+        } else {
+          summaryParts.push(`타겟 유형: **MASS (전체 고객 · 쿠폰 없음 패스트트랙)**`);
+        }
+        if (prefillObj.channels) summaryParts.push(`선택 채널: **${prefillObj.channels}**`);
+        if (prefillObj.hasCoupon === 'Y') summaryParts.push(`B tv 쿠폰: **포함**`);
 
-        const briefingMsg = `📅 **프로모션 캘린더에서 선택한 조건이 우측 기획 폼에 자동 반영되었습니다!**\n- ${summaryParts.join('\n- ')}\n\n이어서 기획하실 **캠페인명**, **대상 상품(VOD/월정액)**, 그리고 **핵심 컨셉**을 편하게 말씀해 주시면 맞춤 배너 구성을 제안해 드릴게요!`;
+        const briefingMsg = `✅ **Step 1(프로모션 Capa)에서 확정하신 조건이 우측 기획 폼에 자동 반영되었습니다!**\n- ${summaryParts.join('\n- ')}\n\n이어서 기획하실 **캠페인명**, **대상 상품(VOD/월정액)**, 그리고 **핵심 컨셉**을 말씀해 주시면 요청 기간 내 GNB 슬롯 혼잡도를 분석해 최적의 배너 구성을 제안해 드릴게요!`;
 
         setAiChatHistory(prev => [
           ...prev,
-          { id: `msg-init-cal-${Date.now()}`, sender: 'ai', text: briefingMsg }
+          { id: `msg-init-step1-${Date.now()}`, sender: 'ai', text: briefingMsg }
         ]);
+        setUnlockedSteps(prev => ({ ...prev, step1: true, step2: true }));
         setCurrentView('PLANNER');
-      };
-
-      const handleOpenCampaignFromSchedule = async (schedItem) => {
-        try {
-          const response = await fetch("https://btv-proxy.alcheminos.workers.dev?action=getCampaigns");
-          const list = await response.json();
-          if (Array.isArray(list)) {
-            const targetCode = String(schedItem.uniqueCode || '').trim();
-            const targetName = String(schedItem['캠페인 명'] || schedItem['캠페인명'] || '').trim();
-            const matched = list.find(c => (targetCode && c.uniqueCode === targetCode) || (targetName && c.campaignName === targetName));
-            if (matched && matched.assets && matched.assets.length > 0) {
-              const meta = matched.meta || {
-                campaignName: matched.campaignName, target: matched.target, targetSize: matched.targetSize,
-                startDate: matched.startDate, dueDate: matched.dueDate, hasCoupon: matched.hasCoupon,
-                couponBenefit: matched.couponBenefit, conceptCopy: matched.conceptCopy, mainImageUrl: matched.mainImageUrl,
-                product: matched.product, bannerTypes: matched.bannerTypes, gnbLocations: matched.gnbLocations,
-                department: schedItem['요청 부서'] || schedItem['부서'] || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
-                marketer: schedItem['담당자 이름'] || schedItem['마케터'] || localStorage.getItem('myMarketerName') || ''
-              };
-              meta.parentJiraKey = matched.jiraKey ? String(matched.jiraKey).split('/').pop() : '';
-              meta.uniqueCode = matched.uniqueCode || targetCode;
-              handleLoadCampaign(meta, matched.assets, matched.mermaidCode || "");
-              return;
-            }
-          }
-          const goPlan = window.confirm("💡 이 스케줄에 연결된 배너 시안(에셋) 데이터가 아직 없습니다. (단순 Capa 반영 건)\n\n이 스케줄 정보를 바탕으로 AI 배너 시안 기획을 새로 시작하시겠습니까?");
-          if (goPlan) {
-            const tNum = parseInt(String(schedItem['타겟 수'] || schedItem['타겟수'] || '0').replace(/[^0-9]/g, ''), 10) || 0;
-            handleStartPlanFromCalendar({
-              campaignName: schedItem['캠페인 명'] || schedItem['캠페인명'] || '',
-              startDate: schedItem._calStart || schedItem['시작일'] || '',
-              dueDate: schedItem._calEnd || schedItem['종료일'] || '',
-              target: tNum > 0 ? 'TARGET' : 'MASS',
-              targetSize: tNum > 0 ? tNum.toLocaleString() : '',
-              hasCoupon: String(schedItem['쿠폰 여부'] || '').includes('쿠폰') ? 'Y' : 'N',
-              channels: schedItem['채널'] || schedItem['필터'] || '',
-              department: schedItem['요청 부서'] || schedItem['부서'] || 'Btv큐레이션팀',
-              marketer: schedItem['담당자 이름'] || schedItem['마케터'] || '',
-              uniqueCode: schedItem.uniqueCode || ''
-            });
-          }
-        } catch (e) {
-          alert("⚠️ 시안 조회 중 오류가 발생했습니다: " + e.message);
-        }
       };
 
       return (
         <div className="flex h-screen w-full bg-[#06070a] text-slate-200 overflow-hidden select-none">
           
-          <nav className={`bg-[#0f111a] border-r border-[#262833] flex flex-col py-6 z-30 shrink-0 shadow-lg transition-[width] duration-300 ease-in-out overflow-hidden ${isNavExpanded ? 'w-[220px]' : 'w-[72px]'}`}>
-            <div className="w-[220px] flex flex-col h-full">
-              <div className="flex items-center mb-10 px-3.5 w-full">
+          {/* 🌟 5번 & 6번 요구사항: Step 1 -> Step 2 -> Step 3 단계별 잠금 네비게이션 + 하단 통합 프로모션 현황 */}
+          <nav className={`bg-[#0f111a] border-r border-[#262833] flex flex-col py-6 z-30 shrink-0 shadow-lg transition-[width] duration-300 ease-in-out overflow-hidden ${isNavExpanded ? 'w-[235px]' : 'w-[72px]'}`}>
+            <div className="w-[235px] flex flex-col h-full">
+              <div className="flex items-center mb-8 px-3.5 w-full">
                 <div className="w-[48px] h-[48px] bg-white rounded-xl flex items-center justify-center shadow-lg shadow-[#4f3df6]/30 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-[28px] h-[28px] text-[#4f3df6] fill-current" viewBox="0 0 64 64"><path d="M45.7,30.9L45.7,30.9l0-0.2c2-2.1,3.1-4.9,3.2-7.8c0-0.7,0-1.5-0.2-2.2c-1.1-5.6-6-9.7-11.7-9.7H13v9.7h22.2c2,0,3.6,1.6,3.6,3.6s-1.6,3.6-3.6,3.6H23.1v-5l-10.1,5v25.2h24.7c7,0,12.6-5.6,12.6-12.6C50.2,36.7,48.5,33.3,45.7,30.9 M35.6,43.5H23.1v-7.8h12.5c2.2,0,3.9,1.7,3.9,3.9S37.8,43.5,35.6,43.5" /></svg>
                 </div>
-                <span className={`text-white text-[15px] font-medium tracking-tight ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                  캠페인 매니저
+                <span className={`text-white text-[15px] font-black tracking-tight ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                  B tv 캠페인 매니저
                 </span>
               </div>
 
-              <div className="flex flex-col gap-3 w-full px-3">
-                <button onClick={() => setCurrentView('CALENDAR')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'CALENDAR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
-                  <CalendarDays size={22} className="shrink-0" />
-                  <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 캘린더</span>
+              {/* 단선형 워크플로우 (Step 1 ~ Step 3) */}
+              <div className="flex flex-col gap-2 w-full px-3">
+                {isNavExpanded && <div className="text-[10px] font-black text-slate-500 px-2 mb-0.5 uppercase tracking-wider">Step-by-Step Workflow</div>}
+
+                {/* Step 1: 프로모션 Capa (항상 열림) */}
+                <button
+                  onClick={() => setCurrentView('STEP1_CAPA')}
+                  title="Step 1. 프로모션 Capa 검증"
+                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'STEP1_CAPA' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-400 hover:text-white hover:bg-[#1a1c26]'}`}
+                >
+                  <BarChart3 size={20} className="shrink-0" />
+                  <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] font-black opacity-75">STEP 1</span>
+                    <span className="font-bold text-xs">프로모션 Capa</span>
+                  </div>
                 </button>
 
-                <button onClick={() => setCurrentView('PLANNER')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'PLANNER' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
-                  <Bot size={22} className="shrink-0" />
-                  <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 기획</span>
+                {/* Step 2: 프로모션 기획 (잠금/해제) */}
+                <button
+                  onClick={() => {
+                    if (!unlockedSteps.step2) {
+                      return alert("🔒 [Step 1. 프로모션 Capa] 화면에서 먼저 타겟/쿠폰 모수를 검증하거나, 상단의 [🚀 MASS 프로모션 바로 기획] 버튼을 눌러 시작해 주세요!");
+                    }
+                    setCurrentView('PLANNER');
+                  }}
+                  title={unlockedSteps.step2 ? "Step 2. 프로모션 기획" : "🔒 Step 1 완료 후 열립니다"}
+                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'PLANNER' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : unlockedSteps.step2 ? 'text-slate-400 hover:text-white hover:bg-[#1a1c26]' : 'text-slate-600 bg-[#12141c]/60 cursor-not-allowed'}`}
+                >
+                  <div className="relative shrink-0">
+                    <Bot size={20} />
+                    {!unlockedSteps.step2 && <Lock size={11} className="absolute -bottom-1 -right-1 text-pink-400 bg-[#0f111a] rounded-full p-0.5" />}
+                  </div>
+                  <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] font-black opacity-75">STEP 2 {unlockedSteps.step2 ? '✓' : '🔒'}</span>
+                    <span className="font-bold text-xs">프로모션 기획</span>
+                  </div>
                 </button>
-                
-                <button onClick={() => setCurrentView('EDITOR')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'EDITOR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
-                  <LayoutTemplate size={22} className="shrink-0" />
-                  <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 시안</span>
+
+                {/* Step 3: 프로모션 시안 (잠금/해제) */}
+                <button
+                  onClick={() => {
+                    if (!unlockedSteps.step3) {
+                      return alert("🔒 [Step 2. 프로모션 기획]에서 시안 생성을 완료하거나, 하단 [통합 프로모션 현황]에서 기존 캠페인의 [시안 수정]을 선택하면 열립니다!");
+                    }
+                    setCurrentView('EDITOR');
+                  }}
+                  title={unlockedSteps.step3 ? "Step 3. 프로모션 시안 편집" : "🔒 Step 2 시안 생성 후 열립니다"}
+                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'EDITOR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : unlockedSteps.step3 ? 'text-slate-400 hover:text-white hover:bg-[#1a1c26]' : 'text-slate-600 bg-[#12141c]/60 cursor-not-allowed'}`}
+                >
+                  <div className="relative shrink-0">
+                    <LayoutTemplate size={20} />
+                    {!unlockedSteps.step3 && <Lock size={11} className="absolute -bottom-1 -right-1 text-pink-400 bg-[#0f111a] rounded-full p-0.5" />}
+                  </div>
+                  <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] font-black opacity-75">STEP 3 {unlockedSteps.step3 ? '✓' : '🔒'}</span>
+                    <span className="font-bold text-xs">프로모션 시안</span>
+                  </div>
                 </button>
-                
-                <button onClick={() => setCurrentView('LIST')} className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[196px]' : ''} ${currentView === 'LIST' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-500 hover:text-white hover:bg-[#1a1c26]'}`}>
-                  <ListTodo size={22} className="shrink-0" />
-                  <span className={`font-bold text-sm ml-4 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>프로모션 관리</span>
+
+                <div className="my-2 border-t border-[#262833]" />
+
+                {isNavExpanded && <div className="text-[10px] font-black text-slate-500 px-2 mb-0.5 uppercase tracking-wider">History & Calendar</div>}
+
+                {/* 맨 아래 독립 탭: 통합 프로모션 현황 (캘린더 + 목록) */}
+                <button
+                  onClick={() => setCurrentView('STATUS')}
+                  title="통합 프로모션 현황 (캘린더 & 목록)"
+                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'STATUS' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-400 hover:text-white hover:bg-[#1a1c26]'}`}
+                >
+                  <CalendarDays size={20} className="shrink-0" />
+                  <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] font-black text-cyan-400">CALENDAR & LIST</span>
+                    <span className="font-bold text-xs">통합 프로모션 현황</span>
+                  </div>
                 </button>
               </div>
               
@@ -3820,11 +4043,11 @@
                     extClick = handleDownloadExtension;
                     tooltip = `업데이트 가능 (현재: v${curV} / 최신: v${gitV})`;
                   } else {
-                    extBtnText = `확장앱 최신 (v${curV || '1.3'})`;
+                    extBtnText = `확장앱 최신 (v${curV || '1.6'})`;
                     extBtnClass = "text-[#32d782] bg-[#32d782]/10 border-[#32d782]/30";
                     extIcon = <CheckCircle size={18} className="shrink-0" />;
                     extClick = () => {};
-                    tooltip = `최신 버전 사용 중 (v${curV || '1.3'})`;
+                    tooltip = `최신 버전 사용 중 (v${curV || '1.6'})`;
                   }
 
                   return (
@@ -3877,7 +4100,7 @@
           {isSidebarOpen && currentView === 'EDITOR' && activeAsset && (
             <aside className="w-[360px] bg-[#0c0d14] border-r border-[#1a1c26] flex flex-col h-full z-10 shrink-0 shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
               <div className="p-6 pb-4 flex items-center justify-between border-b border-[#1a1c26] bg-[#0f111a]">
-                <h1 className="text-lg font-black text-white tracking-tight">프로모션 시안</h1>
+                <h1 className="text-lg font-black text-white tracking-tight">Step 3. 프로모션 시안</h1>
                 <button
                   onClick={fetchBannerSpecsFromSheet}
                   title="시트 최신 텍스트 규격 다시 불러오기"
@@ -3960,7 +4183,6 @@
                         </div>
                       </div>
 
-                      {/* 🌟 실시간 '배너 특성 및 텍스트 규격' 시트 연동 영역 (시트 수정 시 글자 수가 자동 변경됨!) */}
                       {(() => {
                         const matchedSpec = getMatchedSheetSpec(activeAsset);
                         const isTargetImpossible = matchedSpec && String(matchedSpec.targetable).includes('불가');
@@ -3982,6 +4204,7 @@
                                 </div>
                                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-slate-400 pt-0.5">
                                   <span>• <b>편성:</b> {matchedSpec.gnbArea}</span>
+                                  <span>• <b>적정수량:</b> GNB당 {matchedSpec.recommendedLimit || 3}건</span>
                                   <span>• <b>Target:</b> <b className={isTargetImpossible ? 'text-red-400' : 'text-[#32d782]'}>{matchedSpec.targetable}</b></span>
                                 </div>
                                 {isTargetImpossible && campaignMeta.target === 'TARGET' && (
@@ -4218,7 +4441,6 @@
                                 );
                               })()}
 
-                              {/* 🌟 시트에서 새로 추가된 배너 유형(CUSTOM_BANNER 등)을 위한 동적 입력 폼 */}
                               {!['TODAY_BTV','GENERAL_SET_BANNER','FULL_PROMO_BANNER','BIG_BANNER','GENERAL_BANNER','LONG_BANNER','STRIP_BANNER','SYNOPSIS_BANNER','PROMO_POPUP','MINI_EPG_BANNER'].includes(activeAsset.type) && (() => {
                                 const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 15, subMax: 20, btnMax: 8 });
                                 return (
@@ -4250,17 +4472,13 @@
 
           <main className="flex-1 flex flex-col min-w-0 bg-[#06070a] relative">
 
-            {currentView === 'CALENDAR' && (
-              <ScheduleDashboardView
-                onStartPlanWithDate={handleStartPlanFromCalendar}
-                onOpenCampaignEditor={handleOpenCampaignFromSchedule}
-              />
-            )}
-
-            {currentView === 'LIST' && (
-              <PromotionListView 
-                onLoadCampaign={handleLoadCampaign} 
-                onDuplicateCampaign={handleDuplicateCampaign}
+            {currentView === 'STEP1_CAPA' && (
+              <Step1CapaView
+                onProceedToStep2={handleProceedFromStep1ToStep2}
+                onOpenIntegratedStatus={(mode) => {
+                  setStatusInitialMode(mode || 'CALENDAR');
+                  setCurrentView('STATUS');
+                }}
               />
             )}
 
@@ -4277,15 +4495,24 @@
               />
             )}
 
+            {currentView === 'STATUS' && (
+              <IntegratedStatusView
+                initialMode={statusInitialMode}
+                onLoadCampaign={handleLoadCampaign}
+                onDuplicateCampaign={handleDuplicateCampaign}
+                onStartPlanWithDate={handleProceedFromStep1ToStep2}
+              />
+            )}
+
             {currentView === 'EDITOR' && (
               <>
                 {!activeAsset ? (
                   <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500">
                     <LayoutTemplate size={64} className="mb-4 opacity-30 text-[#4f3df6]" />
                     <h2 className="text-xl font-bold text-white mb-2">등록된 배너 에셋이 없습니다.</h2>
-                    <p className="text-sm mb-6 text-center leading-relaxed">AI 기획을 통해 템플릿을 생성하거나<br/>수동으로 배너를 추가해주세요.</p>
+                    <p className="text-sm mb-6 text-center leading-relaxed">Step 2(프로모션 기획)로 돌아가 시안을 생성하거나<br/>수동으로 배너를 추가해주세요.</p>
                     <div className="flex gap-3">
-                      <button onClick={() => setCurrentView('PLANNER')} className="px-6 py-2.5 bg-[#1a1c26] text-white font-bold rounded-lg border border-[#303340] hover:bg-[#262833] transition-colors">AI 기획 돌아가기</button>
+                      <button onClick={() => setCurrentView('PLANNER')} className="px-6 py-2.5 bg-[#1a1c26] text-white font-bold rounded-lg border border-[#303340] hover:bg-[#262833] transition-colors">Step 2. AI 기획 돌아가기</button>
                       <button onClick={() => setIsAddAssetModalOpen(true)} className="px-6 py-2.5 bg-[#4f3df6] text-white font-bold rounded-lg hover:bg-[#6252ff] transition-colors shadow-lg flex items-center gap-2"><Plus size={16}/> 배너 추가</button>
                     </div>
                   </div>
@@ -4314,12 +4541,12 @@
                         </button>
 
                         <button onClick={(e) => removeAsset(activeAsset.id, e)} className="flex items-center gap-1.5 px-3.5 py-2 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold border border-red-500/30 hover:bg-red-500/20 hover:text-red-300 transition-colors">
-                          <Trash2 size={14}/> 배너 삭제
+                          <Trash2 size={14}/> 편성 제외(삭제)
                         </button>
 
                         <button onClick={() => setIsAddAssetModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1a1c26] text-white rounded-lg text-xs font-bold border border-[#303340] hover:bg-[#262833] transition-colors"><Plus size={14} className="text-[#7387ff]"/> 배너 추가</button>
                         {exportState.isExporting ? (
-                          <div className="w-[200px] h-[34px] bg-[#1a1c26] border border-[#4f3df6] rounded-lg overflow-hidden relative flex items-center shadow-[0_0_15px_rgba(79,61,246,0.3)]">
+                          <div className="w-[230px] h-[34px] bg-[#1a1c26] border border-[#4f3df6] rounded-lg overflow-hidden relative flex items-center shadow-[0_0_15px_rgba(79,61,246,0.3)]">
                             <div className="absolute inset-0 bg-[#4f3df6]/20 progress-stripes pointer-events-none"></div>
                             <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#4f3df6] to-[#7387ff] transition-all duration-300" style={{width: `${exportState.progress}%`}}></div>
                             <span className="relative z-10 w-full text-center text-[10px] font-bold text-white flex items-center justify-center gap-1.5"><Loader2 size={12} className="animate-spin"/> {exportState.msg}</span>
@@ -4361,7 +4588,7 @@
 
                     <div className="h-[180px] bg-[#0c0d14] border-t border-[#1a1c26] shrink-0 flex flex-col z-20">
                       <div className="flex px-6 py-2.5 justify-between items-center border-b border-[#1a1c26] bg-[#0f111a]">
-                        <h3 className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5"><ImageIcon size={12}/> Variant Assets ({assets.length})</h3>
+                        <h3 className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5"><ImageIcon size={12}/> 편성 예정 배너 에셋 ({assets.length}개)</h3>
                       </div>
                       
                       <div className="flex-1 overflow-x-auto custom-scrollbar flex items-center gap-4 px-6 bg-[#06070a]">
@@ -4519,7 +4746,6 @@
                     </div>
                   ))}
 
-                  {/* 🌟 시트에 새로 추가된 배너 유형(예: 월정액 가입 빅배너, 편성표 배너, WING UI 배너 등) 자동 표시 */}
                   {sheetBannerSpecs
                     .filter(s => s.type === 'CUSTOM_BANNER' || !BANNER_SPECS.some(b => b.name.replace(/\s+/g, '') === s.bannerName.replace(/\s+/g, '')))
                     .map((s) => (
