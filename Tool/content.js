@@ -56,3 +56,13 @@ window.addEventListener('REQUEST_JIRA_SESSION', () => {
     window.dispatchEvent(new CustomEvent('RECEIVE_JIRA_SESSION', { detail: response }));
   });
 });
+
+// 🌟 [신규 추가] 캘린더/목록에서 프로모션 삭제 시 Jira 티켓 취소/삭제 신호 중계
+window.addEventListener('CANCEL_JIRA_ISSUE', (e) => {
+  chrome.runtime.sendMessage({
+    action: "CANCEL_JIRA_ISSUE",
+    data: e.detail
+  }, (response) => {
+    window.dispatchEvent(new CustomEvent('RECEIVE_JIRA_CANCEL', { detail: response }));
+  });
+});
