@@ -3908,7 +3908,167 @@
         </div>
       );
     };
-    
+    // ====================================================================================
+    // 🌟 [신규] 최대 3개 슬롯 임시저장 보관함 모달 (실시간 잔여 Capa 상태 뱃지 자동 표시)
+    // ====================================================================================
+    const DraftBoxModal = ({ drafts, onClose, onRestoreDraft, onDeleteDraft }) => {
+      const [liveSchedule, setLiveSchedule] = useState([]);
+      const [isCheckingCapa, setIsCheckingCapa] = useState(true);
+      const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+      useEffect(() => {
+        let mounted = true;
+        fetch("https://btv-proxy.alcheminos.workers.dev?action=getScheduleData")
+          .then(r => r.json())
+          .then(json => {
+            if (!mounted) return;
+            const list = (json && Array.isArray(json.data)) ? json.data : (Array.isArray(json) ? json : []);
+            setLiveSchedule(list);
+          })
+          .catch(() => {})
+          .finally(() => { if (mounted) setIsCheckingCapa(false); });
+        return () => { mounted = false; };
+      }, []);
+
+      const evaluateDraftCapa = (draft) => {
+        const meta = draft.campaignMeta || {};
+        const isTarget = meta.target === 'TARGET';
+        const hasCoupon = meta.hasCoupon === 'Y';
+        const sDate = cleanScheduleDateStr(meta.startDate);
+        const tNum = Number(String(meta.targetSize || '0').replace(/[^0-9]/g, '')) || 0;
+
+        if (!isTarget && !hasCoupon) {
+          return { ok: true, label: 'MASS (Capa 검증 불필요)', color: 'emerald' };
+        }
+        if (!sDate || sDate < todayStr) {
+          return { ok: false, label: '시작일 경과/미지정 (일정 재설정 필요)', color: 'red' };
+        }
+        if (isTarget && tNum <= 0) {
+          return { ok: false, label: '타겟 모수 미입력 (Step 1 재검증 필요)', color: 'amber' };
+        }
+
+        const bLimit = calcDailyLimit('banner', sDate, todayStr);
+        const bUsed = calcDailyUsed('banner', sDate, liveSchedule, false);
+        const cLimit = calcDailyLimit('coupon', sDate, todayStr);
+        const cUsed = calcDailyUsed('coupon', sDate, liveSchedule, false);
+
+        const bRemain = Math.max(bLimit - bUsed, 0);
+        const cRemain = Math.max(cLimit - cUsed, 0);
+
+        if (isTarget && bRemain < tNum) {
+          return { ok: false, label: `배너 Capa 부족 (잔여 ${formatTargetKor(bRemain)} / 요청 ${formatTargetKor(tNum)})`, color: 'red' };
+        }
+        if (hasCoupon && cRemain < tNum) {
+          return { ok: false, label: `쿠폰 Capa 부족 (잔여 ${formatTargetKor(cRemain)} / 요청 ${formatTargetKor(tNum)})`, color: 'red' };
+        }
+        return { ok: true, label: `실시간 Capa 여유 (배너 잔여 ${formatTargetKor(bRemain)})`, color: 'emerald' };
+      };
+
+      const formatAgo = (ts) => {
+        if (!ts) return '';
+        const diffMin = Math.max(1, Math.round((Date.now() - ts) / 60000));
+        if (diffMin < 60) return `${diffMin}분 전`;
+        const diffHr = Math.round(diffMin / 60);
+        if (diffHr < 24) return `${diffHr}시간 전`;
+        return `${Math.round(diffHr / 24)}일 전`;
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4 animate-in zoom-in-95 duration-150" onClick={onClose}>
+          <div className="bg-[#12141c] border border-[#262833] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-[#262833] bg-[#0f111a] flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Database size={18} className="text-[#7387ff]" /> 임시저장 보관함 ({drafts.length}/3 슬롯)
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  최대 3개까지 보관됩니다. 불러오기 시 실시간 잔여 Capa를 재검증하여 안전하게 복구합니다.
+                </p>
+              </div>
+              <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-[#262833]"><X size={18} /></button>
+            </div>
+
+            <div className="p-6 space-y-3 bg-[#0a0812] max-h-[65vh] overflow-y-auto custom-scrollbar">
+              {[0, 1, 2].map((slotIdx) => {
+                const draft = drafts[slotIdx];
+                if (!draft) {
+                  return (
+                    <div key={`empty-${slotIdx}`} className="border border-dashed border-[#262833] rounded-xl p-5 flex items-center justify-center text-xs text-slate-600 font-bold">
+                      슬롯 {slotIdx + 1} — 비어 있음
+                    </div>
+                  );
+                }
+
+                const meta = draft.campaignMeta || {};
+                const assetCount = (draft.assets || []).length;
+                const capaCheck = isCheckingCapa
+                  ? { ok: true, label: '실시간 Capa 확인 중...', color: 'slate' }
+                  : evaluateDraftCapa(draft);
+
+                return (
+                  <div key={draft.draftId} className="bg-[#12141c] border border-[#262833] hover:border-[#4f3df6]/60 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 transition-all">
+                    <div className="space-y-1.5 flex-1 min-w-[240px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#1a1c26] text-slate-300 border border-[#303340]">
+                          슬롯 {slotIdx + 1} · {draft.savedStep === 'EDITOR' ? 'Step 3 시안' : 'Step 2 기획'}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${meta.target === 'TARGET' ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-slate-700/40 text-slate-300'}`}>
+                          {meta.target || 'MASS'} {meta.target === 'TARGET' && meta.targetSize ? `(${meta.targetSize}명)` : ''}
+                        </span>
+                        <h4 className="text-sm font-black text-white truncate max-w-[240px]">
+                          {meta.campaignName || '제목 없는 캠페인'}
+                        </h4>
+                      </div>
+
+                      <div className="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+                        <span>📅 {meta.startDate || '시작일 미정'} ~ {meta.dueDate || '종료일 미정'}</span>
+                        <span>•</span>
+                        <span>🖼️ 배너 {assetCount}개</span>
+                        <span>•</span>
+                        <span className="text-slate-500">⏱️ {formatAgo(draft.savedAt)} 저장</span>
+                      </div>
+
+                      <div className="pt-0.5">
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          capaCheck.color === 'emerald' ? 'bg-[#32d782]/15 text-[#32d782]' :
+                          capaCheck.color === 'red' ? 'bg-red-500/15 text-red-400' :
+                          'bg-amber-500/15 text-amber-300'
+                        }`}>
+                          {capaCheck.ok ? '✅' : '🚨'} {capaCheck.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => onRestoreDraft(draft, liveSchedule)}
+                        disabled={isCheckingCapa}
+                        className="px-4 py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <span>{capaCheck.ok ? '이어서 편집 〉' : 'Step 1 재검증 후 복구 〉'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteDraft(draft.draftId)}
+                        title="이 임시저장본 삭제"
+                        className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
+              <button onClick={onClose} className="px-5 py-2 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 rounded-lg text-xs font-bold">닫기</button>
+            </div>
+          </div>
+        </div>
+      );
+    };
     // ====================================================================================
     // 🌟 메인 App 컴포넌트 (Step 1 -> Step 2 -> Step 3 단계별 잠금 및 통합 현황 연결)
     // ====================================================================================
@@ -3995,7 +4155,17 @@
 
       const [assets, setAssets] = useState([]); 
       const [mermaidCode, setMermaidCode] = useState('');
-      const AUTOSAVE_KEY = 'btv_campaign_autosave_v1';
+
+      // 🌟 3-슬롯 임시저장 보관함 State
+      const DRAFTS_STORAGE_KEY = 'btv_campaign_drafts_v2';
+      const [drafts, setDrafts] = useState(() => {
+        try {
+          const raw = localStorage.getItem('btv_campaign_drafts_v2');
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
+        } catch (e) { return []; }
+      });
+      const [isDraftBoxOpen, setIsDraftBoxOpen] = useState(false);
       
       const [aiCampaignMeta, setAiCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
@@ -4155,40 +4325,114 @@
       const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
       const [configMap, setConfigMap] = useState({});
 
-      useEffect(() => {
-        try {
-          const saved = localStorage.getItem(AUTOSAVE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.assets?.length > 0) {
-              const ago = Math.round((Date.now() - parsed.savedAt) / 60000);
-              const restore = window.confirm(
-                `⏱️ ${ago}분 전 작업 중이던 임시저장 데이터가 있습니다.\n(${parsed.campaignMeta?.campaignName || '제목 없음'})\n불러올까요?`
-              );
-              if (restore) {
-                setCampaignMeta(parsed.campaignMeta || {});
-                setAssets(parsed.assets || []);
-                setMermaidCode(parsed.mermaidCode || '');
-                setActiveTabId(parsed.assets[0]?.id || null);
-                setUnlockedSteps({ step1: true, step2: true, step3: true });
-                setCurrentView('EDITOR');
-              } else {
-                localStorage.removeItem(AUTOSAVE_KEY);
-              }
-            }
-          }
-        } catch (e) { console.error("자동저장 복구 실패", e); }
-      }, []);
-      
+      // 🌟 1) 슬롯 저장/업데이트 함수 (동일 캠페인은 덮어쓰고, 신규는 추가하여 최대 3개 유지)
+      const saveToDraftSlot = (metaToSave, assetsToSave, mermaidToSave, stepName = 'EDITOR', showToast = false) => {
+        if (!metaToSave?.campaignName && (!assetsToSave || assetsToSave.length === 0)) {
+          if (showToast) alert("⚠️ 먼저 캠페인명을 입력하거나 배너 시안을 생성해 주세요.");
+          return;
+        }
+        const draftId = metaToSave.uniqueCode || `DRAFT_${(metaToSave.campaignName || '무제').trim()}_${metaToSave.startDate || 'NODATE'}`;
+        const newEntry = {
+          draftId,
+          campaignMeta: metaToSave,
+          assets: assetsToSave || [],
+          mermaidCode: mermaidToSave || '',
+          savedStep: stepName,
+          savedAt: Date.now()
+        };
+        setDrafts(prev => {
+          const filtered = prev.filter(d => d.draftId !== draftId);
+          const next = [newEntry, ...filtered].slice(0, 3);
+          try { localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
+          return next;
+        });
+        if (showToast) alert("💾 임시저장 보관함에 현재 작업 상태가 저장되었습니다! (최대 3개 보관)");
+      };
+
+      // 🌟 2) 슬롯 개별 삭제 함수
+      const deleteDraftSlot = (draftId) => {
+        setDrafts(prev => {
+          const next = prev.filter(d => d.draftId !== draftId);
+          try { localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
+          return next;
+        });
+      };
+
+      // 🌟 3) Step 3(시안 편집) 작업 중 1.5초 디바운스 자동 백업 (강제 팝업 없음)
       useEffect(() => {
         if (currentView !== 'EDITOR' || assets.length === 0) return;
         const timer = setTimeout(() => {
-          try {
-            localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ campaignMeta, assets, mermaidCode, savedAt: Date.now() }));
-          } catch (e) { console.error("자동저장 실패", e); }
+          saveToDraftSlot(campaignMeta, assets, mermaidCode, 'EDITOR', false);
         }, 1500);
         return () => clearTimeout(timer);
       }, [campaignMeta, assets, mermaidCode, currentView]);
+
+      // 🌟 4) 보관함에서 불러올 때 실시간 잔여 Capa 재검증 수행
+      const handleRestoreDraftWithCapaCheck = async (draft, prefetchedSchedule = null) => {
+        const meta = { ...(draft.campaignMeta || {}) };
+        const savedAssets = draft.assets || [];
+        const savedMermaid = draft.mermaidCode || '';
+        const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+        let scheduleList = prefetchedSchedule;
+        if (!Array.isArray(scheduleList) || scheduleList.length === 0) {
+          try {
+            const res = await fetch("https://btv-proxy.alcheminos.workers.dev?action=getScheduleData");
+            const json = await res.json();
+            scheduleList = (json && Array.isArray(json.data)) ? json.data : [];
+          } catch (e) { scheduleList = []; }
+        }
+
+        const isTarget = meta.target === 'TARGET';
+        const hasCoupon = meta.hasCoupon === 'Y';
+        const sDate = cleanScheduleDateStr(meta.startDate);
+        const tNum = Number(String(meta.targetSize || '0').replace(/[^0-9]/g, '')) || 0;
+
+        let isCapaStillValid = true;
+        let failReason = '';
+
+        if (isTarget || hasCoupon) {
+          if (!sDate || sDate < todayStr) {
+            isCapaStillValid = false;
+            failReason = `임시저장된 시작일(${sDate || '미지정'})이 이미 지났거나 유효하지 않습니다.`;
+          } else if (isTarget && tNum <= 0) {
+            isCapaStillValid = false;
+            failReason = `타겟 모수가 입력되어 있지 않습니다.`;
+          } else {
+            const bRemain = Math.max(calcDailyLimit('banner', sDate, todayStr) - calcDailyUsed('banner', sDate, scheduleList, false), 0);
+            const cRemain = Math.max(calcDailyLimit('coupon', sDate, todayStr) - calcDailyUsed('coupon', sDate, scheduleList, false), 0);
+            if (isTarget && bRemain < tNum) {
+              isCapaStillValid = false;
+              failReason = `${sDate} 기준 타겟 배너 잔여 Capa(${formatTargetKor(bRemain)})가 요청 모수(${formatTargetKor(tNum)})보다 부족합니다.`;
+            } else if (hasCoupon && cRemain < tNum) {
+              isCapaStillValid = false;
+              failReason = `${sDate} 기준 쿠폰 잔여 Capa(${formatTargetKor(cRemain)})가 요청 모수(${formatTargetKor(tNum)})보다 부족합니다.`;
+            }
+          }
+        }
+
+        // 시안 에셋과 플로우차트는 두 경우 모두 메모리에 안전하게 복원
+        setAssets(savedAssets);
+        setActiveTabId(savedAssets[0]?.id || null);
+        setMermaidCode(savedMermaid);
+        setIsDraftBoxOpen(false);
+
+        if (isCapaStillValid) {
+          const validMeta = { ...meta, isCapaChecked: true };
+          setCampaignMeta(validMeta);
+          setAiCampaignMeta(validMeta);
+          setUnlockedSteps({ step1: true, step2: true, step3: savedAssets.length > 0 });
+          setCurrentView(savedAssets.length > 0 ? 'EDITOR' : 'PLANNER');
+        } else {
+          // Capa 부족 또는 날짜 경과 시 -> 에셋은 유지한 채 Step 1으로 이동시켜 재검증 강제!
+          const resetMeta = { ...meta, isCapaChecked: false };
+          setCampaignMeta(resetMeta);
+          setAiCampaignMeta(resetMeta);
+          setUnlockedSteps({ step1: true, step2: false, step3: false });
+          setCurrentView('STEP1_CAPA');
+          alert(`⚠️ [실시간 Capa 재검증 필요]\n${failReason}\n\n작업해 두신 배너 시안(${savedAssets.length}개)은 안전하게 메모리에 유지되었습니다! [Step 1. 프로모션 Capa]에서 여유 있는 날짜나 모수로 재검증을 통과하시면 시안이 그대로 열립니다.`);
+        }
+      };
 
       useEffect(() => {
         const fetchConfig = async () => {
@@ -4546,7 +4790,8 @@
         
         // 🌟 7번 요구사항 반영: 억지로 목록 탭으로 화면을 전환하지 않고, 현재 화면에서 완료 안내 후 Jira 새 탭만 오픈!
         setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 새 탭에서 Jira를 확인하세요." });
-        localStorage.removeItem(AUTOSAVE_KEY);
+        const completedDraftId = meta.uniqueCode || `DRAFT_${(meta.campaignName || '무제').trim()}_${meta.startDate || 'NODATE'}`;
+        deleteDraftSlot(completedDraftId);
         setTimeout(() => {
           setExportState({ isExporting: false, progress: 0, msg: '' });
         }, 3500);
@@ -4556,7 +4801,6 @@
 
       // 기존 캠페인 수정 로드 (Step 2, Step 3 모두 잠금 해제)
       const handleLoadCampaign = (meta, loadedAssets, loadedMermaid) => {
-        localStorage.removeItem(AUTOSAVE_KEY);
         setCampaignMeta(prev => ({ 
             ...prev, ...meta,
             aiOriginalAssets: loadedAssets ? loadedAssets.map(a => ({ id: a.id, name: a.name })) : []
@@ -4575,7 +4819,6 @@
 
       // 기존 캠페인 복제 로드 (Step 2 잠금 해제 후 기획 탭으로 이동)
       const handleDuplicateCampaign = (meta, loadedAssets, loadedMermaid) => {
-        localStorage.removeItem(AUTOSAVE_KEY);
         setCampaignMeta(prev => ({ 
             ...prev, ...meta,
             aiOriginalAssets: loadedAssets ? loadedAssets.map(a => ({ id: a.id, name: a.name })) : []
@@ -4617,7 +4860,25 @@
           ...prev,
           { id: `msg-init-step1-${Date.now()}`, sender: 'ai', text: briefingMsg }
         ]);
-        setUnlockedSteps(prev => ({ ...prev, step1: true, step2: true }));
+        // 만약 임시저장 복구 등으로 이미 메모리에 배너 시안(assets)이 들어있는 상태라면 새 일정으로 동기화 후 Step 3 잠금도 함께 해제!
+        if (assets.length > 0) {
+          setCampaignMeta(prev => ({
+            ...prev,
+            ...prefillObj,
+            isCapaChecked: true
+          }));
+          setAssets(prev => prev.map(a => ({
+            ...a,
+            data: {
+              ...a.data,
+              startDate: prefillObj.startDate || a.data?.startDate,
+              dueDate: prefillObj.dueDate || a.data?.dueDate
+            }
+          })));
+          setUnlockedSteps({ step1: true, step2: true, step3: true });
+        } else {
+          setUnlockedSteps(prev => ({ ...prev, step1: true, step2: true }));
+        }
         setCurrentView('PLANNER');
       };
 
@@ -4709,6 +4970,26 @@
                   <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
                     <span className="text-[9px] font-black text-cyan-400">CALENDAR & LIST</span>
                     <span className="font-bold text-xs">통합 프로모션 현황</span>
+                  </div>
+                </button>
+
+                {/* 🌟 [신규 추가] 3-슬롯 임시저장 보관함 오픈 버튼 */}
+                <button
+                  onClick={() => setIsDraftBoxOpen(true)}
+                  title="임시저장 보관함 (최대 3개)"
+                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} text-slate-400 hover:text-white hover:bg-[#1a1c26] relative`}
+                >
+                  <div className="relative shrink-0">
+                    <Database size={20} className={drafts.length > 0 ? "text-amber-400" : ""} />
+                    {drafts.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-black text-[9px] font-black flex items-center justify-center">
+                        {drafts.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] font-black text-amber-400">DRAFT BOX ({drafts.length}/3)</span>
+                    <span className="font-bold text-xs">임시저장 보관함</span>
                   </div>
                 </button>
               </div>
@@ -5245,6 +5526,13 @@
                         </h2>
                       </div>
                       <div className="flex gap-2.5 flex-wrap">
+                        <button
+                          onClick={() => saveToDraftSlot(campaignMeta, assets, mermaidCode, 'EDITOR', true)}
+                          className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold hover:bg-amber-500/20 transition-colors"
+                        >
+                          <Database size={14}/> 임시저장 ({drafts.length}/3)
+                        </button>
+
                         <button onClick={() => setIsFlowModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-bold hover:bg-cyan-500/20 transition-colors">
                           <GitMerge size={14}/> 유저플로우
                         </button>
@@ -5345,6 +5633,16 @@
               mermaidCode={mermaidCode}
               setMermaidCode={setMermaidCode}
               onClose={() => setIsFlowModalOpen(false)}
+            />
+          )}
+
+          {/* 🌟 3-슬롯 임시저장 보관함 모달 */}
+          {isDraftBoxOpen && (
+            <DraftBoxModal
+              drafts={drafts}
+              onClose={() => setIsDraftBoxOpen(false)}
+              onRestoreDraft={handleRestoreDraftWithCapaCheck}
+              onDeleteDraft={deleteDraftSlot}
             />
           )}
 
