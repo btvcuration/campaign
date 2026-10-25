@@ -2996,7 +2996,7 @@
     };
 
     // ====================================================================================
-    // 🌟 [6번 요구사항 완벽 구현] 🗂️ 통합 프로모션 현황 뷰 (캘린더 뷰 + 리스트 뷰 통합 및 유형별 맞춤 액션)
+    // 🌟 [업그레이드] 🗂️ 통합 프로모션 현황 뷰 (기간 연속 막대 + GNB 영역별 필터 + 신청팀/신청자 전용 필드)
     // ====================================================================================
     const IntegratedStatusView = ({ initialMode = 'CALENDAR', onLoadCampaign, onDuplicateCampaign, onStartPlanWithDate }) => {
       const todayObj = new Date();
@@ -3008,10 +3008,11 @@
       const [isLoading, setIsLoading] = useState(true);
       const [isAssigning, setIsAssigning] = useState(false);
 
-      // 공통 필터 상태
+      // 🌟 공통 필터 상태 (GNB 필터 및 기간 연속 막대 옵션 추가)
       const [categoryFilter, setCategoryFilter] = useState('ALL'); // 'ALL' | 'INTEGRATED' | 'CAPA_ONLY' | 'BANNER_ONLY'
+      const [gnbFilters, setGnbFilters] = useState([]); // 선택된 GNB 배열 (비어있으면 전체)
       const [typeFilters, setTypeFilters] = useState([]);
-      const [dateFilters, setDateFilters] = useState(['start']);
+      const [dateFilters, setDateFilters] = useState(['start']); // 'start', 'end', 'span'(기간 연속 막대)
       const [excludeWired, setExcludeWired] = useState(false);
       const [onlyUnassigned, setOnlyUnassigned] = useState(false);
       const [searchText, setSearchText] = useState('');
@@ -3049,6 +3050,36 @@
 
       useEffect(() => { fetchAllStatusData(); }, []);
 
+      // 🌟 캠페인에서 편성된 모든 GNB 목록을 표준화하여 추출하는 헬퍼
+      const extractNormalizedGnbs = (bRecord, sRecord) => {
+        const gnbSet = new Set();
+        const addCleanGnb = (rawStr) => {
+          if (!rawStr) return;
+          String(rawStr).split(/[,\/]/).map(s => s.trim()).filter(Boolean).forEach(g => {
+            if (g.includes('영화') && g.includes('시리즈')) gnbSet.add('영화시리즈');
+            else if (g.includes('TV') && g.includes('방송')) gnbSet.add('TV 방송');
+            else if (g === 'OTT 홈' || g === 'OTT') gnbSet.add('OTT홈');
+            else gnbSet.add(g);
+          });
+        };
+
+        if (bRecord) {
+          if (Array.isArray(bRecord.assets)) {
+            bRecord.assets.forEach(a => {
+              const g = a.data?.gnb;
+              if (Array.isArray(g)) g.forEach(addCleanGnb);
+              else addCleanGnb(g);
+            });
+          }
+          addCleanGnb(bRecord.gnbLocations);
+          addCleanGnb(bRecord.meta?.gnbLocations);
+        }
+        if (sRecord) {
+          addCleanGnb(sRecord['GNB']);
+        }
+        return Array.from(gnbSet);
+      };
+
       // 🌟 '캠페인 스케줄'과 '요청 접수(배너 시안)'를 uniqueCode / 캠페인명으로 조인하여 통합 아이템 생성
       const unifiedItems = (() => {
         const map = {};
@@ -3058,6 +3089,7 @@
           const code = String(c.uniqueCode || '').trim();
           const name = String(c.campaignName || '').trim();
           const key = code || `NAME_${name}`;
+          const gnbs = extractNormalizedGnbs(c, null);
           map[key] = {
             key,
             uniqueCode: code,
@@ -3065,7 +3097,8 @@
             startDate: cleanScheduleDateStr(c.startDate),
             dueDate: cleanScheduleDateStr(c.dueDate) || cleanScheduleDateStr(c.startDate),
             department: c.department || c.meta?.department || 'Btv큐레이션팀',
-            marketer: c.marketer || c.meta?.marketer || '',
+            marketer: c.marketer || c.meta?.marketer || '미지정',
+            gnbs: gnbs.length > 0 ? gnbs : ['홈'],
             hasBannerAssets: Array.isArray(c.assets) && c.assets.length > 0,
             hasSchedule: false,
             bannerRecord: c,
@@ -3092,18 +3125,26 @@
             map[matchedKey].hasSchedule = true;
             map[matchedKey].scheduleRecord = s;
             map[matchedKey].category = map[matchedKey].hasBannerAssets ? 'INTEGRATED' : 'CAPA_ONLY';
-            if (!map[matchedKey].department) map[matchedKey].department = extractDeptName(s);
-            if (!map[matchedKey].marketer) map[matchedKey].marketer = extractMarketerName(s);
+            if (!map[matchedKey].department || map[matchedKey].department === 'Btv큐레이션팀') {
+              map[matchedKey].department = extractDeptName(s) || map[matchedKey].department;
+            }
+            if (!map[matchedKey].marketer || map[matchedKey].marketer === '미지정') {
+              map[matchedKey].marketer = extractMarketerName(s) || map[matchedKey].marketer;
+            }
+            const mergedGnbs = extractNormalizedGnbs(map[matchedKey].bannerRecord, s);
+            if (mergedGnbs.length > 0) map[matchedKey].gnbs = mergedGnbs;
           } else {
             const newKey = code || `SCHED_${idx}_${name}`;
+            const sGnbs = extractNormalizedGnbs(null, s);
             map[newKey] = {
               key: newKey,
               uniqueCode: code,
               campaignName: name,
               startDate: cleanScheduleDateStr(s['시작일']),
               dueDate: cleanScheduleDateStr(s['종료일']) || cleanScheduleDateStr(s['시작일']),
-              department: extractDeptName(s),
-              marketer: extractMarketerName(s),
+              department: extractDeptName(s) || '부서 미상',
+              marketer: extractMarketerName(s) || '담당자 미상',
+              gnbs: sGnbs.length > 0 ? sGnbs : ['홈'],
               hasBannerAssets: false,
               hasSchedule: true,
               bannerRecord: null,
@@ -3116,17 +3157,29 @@
         return Object.values(map).sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
       })();
 
-      // 필터링된 통합 아이템 목록
+      // 필터링된 통합 아이템 목록 (GNB 필터 반영)
       const filteredUnifiedItems = unifiedItems.filter(u => {
         if (categoryFilter !== 'ALL' && u.category !== categoryFilter) return false;
         if (excludeWired && u.scheduleRecord && checkIsWiredDept(u.scheduleRecord)) return false;
+
+        // 🌟 GNB 필터 체크 (선택된 GNB 중 하나라도 포함되면 통과)
+        if (gnbFilters.length > 0) {
+          const hasMatchedGnb = (u.gnbs || []).some(g => gnbFilters.includes(g));
+          if (!hasMatchedGnb) return false;
+        }
 
         const st = String(u.scheduleRecord?.['상태'] || '').trim();
         const tm = String(u.scheduleRecord?.['실행시각'] || '').trim();
         const isUnassigned = st === '미반영' || tm.includes('배정 불가');
         if (onlyUnassigned && !isUnassigned) return false;
 
-        if (searchText && !u.campaignName.toUpperCase().includes(searchText.toUpperCase())) return false;
+        if (searchText) {
+          const kw = searchText.toUpperCase();
+          const matchTitle = u.campaignName.toUpperCase().includes(kw);
+          const matchMarketer = (u.marketer || '').toUpperCase().includes(kw);
+          const matchDept = (u.department || '').toUpperCase().includes(kw);
+          if (!matchTitle && !matchMarketer && !matchDept) return false;
+        }
 
         if (typeFilters.length > 0) {
           const fText = String(u.scheduleRecord?.['채널'] || u.scheduleRecord?.['필터'] || u.bannerRecord?.bannerTypes || '').toUpperCase();
@@ -3139,7 +3192,7 @@
         return true;
       });
 
-      // 상세 모달 열기 (동기 세팅으로 프리징 완벽 방지)
+      // 상세 모달 열기
       const openUnifiedDetailModal = (uItem, fallbackDateStr = todayLocalStr) => {
         if (tooltipRef.current) tooltipRef.current.style.display = 'none';
         const s = uItem.scheduleRecord || {};
@@ -3154,7 +3207,7 @@
           startDate: sDate,
           endDate: eDate,
           channel: s['채널'] || s['필터'] || (uItem.hasBannerAssets ? 'MASS 배너' : '쿠폰'),
-          gnb: s['GNB'] || b.gnbLocations || '홈',
+          gnb: (uItem.gnbs || []).join(', ') || s['GNB'] || b.gnbLocations || '홈',
           cycle: extractCycleName(s),
           couponYn: checkItemHasCoupon(s) || b.hasCoupon === 'Y' ? '쿠폰' : '미포함',
           targetSize: String(extractTargetNum(s) || b.targetSize || 0),
@@ -3186,7 +3239,7 @@
         onLoadCampaign && onLoadCampaign(meta, bRecord.assets || [], bRecord.mermaidCode || "");
       };
 
-      // 캠페인 복제 (유형별 분기)
+      // 캠페인 복제
       const handleDuplicateUnified = (uItem) => {
         if (uItem.hasBannerAssets && uItem.bannerRecord) {
           const item = uItem.bannerRecord;
@@ -3270,7 +3323,7 @@
         }
       };
 
-      // 🌟 캠페인/스케줄 취소 시 구글 시트 슬롯 반환 + Jira 티켓 자동 삭제(또는 [🚫취소됨] 처리) 동시 실행
+      // 캠페인/스케줄 취소 시 구글 시트 슬롯 반환 + Jira 티켓 자동 삭제(또는 [🚫취소됨] 처리)
       const handleCancelOrDeleteUnified = async (uItem) => {
         const rawJiraKey = uItem.bannerRecord?.jiraKey || uItem.bannerRecord?.meta?.parentJiraKey || '';
         const hasJira = Boolean(rawJiraKey && rawJiraKey !== '-');
@@ -3282,7 +3335,6 @@
 
         setIsUpdatingEvent(true);
         try {
-          // 1. 구글 시트('요청 접수' 및 '캠페인 스케줄')에서 삭제하여 슬롯 반환
           if (uItem.hasBannerAssets) {
             await fetch("https://btv-proxy.alcheminos.workers.dev", {
               method: "POST",
@@ -3309,7 +3361,6 @@
             });
           }
 
-          // 2. 연결된 Jira 티켓이 있으면 크롬 확장 프로그램을 통해 Jira 티켓 삭제(또는 [🚫취소됨] 마킹) 실행
           let jiraResultMsg = "";
           if (hasJira) {
             const jiraRes = await new Promise((resolve) => {
@@ -3365,7 +3416,7 @@
         }
       };
 
-      // FullCalendar 이벤트 빌드
+      // 🌟 FullCalendar 이벤트 빌드 ('span' 기간 연속 막대 옵션 지원 + GNB 태그 표시)
       const buildCalendarEvents = () => {
         const evs = [];
         filteredUnifiedItems.forEach((u, idx) => {
@@ -3395,25 +3446,42 @@
             badgePrefix = `[${execTime}] `;
           }
 
-          if (u.startDate && dateFilters.includes('start')) {
+          const gnbTag = (u.gnbs && u.gnbs.length > 0) ? `[${u.gnbs.slice(0, 2).join('/')}${u.gnbs.length > 2 ? '+' : ''}] ` : '';
+
+          // 1) '기간 연속 막대(span)' 옵션이 켜져 있을 때: 시작일 ~ 종료일(+1일 보정)까지 긴 가로 막대로 표시
+          if (dateFilters.includes('span') && u.startDate) {
+            const endExclusive = calcDateOffset(u.dueDate || u.startDate, 1, todayLocalStr);
             evs.push({
-              id: `uni-start-${idx}`,
-              title: `${badgePrefix}${u.campaignName}`,
+              id: `uni-span-${idx}`,
+              title: `${badgePrefix}${gnbTag}${u.campaignName} (${u.startDate.slice(5)}~${(u.dueDate || u.startDate).slice(5)})`,
               start: u.startDate,
+              end: endExclusive,
               allDay: true,
               className: clsName,
-              extendedProps: { uItem: u, type: 'start', sortOrder: sortOrd }
+              extendedProps: { uItem: u, type: 'span', sortOrder: sortOrd }
             });
-          }
-          if (u.dueDate && u.dueDate !== u.startDate && dateFilters.includes('end')) {
-            evs.push({
-              id: `uni-end-${idx}`,
-              title: `[종료] ${u.campaignName}`,
-              start: u.dueDate,
-              allDay: true,
-              className: 'event-end',
-              extendedProps: { uItem: u, type: 'end', sortOrder: 4 }
-            });
+          } else {
+            // 2) 기존 시작일 / 종료일 개별 배지 모드
+            if (u.startDate && dateFilters.includes('start')) {
+              evs.push({
+                id: `uni-start-${idx}`,
+                title: `${badgePrefix}${gnbTag}${u.campaignName}`,
+                start: u.startDate,
+                allDay: true,
+                className: clsName,
+                extendedProps: { uItem: u, type: 'start', sortOrder: sortOrd }
+              });
+            }
+            if (u.dueDate && u.dueDate !== u.startDate && dateFilters.includes('end')) {
+              evs.push({
+                id: `uni-end-${idx}`,
+                title: `[종료] ${gnbTag}${u.campaignName}`,
+                start: u.dueDate,
+                allDay: true,
+                className: 'event-end',
+                extendedProps: { uItem: u, type: 'end', sortOrder: 4 }
+              });
+            }
           }
         });
         return evs;
@@ -3483,7 +3551,15 @@
             },
             dateClick: (info) => {
               if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-              const dayEvs = filteredEventsRef.current.filter(e => e.extendedProps?.type === 'start' && e.start === info.dateStr);
+              // 해당 날짜에 시작하거나 진행 중인 캠페인 모두 추출
+              const dayEvs = filteredEventsRef.current.filter(e => {
+                const u = e.extendedProps?.uItem;
+                if (!u) return false;
+                if (dateFilters.includes('span')) {
+                  return u.startDate <= info.dateStr && (u.dueDate || u.startDate) >= info.dateStr;
+                }
+                return e.extendedProps?.type === 'start' && e.start === info.dateStr;
+              });
               setDetailModal({
                 type: 'DATE',
                 title: `${info.dateStr} 프로모션 현황 (${dayEvs.length}건)`,
@@ -3515,12 +3591,16 @@
           calendarInstanceRef.current.addEventSource(filteredEvs);
         }
         setTimeout(refreshCalendarCellBadges, 50);
-      }, [viewMode, scheduleData, campaignData, categoryFilter, typeFilters, dateFilters, excludeWired, onlyUnassigned, searchText]);
+      }, [viewMode, scheduleData, campaignData, categoryFilter, gnbFilters, typeFilters, dateFilters, excludeWired, onlyUnassigned, searchText]);
 
       const renderCategoryBadge = (cat) => {
         if (cat === 'INTEGRATED') return <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#4f3df6]/20 text-[#7387ff] border border-[#4f3df6]/40">🎨 통합 (시안+Capa)</span>;
         if (cat === 'CAPA_ONLY') return <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">⚡ Capa 전용</span>;
         return <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#32d782]/20 text-[#32d782] border border-[#32d782]/40">🖼️ 시안 전용 (MASS)</span>;
+      };
+
+      const toggleGnbFilter = (gnbName) => {
+        setGnbFilters(prev => prev.includes(gnbName) ? prev.filter(g => g !== gnbName) : [...prev, gnbName]);
       };
 
       return (
@@ -3531,7 +3611,7 @@
               <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2.5">
                 <FolderOpen size={22} className="text-[#7387ff]" /> 통합 프로모션 현황 (캘린더 & 목록)
               </h2>
-              <p className="text-xs text-slate-400 mt-1">Capa 전용 스케줄과 배너 시안 캠페인을 한곳에서 조회하고 유형별로 수정·복제·일정 변경을 수행합니다.</p>
+              <p className="text-xs text-slate-400 mt-1">기간 연속 보기, GNB 편성 영역별 필터링, 그리고 신청 팀·담당자별 조회를 지원합니다.</p>
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -3569,62 +3649,131 @@
             </div>
           </div>
 
-          {/* 필터 컨트롤 바 */}
-          <div className="bg-[#0f111a] border border-[#262833] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-lg">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* 프로모션 유형 필터 */}
-              <div className="flex items-center gap-1 bg-[#12141c] p-1 rounded-xl border border-[#262833]">
-                {[
-                  { id: 'ALL', label: '전체 유형' },
-                  { id: 'INTEGRATED', label: '🎨 통합 프로모션' },
-                  { id: 'CAPA_ONLY', label: '⚡ Capa 전용' },
-                  { id: 'BANNER_ONLY', label: '🖼️ 시안 전용' }
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setCategoryFilter(tab.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${categoryFilter === tab.id ? 'bg-[#4f3df6] text-white' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+          {/* 🌟 2단 통합 필터 컨트롤 바 (1단: 유형/일정표시방식/검색 | 2단: GNB 편성 영역별 필터) */}
+          <div className="bg-[#0f111a] border border-[#262833] rounded-2xl p-4 space-y-3.5 shadow-lg">
+            {/* 1단 필터 줄 */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* 프로모션 유형 필터 */}
+                <div className="flex items-center gap-1 bg-[#12141c] p-1 rounded-xl border border-[#262833]">
+                  {[
+                    { id: 'ALL', label: '전체 유형' },
+                    { id: 'INTEGRATED', label: '🎨 통합 프로모션' },
+                    { id: 'CAPA_ONLY', label: '⚡ Capa 전용' },
+                    { id: 'BANNER_ONLY', label: '🖼️ 시안 전용' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setCategoryFilter(tab.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${categoryFilter === tab.id ? 'bg-[#4f3df6] text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="h-4 w-[1px] bg-[#262833]" />
+
+                <button
+                  onClick={() => setOnlyUnassigned(!onlyUnassigned)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${onlyUnassigned ? 'bg-red-500 text-white border-red-400' : 'bg-[#12141c] border-[#262833] text-red-400 hover:bg-red-500/15'}`}
+                >
+                  <AlertTriangle size={12} /> 미반영만 보기
+                </button>
+
+                {/* 🌟 캘린더 뷰 전용: 시작일 / 종료일 / 기간 연속 막대(span) 선택 옵션 */}
+                {viewMode === 'CALENDAR' && (
+                  <>
+                    <div className="h-4 w-[1px] bg-[#262833]" />
+                    <div className="flex items-center gap-3 bg-[#12141c] px-3 py-1.5 rounded-xl border border-[#262833]">
+                      <span className="text-[11px] font-bold text-slate-400">달력 표시:</span>
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={dateFilters.includes('start') && !dateFilters.includes('span')}
+                          onChange={e => {
+                            const withoutSpan = dateFilters.filter(x => x !== 'span');
+                            setDateFilters(e.target.checked ? [...withoutSpan, 'start'] : withoutSpan.filter(x => x !== 'start'));
+                          }}
+                          className="accent-[#4f3df6]"
+                        />
+                        시작일
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={dateFilters.includes('end') && !dateFilters.includes('span')}
+                          onChange={e => {
+                            const withoutSpan = dateFilters.filter(x => x !== 'span');
+                            setDateFilters(e.target.checked ? [...withoutSpan, 'end'] : withoutSpan.filter(x => x !== 'end'));
+                          }}
+                          className="accent-[#4f3df6]"
+                        />
+                        종료일
+                      </label>
+                      <div className="h-3 w-[1px] bg-[#262833]" />
+                      <label className="flex items-center gap-1.5 text-xs font-black text-cyan-400 cursor-pointer" title="시작일부터 종료일까지 연결된 긴 막대로 기간을 표시합니다">
+                        <input
+                          type="checkbox"
+                          checked={dateFilters.includes('span')}
+                          onChange={e => {
+                            if (e.target.checked) setDateFilters(['span']);
+                            else setDateFilters(['start']);
+                          }}
+                          className="accent-cyan-400"
+                        />
+                        ↔️ 기간 연속 막대
+                      </label>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="h-4 w-[1px] bg-[#262833]" />
-
-              <button
-                onClick={() => setOnlyUnassigned(!onlyUnassigned)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${onlyUnassigned ? 'bg-red-500 text-white border-red-400' : 'bg-[#12141c] border-[#262833] text-red-400 hover:bg-red-500/15'}`}
-              >
-                <AlertTriangle size={12} /> 미반영만 보기
-              </button>
-
-              {viewMode === 'CALENDAR' && (
-                <>
-                  <div className="h-4 w-[1px] bg-[#262833]" />
-                  <div className="flex items-center gap-2.5">
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300 cursor-pointer">
-                      <input type="checkbox" checked={dateFilters.includes('start')} onChange={e => setDateFilters(e.target.checked ? [...dateFilters, 'start'] : dateFilters.filter(x => x !== 'start'))} className="accent-[#4f3df6]" />
-                      시작일
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-400 cursor-pointer">
-                      <input type="checkbox" checked={dateFilters.includes('end')} onChange={e => setDateFilters(e.target.checked ? [...dateFilters, 'end'] : dateFilters.filter(x => x !== 'end'))} className="accent-[#4f3df6]" />
-                      종료일
-                    </label>
-                  </div>
-                </>
-              )}
+              <div className="relative w-[250px]">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                  placeholder="캠페인명, 신청팀, 담당자 검색..."
+                  className="w-full bg-[#0a0812] border border-[#303340] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#4f3df6]"
+                />
+              </div>
             </div>
 
-            <div className="relative w-[240px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                value={searchText}
-                onChange={e => setSearchText(e.target.value)}
-                placeholder="캠페인명 검색..."
-                className="w-full bg-[#0a0812] border border-[#303340] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-[#4f3df6]"
-              />
+            {/* 🌟 2단 필터 줄: GNB 편성 영역별 필터 (캘린더 뷰 & 리스트 뷰 공통 적용) */}
+            <div className="pt-2.5 border-t border-[#1e202b] flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black text-slate-400 flex items-center gap-1 mr-1">
+                <Layout size={12} className="text-[#7387ff]" /> GNB 편성 영역별 확인:
+              </span>
+              <button
+                type="button"
+                onClick={() => setGnbFilters([])}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                  gnbFilters.length === 0
+                    ? 'bg-[#4f3df6] border-[#4f3df6] text-white shadow'
+                    : 'bg-[#12141c] border-[#262833] text-slate-400 hover:text-white'
+                }`}
+              >
+                전체 영역
+              </button>
+              {GNB_OPTIONS.map(gnb => {
+                const isSelected = gnbFilters.includes(gnb);
+                return (
+                  <button
+                    key={gnb}
+                    type="button"
+                    onClick={() => toggleGnbFilter(gnb)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                      isSelected
+                        ? 'bg-[#4f3df6]/25 border-[#7387ff] text-white shadow'
+                        : 'bg-[#12141c] border-[#262833] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {gnb}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -3633,9 +3782,17 @@
             <div id="schedule-calendar" ref={calendarNodeRef} className="shadow-2xl" />
           )}
 
-          {/* 뷰 모드 2: 리스트 뷰 (유형별 맞춤 액션 버튼 제공) */}
+          {/* 🌟 뷰 모드 2: 리스트 뷰 (신청 팀 & 신청자 전용 필드 추가 + GNB 뱃지 표시) */}
           {viewMode === 'LIST' && (
             <div className="bg-[#0f111a] border border-[#262833] rounded-2xl overflow-hidden shadow-xl">
+              {/* 리스트 테이블 헤더 */}
+              <div className="hidden lg:grid lg:grid-cols-12 bg-[#12141c] border-b border-[#262833] px-5 py-3 text-[11px] font-black text-slate-400">
+                <div className="col-span-4">프로모션명 / 일정 / 상태</div>
+                <div className="col-span-2 border-l border-[#262833] pl-4">신청 팀 · 신청자</div>
+                <div className="col-span-3 border-l border-[#262833] pl-4">편성 GNB · 제작 배너 구성</div>
+                <div className="col-span-3 border-l border-[#262833] pl-4 text-right">관리 액션</div>
+              </div>
+
               {isLoading ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-3 text-slate-500">
                   <Loader2 size={28} className="animate-spin text-[#7387ff]" />
@@ -3644,7 +3801,7 @@
               ) : filteredUnifiedItems.length === 0 ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-2 text-slate-500">
                   <Inbox size={32} className="text-slate-700" />
-                  <span className="text-sm font-medium">조건에 맞는 프로모션이 없습니다.</span>
+                  <span className="text-sm font-medium">선택한 필터(GNB/유형)에 해당하는 프로모션이 없습니다.</span>
                 </div>
               ) : (
                 <div className="divide-y divide-[#1a1c26]">
@@ -3657,15 +3814,16 @@
                     const isUnassigned = schedStatus === '미반영' || execTime.includes('배정 불가');
 
                     const bannerNames = u.hasBannerAssets
-                      ? (b.assets || []).map(a => `${a.name}(${Array.isArray(a.data?.gnb) ? a.data.gnb.join('/') : (a.data?.gnb || '홈')})`).join(', ')
+                      ? (b.assets || []).map(a => a.name).join(', ')
                       : (s['채널'] || s['필터'] || '배너 시안 없음');
 
                     return (
-                      <div key={u.key} className="p-4 hover:bg-[#12141c] transition-colors flex flex-wrap items-center justify-between gap-4">
-                        <div className="w-full md:w-[36%] min-w-[260px] pr-2">
+                      <div key={u.key} className="p-4 lg:px-5 hover:bg-[#12141c] transition-colors grid grid-cols-1 lg:grid-cols-12 items-center gap-4">
+                        {/* 1열: 프로모션명 & 기간 */}
+                        <div className="lg:col-span-4 min-w-0 pr-2">
                           <div className="flex items-center gap-2 flex-wrap mb-1.5">
                             {renderCategoryBadge(u.category)}
-                            <h4 className="text-white font-bold text-sm truncate max-w-[240px]" title={u.campaignName}>{u.campaignName}</h4>
+                            <h4 className="text-white font-bold text-sm truncate max-w-[230px]" title={u.campaignName}>{u.campaignName}</h4>
                             {tSize > 0 && (
                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400 border border-pink-500/30">
                                 {formatTargetKor(tSize)}
@@ -3679,18 +3837,36 @@
                           </div>
                           <div className="text-[11px] text-slate-400 flex items-center gap-2">
                             <span>📅 {u.startDate} ~ {u.dueDate}</span>
-                            <span>•</span>
-                            <span>👤 {u.department} {u.marketer}</span>
                           </div>
                         </div>
 
-                        <div className="flex-1 min-w-[200px] border-l border-[#262833] pl-4">
-                          <div className="text-[10px] font-bold text-slate-500 mb-0.5">편성 배너 / 발송 채널 구성</div>
+                        {/* 🌟 2열: 신청 팀 & 신청자 전용 필드 */}
+                        <div className="lg:col-span-2 lg:border-l lg:border-[#262833] lg:pl-4 flex flex-col justify-center">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#1a1c26] text-cyan-300 border border-[#303340] truncate max-w-[130px]" title={u.department}>
+                              {u.department || '부서 미상'}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-white mt-1 flex items-center gap-1">
+                            <User size={12} className="text-slate-400 shrink-0" />
+                            <span className="truncate">{u.marketer || '담당자 미상'}</span>
+                          </div>
+                        </div>
+
+                        {/* 🌟 3열: 편성 GNB 뱃지 & 배너 구성 */}
+                        <div className="lg:col-span-3 lg:border-l lg:border-[#262833] lg:pl-4 min-w-0">
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {(u.gnbs || []).map((g, gi) => (
+                              <span key={gi} className="text-[10px] font-black px-1.5 py-0.5 rounded bg-[#4f3df6]/15 text-[#7387ff] border border-[#4f3df6]/30">
+                                {g}
+                              </span>
+                            ))}
+                          </div>
                           <div className="text-xs text-slate-300 truncate" title={bannerNames}>{bannerNames}</div>
                         </div>
 
-                        {/* 🌟 6번 요구사항: 캠페인 유형(통합 / Capa전용 / 시안전용)에 따른 맞춤형 액션 버튼 */}
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        {/* 4열: 맞춤형 액션 버튼 */}
+                        <div className="lg:col-span-3 lg:border-l lg:border-[#262833] lg:pl-4 flex items-center justify-end gap-1.5 flex-wrap">
                           {b.jiraKey && b.jiraKey !== "-" && (
                             <button
                               onClick={() => {
@@ -3708,7 +3884,7 @@
                               onClick={() => openUnifiedDetailModal(u)}
                               className="px-2.5 py-1.5 bg-[#1a1c26] hover:bg-[#262833] text-amber-300 rounded-lg text-xs font-bold border border-amber-500/30 flex items-center gap-1"
                             >
-                              <Clock size={12} /> 일정/모수 변경
+                              <Clock size={12} /> 일정/모수
                             </button>
                           )}
 
@@ -3717,7 +3893,7 @@
                               onClick={() => handleEditBannerAssets(b, s)}
                               className="px-3 py-1.5 bg-[#4f3df6]/15 hover:bg-[#4f3df6]/30 text-[#7387ff] border border-[#4f3df6]/40 rounded-lg text-xs font-bold flex items-center gap-1"
                             >
-                              <Edit3 size={12} /> 시안/편성 수정
+                              <Edit3 size={12} /> 시안 수정
                             </button>
                           )}
 
@@ -3756,8 +3932,13 @@
                 {detailModal.type === 'EVENT' && detailModal.uItem ? (
                   <div className="p-5 space-y-4 text-xs text-slate-300 max-h-[75vh] overflow-y-auto custom-scrollbar">
                     <div className="flex items-center justify-between bg-[#0a0812] p-3 rounded-xl border border-[#262833]">
-                      <span>프로모션 유형</span>
-                      {renderCategoryBadge(detailModal.uItem.category)}
+                      <span>프로모션 유형 · 편성 GNB</span>
+                      <div className="flex items-center gap-1.5">
+                        {renderCategoryBadge(detailModal.uItem.category)}
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#1a1c26] text-slate-300 border border-[#303340]">
+                          {(detailModal.uItem.gnbs || []).join(', ')}
+                        </span>
+                      </div>
                     </div>
 
                     {editEventForm && detailModal.uItem.hasSchedule ? (
@@ -3787,11 +3968,11 @@
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-400 mb-1">요청 부서</label>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">신청 팀 (요청 부서)</label>
                             <input type="text" value={editEventForm.department} onChange={e => setEditEventForm({...editEventForm, department: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-400 mb-1">담당자 이름</label>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">신청자 (담당자 이름)</label>
                             <input type="text" value={editEventForm.marketer} onChange={e => setEditEventForm({...editEventForm, marketer: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                           </div>
                         </div>
@@ -3799,7 +3980,8 @@
                     ) : (
                       <div className="bg-[#0a0812] border border-[#262833] rounded-xl p-4 space-y-2">
                         <div className="flex justify-between"><span className="text-slate-500">편성 기간</span><span className="text-white font-bold">{detailModal.uItem.startDate} ~ {detailModal.uItem.dueDate}</span></div>
-                        <div className="flex justify-between"><span className="text-slate-500">요청 부서 / 담당자</span><span className="text-white">{detailModal.uItem.department} / {detailModal.uItem.marketer}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-500">신청 팀 / 신청자</span><span className="text-cyan-300 font-bold">{detailModal.uItem.department} / {detailModal.uItem.marketer}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-500">편성 GNB 영역</span><span className="text-[#7387ff] font-bold">{(detailModal.uItem.gnbs || []).join(', ')}</span></div>
                         <div className="flex justify-between"><span className="text-slate-500">포함된 배너 수</span><span className="text-[#32d782] font-bold">{(detailModal.uItem.bannerRecord?.assets || []).length}개 배너 에셋</span></div>
                       </div>
                     )}
@@ -3876,7 +4058,7 @@
 
                           <div className="space-y-2">
                             {dayList.length === 0 ? (
-                              <div className="text-xs text-slate-500 py-6 text-center bg-[#0a0812] rounded-xl border border-[#262833]">해당 일자에 시작하는 프로모션이 없습니다.</div>
+                              <div className="text-xs text-slate-500 py-6 text-center bg-[#0a0812] rounded-xl border border-[#262833]">해당 일자에 프로모션이 없습니다.</div>
                             ) : (
                               dayList.map((ev, i) => {
                                 const u = ev.extendedProps?.uItem;
@@ -3889,9 +4071,10 @@
                                   >
                                     <div className="truncate pr-3 flex items-center gap-2">
                                       {renderCategoryBadge(u.category)}
+                                      <span className="text-[10px] font-bold text-[#7387ff]">[{(u.gnbs || []).join('/')}]</span>
                                       <span className="font-bold text-white truncate">{u.campaignName}</span>
                                     </div>
-                                    <span className="text-[11px] text-slate-400 shrink-0">{u.department} {u.marketer}</span>
+                                    <span className="text-[11px] text-cyan-300 font-bold shrink-0">{u.department} · {u.marketer}</span>
                                   </div>
                                 );
                               })
