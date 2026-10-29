@@ -5018,6 +5018,45 @@
         setIsSidebarOpen(true);
       };
 
+      // 🌟 [신규 추가] 전체 워크플로우 초기화 및 신규 캠페인 처음부터 시작 (Step 1 이동)
+      const handleStartNewCampaign = () => {
+        const hasActiveWork = assets.length > 0 || Boolean(campaignMeta.campaignName) || Boolean(aiCampaignMeta.campaignName);
+        if (hasActiveWork) {
+          const isConfirmed = window.confirm(
+            "✨ 새로운 프로모션 기획을 처음부터 시작하시겠습니까?\n\n" +
+            "• 현재 작성 중인 기획/시안 상태가 모두 초기화되고 [Step 1. 프로모션 Capa] 화면으로 이동합니다.\n" +
+            "• (작업 중이던 시안은 임시저장 보관함에 자동 백업됩니다.)"
+          );
+          if (!isConfirmed) return;
+
+          // 만약 배너 시안이 존재하는 상태라면 초기화 직전에 보관함 슬롯에 안전하게 백업
+          if (assets.length > 0) {
+            saveToDraftSlot(campaignMeta, assets, mermaidCode, 'EDITOR', false);
+          }
+        }
+
+        const defaultDept = localStorage.getItem('myDepartment') || 'Btv큐레이션팀';
+        const defaultMarketer = localStorage.getItem('myMarketerName') || '';
+        const cleanMeta = {
+          campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
+          hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
+          bannerTypes: '', gnbLocations: '', bannerPlan: [], isCapaChecked: false,
+          department: defaultDept, marketer: defaultMarketer,
+          cycle: '단발성', uiVersion: '5.0'
+        };
+
+        setCampaignMeta(cleanMeta);
+        setAiCampaignMeta({ ...cleanMeta });
+        setAssets([]);
+        setActiveTabId(null);
+        setMermaidCode('');
+        setAiChatHistory([
+          { id: `msg-init-${Date.now()}`, sender: 'ai', text: '매니저님, 새로운 프로모션 기획이 준비되었습니다!\n어떤 캠페인을 기획하실 예정인가요? 우측 폼에 먼저 입력해주셔도 좋고, 저와 대화하며 채워가도 좋습니다.' }
+        ]);
+        setUnlockedSteps({ step1: true, step2: false, step3: false });
+        setCurrentView('STEP1_CAPA');
+      };
+
       // Step 1 -> Step 2 진입 핸들러 (Step 2 잠금 해제 + 챗봇 브리핑)
       const handleProceedFromStep1ToStep2 = (prefillObj) => {
         setAiCampaignMeta(prev => ({
@@ -5082,6 +5121,19 @@
 
               {/* 단선형 워크플로우 (Step 1 ~ Step 3) */}
               <div className="flex flex-col gap-2 w-full px-3">
+                {/* 🌟 [신규 추가] 전체 초기화 & 새 프로모션 시작 버튼 */}
+                <button
+                  onClick={handleStartNewCampaign}
+                  title="기존 작업 초기화 후 새 프로모션 처음부터 시작"
+                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-2.5 mb-1 rounded-xl transition-all duration-300 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 shadow-sm ${isNavExpanded ? 'w-[211px]' : ''}`}
+                >
+                  <RotateCcw size={18} className="shrink-0 text-emerald-400" />
+                  <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] font-black text-emerald-400">NEW CAMPAIGN</span>
+                    <span className="font-bold text-xs text-white">새 프로모션 시작 (초기화)</span>
+                  </div>
+                </button>
+
                 {isNavExpanded && <div className="text-[10px] font-black text-slate-500 px-2 mb-0.5 uppercase tracking-wider">Step-by-Step Workflow</div>}
 
                 {/* Step 1: 프로모션 Capa (항상 열림) */}
@@ -5709,6 +5761,14 @@
                         </h2>
                       </div>
                       <div className="flex gap-2.5 flex-wrap">
+                        <button
+                          onClick={handleStartNewCampaign}
+                          title="현재 작업을 마치고 새로운 캠페인을 처음(Step 1)부터 기획합니다"
+                          className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+                        >
+                          <RotateCcw size={14}/> 신규 캠페인 시작
+                        </button>
+
                         <button
                           onClick={() => saveToDraftSlot(campaignMeta, assets, mermaidCode, 'EDITOR', true)}
                           className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold hover:bg-amber-500/20 transition-colors"
