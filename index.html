@@ -875,25 +875,25 @@
 
     const BANNER_SPECS = [
       // 📺 TV B tv 계열
-      { category: 'TV', type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', desc: '홈 최상단 대형 배너. 75% 이미지 배치.' },
-      { category: 'TV', type: 'GENERAL_BANNER', name: '2단배너', icon: LayoutPanelLeft, ratio: '가변', desc: '좌측 프리뷰와 하단 배너 카드 1개 세팅.' },
-      { category: 'TV', type: 'GENERAL_SET_BANNER', name: '일반 배너 (세트형)', icon: Grid, ratio: '가변', desc: '2단/3단 폭 및 2개/3개 카드 개수를 자유롭게 조합.' },
-      { category: 'TV', type: 'FULL_PROMO_BANNER', name: '풀프로모션배너', icon: LayoutTemplate, ratio: '16:9', desc: '공통 배경 위에 메인 카피와 3개 카드 세트.' },
-      { category: 'TV', type: 'BIG_BANNER', name: '빅배너', icon: Monitor, ratio: '24.5:8.3', desc: '기본형 및 월정액 가입하기형을 모두 지원하는 대형 배너.' },
-      { category: 'TV', type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '129:181', desc: '세로형 긴 배너. 카피 가독성 중요.' },
-      { category: 'TV', type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '가변', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' },
-      { category: 'TV', type: 'SYNOPSIS_BANNER', name: '시놉시스 배너', icon: RectangleHorizontal, ratio: '가변', desc: '시놉시스 화면에 노출되는 쿠폰/할인 띠배너.' },
-      { category: 'TV', type: 'PROMO_POPUP', name: 'TV 팝업', icon: Sparkles, ratio: '4:3', desc: '중앙 팝업 공지. 이미지와 하단 액션 버튼.' },
-      { category: 'TV', type: 'MINI_EPG_BANNER', name: '미니 EPG 배너', icon: Tv, ratio: '가변', desc: '실시간 방송 시청 중 노출되는 썸네일.' },
+      { category: 'TV', type: 'TODAY_BTV', name: 'Today B tv', icon: MonitorPlay, ratio: '16:9', targetable: '가능', desc: '홈 최상단 대형 배너. 75% 이미지 배치.' },
+      { category: 'TV', type: 'GENERAL_BANNER', name: '2단배너', icon: LayoutPanelLeft, ratio: '가변', targetable: '가능', desc: '좌측 프리뷰와 하단 배너 카드 1개 세팅.' },
+      { category: 'TV', type: 'GENERAL_SET_BANNER', name: '일반 배너 (세트형)', icon: Grid, ratio: '가변', targetable: '가능', desc: '2단/3단 폭 및 2개/3개 카드 개수를 자유롭게 조합.' },
+      { category: 'TV', type: 'FULL_PROMO_BANNER', name: '풀프로모션배너', icon: LayoutTemplate, ratio: '16:9', targetable: '가능', desc: '공통 배경 위에 메인 카피와 3개 카드 세트.' },
+      { category: 'TV', type: 'BIG_BANNER', name: '빅배너', icon: Monitor, ratio: '24.5:8.3', targetable: '가능', desc: '기본형 및 월정액 가입하기형을 모두 지원하는 대형 배너.' },
+      { category: 'TV', type: 'LONG_BANNER', name: '롱배너', icon: Smartphone, ratio: '129:181', targetable: '가능', desc: '세로형 긴 배너. 카피 가독성 중요.' },
+      { category: 'TV', type: 'STRIP_BANNER', name: '띠배너', icon: RectangleHorizontal, ratio: '가변', targetable: '가능', desc: '콘텐츠 사이 삽입되는 가로형 긴 띠배너.' },
+      { category: 'TV', type: 'SYNOPSIS_BANNER', name: '시놉시스 배너', icon: RectangleHorizontal, ratio: '가변', targetable: '가능', desc: '시놉시스 화면에 노출되는 쿠폰/할인 띠배너.' },
+      { category: 'TV', type: 'PROMO_POPUP', name: 'TV 팝업', icon: Sparkles, ratio: '4:3', targetable: '가능', desc: '중앙 팝업 공지. 이미지와 하단 액션 버튼.' },
+      { category: 'TV', type: 'MINI_EPG_BANNER', name: '미니 EPG 배너', icon: Tv, ratio: '가변', targetable: '불가', desc: '실시간 방송 시청 중 노출되는 썸네일 (MASS 전용).' },
 
-      // 📱 모바일 B tv 계열 (신규 5종 - 실측 비율 반영)
-      { category: 'MOBILE', type: 'MOBILE_1_5_BANNER', name: '[모바일] 1.5단 배너', icon: Smartphone, ratio: '1.5단 (2.2개 노출)', desc: '포스터 가로 1.5배 크기 배너. 좌상단 뱃지와 좌하단 타이틀.' },
-      { category: 'MOBILE', type: 'MOBILE_EVENT_BANNER', name: '[모바일] 이벤트 배너', icon: RectangleHorizontal, ratio: '2.1:1', desc: '이벤트 리스트용 배너. 좌측 작품명/이벤트명/기간 + 우측 인물 이미지.' },
-      { category: 'MOBILE', type: 'MOBILE_BIG_BANNER', name: '[모바일] 빅배너', icon: Smartphone, ratio: '599:911', desc: '모바일 홈 상단 대형 세로 배너 (599x911 비율).' },
-      { category: 'MOBILE', type: 'MOBILE_SYNOPSIS_BANNER', name: '[모바일] 시놉시스 배너', icon: RectangleHorizontal, ratio: '직각형', desc: '모바일 시놉시스 중단 노출. 좌측 뱃지 + 우측 좌정렬 텍스트 (디폴트 문구 없음).' },
-      { category: 'MOBILE', type: 'MOBILE_EVENT_PAGE', name: '[모바일] 이벤트 페이지', icon: FileText, ratio: 'Long Scroll', desc: '최상단 텍스트(2줄) + 이미지 + 하단 텍스트(2줄) + 메모 여백 + 하단 버튼.' }
+      // 📱 모바일 B tv 계열 (신규 5종)
+      { category: 'MOBILE', type: 'MOBILE_1_5_BANNER', name: '[모바일] 1.5단 배너', icon: Smartphone, ratio: '1.5단 (2.2개 노출)', targetable: '가능', desc: '포스터 가로 1.5배 크기 배너. 좌상단 뱃지와 좌하단 타이틀.' },
+      { category: 'MOBILE', type: 'MOBILE_EVENT_BANNER', name: '[모바일] 이벤트 배너', icon: RectangleHorizontal, ratio: '2.1:1', targetable: '가능', desc: '이벤트 리스트용 배너. 좌측 작품명/이벤트명/기간 + 우측 인물 이미지.' },
+      { category: 'MOBILE', type: 'MOBILE_BIG_BANNER', name: '[모바일] 빅배너', icon: Smartphone, ratio: '599:911', targetable: '가능', desc: '모바일 홈 상단 대형 세로 배너 (599x911 비율).' },
+      { category: 'MOBILE', type: 'MOBILE_SYNOPSIS_BANNER', name: '[모바일] 시놉시스 배너', icon: RectangleHorizontal, ratio: '직각형', targetable: '가능', desc: '모바일 시놉시스 중단 노출. 좌측 뱃지 + 우측 좌정렬 텍스트.' },
+      { category: 'MOBILE', type: 'MOBILE_EVENT_PAGE', name: '[모바일] 이벤트 페이지', icon: FileText, ratio: 'Long Scroll', targetable: '가능', desc: '최상단 텍스트(2줄) + 이미지 + 하단 텍스트(2줄) + 메모 여백 + 하단 버튼.' }
     ];
-
+    
     // 🌟 [동적 파서] '배너 특성 및 텍스트 규격' 시트의 F열(텍스트 규격) 문자열에서 실시간으로 글자 수/줄 수 추출
     const extractSpecLimitsFromSheetText = (specText = '', defaults = {}) => {
       const raw = String(specText || '');
@@ -945,10 +945,10 @@
 
       return (
         <div className="space-y-1">
-          <div className="flex items-center justify-between px-0.5">
-            <span className="text-[10px] font-bold text-slate-400">{label}</span>
+          <div className="flex items-center justify-between gap-1 px-0.5 whitespace-nowrap">
+            <span className="text-[10px] font-bold text-slate-400 truncate">{label}</span>
             {maxChars && (
-              <span className={`text-[10px] font-bold ${isWarning ? 'text-red-400 animate-pulse' : 'text-slate-500'}`}>
+              <span className={`text-[10px] font-bold shrink-0 ${isWarning ? 'text-red-400 animate-pulse' : 'text-slate-500'}`}>
                 {isTotalLimit ? `총 ${currentCount}` : `줄당 ${currentCount}`}/{maxChars}자
                 {maxLines > 1 ? ` · ${lineCount}/${maxLines}줄` : ''}
                 {isWarning && ' ⚠️규격초과'}
@@ -5753,7 +5753,7 @@
           </nav>
 
           {isSidebarOpen && currentView === 'EDITOR' && activeAsset && (
-            <aside className="w-[360px] bg-[#0c0d14] border-r border-[#1a1c26] flex flex-col h-full z-10 shrink-0 shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
+            <aside className="w-[430px] bg-[#0c0d14] border-r border-[#1a1c26] flex flex-col h-full z-10 shrink-0 shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
               <div className="p-6 pb-4 flex items-center justify-between border-b border-[#1a1c26] bg-[#0f111a]">
                 <h1 className="text-lg font-black text-white tracking-tight">Step 3. 프로모션 시안</h1>
                 <button
@@ -5801,12 +5801,15 @@
                   {openAccordions.banner && (
                     <div className="p-4 pt-0 border-t border-[#1a1c26] mt-2 space-y-4 animate-in slide-in-from-top-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1 ml-1">배너 에셋 명칭 (시트 배너명과 매칭 가능)</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
+                          <Lock size={10} className="text-slate-500" /> 배너 에셋 명칭 (수정 불가)
+                        </label>
                         <input
                           type="text"
                           value={activeAsset.name || ''}
-                          onChange={e => handleAssetNameChange(activeAsset.id, e.target.value)}
-                          className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#4f3df6]"
+                          readOnly
+                          disabled
+                          className="w-full bg-[#12141c] border border-[#262833] rounded-lg px-3 py-1.5 text-xs font-bold text-slate-400 outline-none cursor-not-allowed select-none"
                         />
                       </div>
 
@@ -6136,20 +6139,60 @@
                                 </>
                               )}
 
-                              {activeAsset.type === 'MOBILE_EVENT_BANNER' && (
-                                <>
-                                  <div><CopyInputWithSpec label="상단 상태 뱃지 (예: 종료 임박)" maxChars={8} textColorClass="text-orange-400 font-bold" value={activeAsset.data?.statusBadge || ''} onChange={e => handleAssetChange(activeAsset.id, 'statusBadge', e.target.value)} /></div>
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-400 mb-1">좌측 배경 톤 색상</label>
-                                    <input type="text" value={activeAsset.data?.bgColor || '#7a8a8e'} onChange={e => handleAssetChange(activeAsset.id, 'bgColor', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
-                                  </div>
-                                  <div className="col-span-2"><CopyInputWithSpec label="작품명 (하늘색 타이틀)" maxChars={15} textColorClass="text-sky-300 font-bold" value={activeAsset.data?.topTag || ''} onChange={e => handleAssetChange(activeAsset.id, 'topTag', e.target.value)} /></div>
-                                  <div className="col-span-2"><CopyInputWithSpec label="메인 이벤트 타이틀" maxChars={18} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
-                                  <div className="col-span-2"><CopyInputWithSpec label="이벤트 기간 표기" maxChars={30} value={activeAsset.data?.periodText || ''} onChange={e => handleAssetChange(activeAsset.id, 'periodText', e.target.value)} /></div>
-                                  <div className="col-span-2"><input type="text" placeholder="우측 인물/장면 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
-                                  <div className="col-span-2"><input type="text" placeholder="모바일 랜딩 경로" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
-                                </>
-                              )}
+                              {activeAsset.type === 'MOBILE_EVENT_BANNER' && (() => {
+                                const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 18, subMax: 15 });
+                                const curColor = activeAsset.data?.bgColor || '#7a8a8e';
+                                const palettePresets = ['#7a8a8e', '#4b4d41', '#2f4b43', '#3b4254', '#5c3d46', '#4a3b5c', '#594a38', '#262833'];
+                                return (
+                                  <>
+                                    <div className="col-span-2">
+                                      <CopyInputWithSpec label="상단 상태 뱃지 (예: 종료 임박)" maxChars={8} textColorClass="text-orange-400 font-bold" value={activeAsset.data?.statusBadge || ''} onChange={e => handleAssetChange(activeAsset.id, 'statusBadge', e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2 bg-[#0a0812] border border-[#262833] rounded-xl p-3 space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-bold text-slate-400">좌측 배경 톤 색상 (컬러 피커 & 팔레트)</label>
+                                        <span className="text-[10px] font-mono font-bold text-slate-300">{curColor}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {/* 컬러 피커 & 현재 색상 미리보기 스와치 */}
+                                        <label className="relative w-9 h-9 rounded-lg border-2 border-white/20 cursor-pointer shrink-0 overflow-hidden shadow-md flex items-center justify-center" style={{ backgroundColor: curColor }} title="클릭하여 색상 직접 선택">
+                                          <input
+                                            type="color"
+                                            value={/^#[0-9A-Fa-f]{6}$/.test(curColor) ? curColor : '#7a8a8e'}
+                                            onChange={e => handleAssetChange(activeAsset.id, 'bgColor', e.target.value)}
+                                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                                          />
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={curColor}
+                                          onChange={e => handleAssetChange(activeAsset.id, 'bgColor', e.target.value)}
+                                          placeholder="#7a8a8e"
+                                          className="w-24 bg-[#12141c] border border-[#303340] rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[#4f3df6]"
+                                        />
+                                        {/* 추천 팔레트 칩 */}
+                                        <div className="flex items-center gap-1 flex-wrap flex-1 justify-end">
+                                          {palettePresets.map(hex => (
+                                            <button
+                                              key={hex}
+                                              type="button"
+                                              onClick={() => handleAssetChange(activeAsset.id, 'bgColor', hex)}
+                                              title={hex}
+                                              className={`w-5 h-5 rounded-md border transition-transform ${curColor.toLowerCase() === hex ? 'border-white scale-110 ring-2 ring-[#7387ff]' : 'border-white/15 hover:scale-105'}`}
+                                              style={{ backgroundColor: hex }}
+                                            />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="col-span-2"><CopyInputWithSpec label="작품명 (하늘색 상단 타이틀)" maxChars={lim.subMax} textColorClass="text-sky-300 font-bold" value={activeAsset.data?.topTag || ''} onChange={e => handleAssetChange(activeAsset.id, 'topTag', e.target.value)} /></div>
+                                    <div className="col-span-2"><CopyInputWithSpec label="메인 이벤트 타이틀" maxChars={lim.mainMax} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
+                                    <div className="col-span-2"><CopyInputWithSpec label="이벤트 기간 표기" maxChars={30} value={activeAsset.data?.periodText || ''} onChange={e => handleAssetChange(activeAsset.id, 'periodText', e.target.value)} /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="우측 인물/장면 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="모바일 랜딩 경로" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
+                                  </>
+                                );
+                              })()}
 
                               {activeAsset.type === 'MOBILE_BIG_BANNER' && (
                                 <>
@@ -6553,16 +6596,39 @@
                 </div>
 
                 <div className="p-8 grid grid-cols-2 lg:grid-cols-3 gap-5 max-h-[70vh] overflow-y-auto custom-scrollbar bg-[#0a0812]">
-                  {BANNER_SPECS.filter(spec => spec.category === templateCategoryTab).map((spec) => (
-                    <div key={spec.type} onClick={() => addAsset(spec.type, spec.name)} className="bg-[#1a1c26] border border-[#262833] rounded-2xl p-6 cursor-pointer hover:border-[#4f3df6] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(79,61,246,0.2)] transition-all flex flex-col h-full group">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-[#0a0812] border border-[#303340] rounded-xl text-[#7387ff] group-hover:bg-[#4f3df6] group-hover:border-[#4f3df6] group-hover:text-white transition-colors"><spec.icon size={24} /></div>
-                        <span className="text-[10px] font-bold bg-[#0a0812] border border-[#303340] text-slate-400 px-2 py-1 rounded-md font-mono">{spec.ratio}</span>
+                  {BANNER_SPECS.filter(spec => spec.category === templateCategoryTab).map((spec) => {
+                    const matchedSheet = sheetBannerSpecs.find(s => s.type === spec.type || s.bannerName.replace(/\s+/g, '') === spec.name.replace(/\s+/g, ''));
+                    const isMassOnly = String(matchedSheet?.targetable || spec.targetable || '').includes('불가');
+                    return (
+                      <div
+                        key={spec.type}
+                        onClick={() => addAsset(spec.type, spec.name)}
+                        className={`bg-[#1a1c26] border border-[#262833] rounded-2xl p-6 cursor-pointer hover:-translate-y-1 transition-all flex flex-col h-full group ${
+                          isMassOnly
+                            ? 'hover:border-[#32d782] hover:shadow-[0_10px_30px_rgba(50,215,130,0.15)]'
+                            : 'hover:border-[#4f3df6] hover:shadow-[0_10px_30px_rgba(79,61,246,0.2)]'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className={`p-3 bg-[#0a0812] border border-[#303340] rounded-xl transition-colors ${
+                            isMassOnly
+                              ? 'text-[#32d782] group-hover:bg-[#32d782] group-hover:border-[#32d782] group-hover:text-black'
+                              : 'text-[#7387ff] group-hover:bg-[#4f3df6] group-hover:border-[#4f3df6] group-hover:text-white'
+                          }`}>
+                            <spec.icon size={24} />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {isMassOnly && (
+                              <span className="text-[10px] font-bold bg-[#0a0812] border border-[#32d782]/40 text-[#32d782] px-2 py-1 rounded-md">MASS전용 (타겟불가)</span>
+                            )}
+                            <span className="text-[10px] font-bold bg-[#0a0812] border border-[#303340] text-slate-400 px-2 py-1 rounded-md font-mono">{spec.ratio}</span>
+                          </div>
+                        </div>
+                        <h4 className={`text-lg font-bold text-white mb-1 transition-colors ${isMassOnly ? 'group-hover:text-[#32d782]' : 'group-hover:text-[#7387ff]'}`}>{spec.name}</h4>
+                        <p className="text-xs text-slate-500 leading-relaxed mt-auto pt-4 border-t border-[#262833]">{spec.desc}</p>
                       </div>
-                      <h4 className="text-lg font-bold text-white mb-1 group-hover:text-[#7387ff] transition-colors">{spec.name}</h4>
-                      <p className="text-xs text-slate-500 leading-relaxed mt-auto pt-4 border-t border-[#262833]">{spec.desc}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* TV 탭일 때만 시트 연동 추가 배너 표시 (단, 빅배너/월정액 빅배너 등 이미 기본 템플릿이 있는 유형은 중복 노출 제외!) */}
                   {templateCategoryTab === 'TV' && sheetBannerSpecs
