@@ -5317,7 +5317,9 @@
 
             return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: mappedAssigneeJiraId, imageData: setImagesArr[0], startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs };
           } else {
-            let copyText = data.mainTitle || data.copy || data.bannerCopy || data.previewTitle || data.buttonText || '미지정';
+            let copyText = [data.topText, data.mainTitle, data.copy, data.bannerCopy, data.previewTitle, data.bottomText, data.subTitle, data.badgeText, data.buttonText]
+              .filter(Boolean)
+              .join(' / ') || '미지정';
             const imgName = `banner_preview_${idx + 1}.png`;
             let imgDataUrl = capturedImages[asset.id];
             if (Array.isArray(imgDataUrl)) imgDataUrl = imgDataUrl[0];
@@ -6632,7 +6634,7 @@
 
                   {/* TV 탭일 때만 시트 연동 추가 배너 표시 (단, 빅배너/월정액 빅배너 등 이미 기본 템플릿이 있는 유형은 중복 노출 제외!) */}
                   {templateCategoryTab === 'TV' && sheetBannerSpecs
-                    .filter(s => s.type === 'CUSTOM_BANNER' && !s.bannerName.includes('빅배너') && !BANNER_SPECS.some(b => b.name.replace(/\s+/g, '') === s.bannerName.replace(/\s+/g, '')))
+                    .filter(s => s.type === 'CUSTOM_BANNER' && !s.bannerName.includes('빅배너') && !s.bannerName.includes('모바일') && !BANNER_SPECS.some(b => b.name.replace(/\s+/g, '') === s.bannerName.replace(/\s+/g, '')))
                     .map((s) => (
                       <div key={s.id} onClick={() => addAsset(s.type, s.bannerName)} className="bg-[#1a1c26] border border-[#262833] rounded-2xl p-6 cursor-pointer hover:border-[#32d782] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(50,215,130,0.15)] transition-all flex flex-col h-full group">
                         <div className="flex items-start justify-between mb-4">
