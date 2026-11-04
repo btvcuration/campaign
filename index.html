@@ -850,7 +850,7 @@
       );
     };
 
-    const GNB_OPTIONS = ['홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널', '광고 홈', '콘텐츠', '기타'];
+    const GNB_OPTIONS = ['홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널', '광고 홈', '콘텐츠', '기타', '모바일'];
 
     const TEMPLATE_URLS = {
       'TODAY_BTV': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/today_btv.png',
@@ -889,7 +889,7 @@
       // 📱 모바일 B tv 계열 (신규 5종)
       { category: 'MOBILE', type: 'MOBILE_1_5_BANNER', name: '[모바일] 1.5단 배너', icon: Smartphone, ratio: '1.5단 (2.2개 노출)', targetable: '가능', desc: '포스터 가로 1.5배 크기 배너. 좌상단 뱃지와 좌하단 타이틀.' },
       { category: 'MOBILE', type: 'MOBILE_EVENT_BANNER', name: '[모바일] 이벤트 배너', icon: RectangleHorizontal, ratio: '2.1:1', targetable: '가능', desc: '이벤트 리스트용 배너. 좌측 작품명/이벤트명/기간 + 우측 인물 이미지.' },
-      { category: 'MOBILE', type: 'MOBILE_BIG_BANNER', name: '[모바일] 빅배너', icon: Smartphone, ratio: '599:911', targetable: '가능', desc: '모바일 홈 상단 대형 세로 배너 (599x911 비율).' },
+      { category: 'MOBILE', type: 'MOBILE_BIG_BANNER', name: '[모바일] 빅배너', icon: Smartphone, ratio: '81:108', targetable: '가능', desc: '모바일 홈 상단 카드형 세로 배너 (81x108 비율, 가운데 정렬).' },
       { category: 'MOBILE', type: 'MOBILE_SYNOPSIS_BANNER', name: '[모바일] 시놉시스 배너', icon: RectangleHorizontal, ratio: '직각형', targetable: '가능', desc: '모바일 시놉시스 중단 노출. 좌측 뱃지 + 우측 좌정렬 텍스트.' },
       { category: 'MOBILE', type: 'MOBILE_EVENT_PAGE', name: '[모바일] 이벤트 페이지', icon: FileText, ratio: 'Long Scroll', targetable: '가능', desc: '최상단 텍스트(2줄) + 이미지 + 하단 텍스트(2줄) + 메모 여백 + 하단 버튼.' }
     ];
@@ -992,17 +992,17 @@
       gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' 
     };
 
-    // 🌟 모바일 B tv 5종 기본 데이터 (시놉시스 디폴트 문구 제거 & 이벤트 페이지 상/하단 텍스트 분리)
-    const DEFAULT_MOBILE_1_5_BANNER = { badgeText: '쿠폰', mainTitle: 'HOPE', subTitle: '', imageUrl: '', landingValue: 'MOBILE_PATH: /synopsis', gnb: ['홈'], note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_MOBILE_EVENT_BANNER = { statusBadge: '종료 임박', topTag: '호프', mainTitle: '런칭 이벤트', periodText: '2026.10.21(수) ~ 2026.11.3(화)', bgColor: '#7a8a8e', imageUrl: '', landingValue: 'MOBILE_PATH: /event', gnb: ['기타'], note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_MOBILE_BIG_BANNER = { mainTitle: 'HOPE', copy: '광기와 패기로 내달리는 질주의 영화\n감상하면 5,500원 할인쿠폰 추첨 증정', hashtags: '#나홍진 #황정민 #조인성 #정호연', imageUrl: '', landingValue: 'MOBILE_PATH: /event', gnb: ['홈'], note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_MOBILE_SYNOPSIS_BANNER = { badgeType: 'COUPON', badgeText: '', imageUrl: '', mainTitle: '', subTitle: '', landingValue: 'MOBILE_PATH: /event', gnb: ['콘텐츠'], note: '', memos: [], startDate: '', dueDate: '' };
+    // 🌟 모바일 B tv 5종 기본 데이터 (편성 GNB '모바일'로 통일 & 빅배너 가운데 정렬 반영)
+    const DEFAULT_MOBILE_1_5_BANNER = { badgeText: '쿠폰', mainTitle: 'HOPE', subTitle: '', imageUrl: '', landingValue: 'MOBILE_PATH: /synopsis', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_MOBILE_EVENT_BANNER = { statusBadge: '종료 임박', topTag: '호프', mainTitle: '런칭 이벤트', periodText: '2026.10.21(수) ~ 2026.11.3(화)', bgColor: '#7a8a8e', imageUrl: '', landingValue: 'MOBILE_PATH: /event', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_MOBILE_BIG_BANNER = { subTitle: '브랜드 뉴 데이', mainTitle: '스파이더맨', copy: '피터 파커를 기억하는 역대급 빌런!\n가장 통제 할 수 없는 대결이 시작된다!', hashtags: '', imageUrl: '', landingValue: 'MOBILE_PATH: /event', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_MOBILE_SYNOPSIS_BANNER = { badgeType: 'COUPON', badgeText: '', imageUrl: '', mainTitle: '', subTitle: '', landingValue: 'MOBILE_PATH: /event', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_MOBILE_EVENT_PAGE = {
       topText: '최상단 텍스트\n두줄 인입',
       imageUrl: '',
       bottomText: '하단 텍스트\n두줄(경품 안내) 인입',
       buttonText: '감상하러 가기',
-      landingValue: 'MOBILE_PATH: /event_detail', gnb: ['기타'], note: '', memos: [], startDate: '', dueDate: ''
+      landingValue: 'MOBILE_PATH: /event_detail', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: ''
     };
     const DEFAULT_FULL_PROMO_BANNER = { bgImg: '', topLogo: '상단 타이틀', mainCopy: '메인 하이라이트 문구', subCopy: '서브 텍스트 라인', card1Title: '블룸 하우스', card1Sub: '카드 1 설명', card1Img: '', card1Landing: '', card2Title: '블룸 하우스', card2Sub: '카드 2 설명', card2Img: '', card2Landing: '', card3Title: '블룸 하우스', card3Sub: '카드 3 설명', card3Img: '', card3Landing: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_BIG_BANNER = { subType: '기본형', mainTitle: '메인 문구', subTitle: '서브 타이틀', desc: '상세 설명글을 입력해주세요.', buttonText: '바로가기', imageUrl: '', logoImg: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
@@ -1467,17 +1467,17 @@
         );
       }
       
-      // 🌟 0) 모바일 B tv 공통 스마트폰 디바이스 프레임: 505 x 1125 비율 고정 (단, 이벤트 페이지는 더 길쭉한 비율 허용)
+      // 🌟 0) 모바일 B tv 공통 스마트폰 디바이스 프레임: 505 x 1125 비율 + 하단 4개 메뉴 플로팅 독(Dock) 형태
       const MobileDeviceShell = ({ children, activeBottomTab = '홈', showBottomNav = true, showStatusBar = true, customAspectClass = 'aspect-[505/1125]' }) => (
         <div className="relative w-full aspect-[16/9] bg-[#05060a] overflow-hidden shrink-0 flex items-center justify-center py-2">
           <div className={`relative h-full ${customAspectClass} bg-[#0b0c10] rounded-[18px] border-[2px] border-[#262833] shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col justify-between select-none`}>
             {/* 스마트폰 상단 상태바 */}
             {showStatusBar && (
-              <div className="px-3 pt-1.5 pb-1 flex items-center justify-between text-white text-[8px] font-bold shrink-0 z-20 bg-[#0b0c10]">
-                <span>10:16</span>
+              <div className="px-3.5 pt-1.5 pb-1 flex items-center justify-between text-white text-[8px] font-bold shrink-0 z-20 bg-[#0b0c10]">
+                <span>3:53</span>
                 <div className="flex items-center gap-1">
-                  <span className="text-[7px] text-slate-300">5G</span>
-                  <span className="bg-white text-black text-[7px] font-black px-1 rounded-[2px]">80</span>
+                  <span className="text-[7px] text-slate-200 font-extrabold">5G</span>
+                  <span className="bg-[#f5c542] text-black text-[6.5px] font-black px-1 rounded-[3px] leading-tight">95</span>
                 </div>
               </div>
             )}
@@ -1485,27 +1485,43 @@
             {/* 중앙 앱 화면 영역 */}
             <div className="flex-1 overflow-hidden flex flex-col relative">
               {children}
-            </div>
 
-            {/* 스마트폰 하단 모바일 B tv 네비게이션 바 */}
-            {showBottomNav && (
-              <div className="bg-[#121318] border-t border-white/5 pt-1 pb-1.5 px-2 flex flex-col items-center shrink-0 z-20">
-                <div className="w-full grid grid-cols-5 gap-0.5 text-center">
-                  {['홈', '탐색', 'B tv+', '무료', '정주행TV'].map(tab => {
-                    const isAct = tab === activeBottomTab;
-                    return (
-                      <div key={tab} className="flex flex-col items-center gap-0.5">
-                        <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[7px] font-black ${isAct ? 'bg-[#5235f6] text-white shadow' : 'bg-[#22242c] text-slate-400'}`}>
-                          {tab === '홈' ? 'B' : tab === 'B tv+' ? 'B+' : '•'}
+              {/* 🌟 신규 플로팅 독(Dock) 형태 하단 4개 메뉴 ('홈', 'B tv+', '쇼츠', '검색') */}
+              {showBottomNav && (
+                <div className="absolute bottom-2 inset-x-3 z-30 pointer-events-none">
+                  <div className="w-full bg-[#1c1e26]/90 backdrop-blur-md border border-white/15 rounded-full py-1.5 px-3 shadow-[0_8px_24px_rgba(0,0,0,0.75)] grid grid-cols-4 gap-1 text-center">
+                    {[
+                      { id: '홈', icon: '🏠' },
+                      { id: 'B tv+', icon: 'B+' },
+                      { id: '쇼츠', icon: '▶' },
+                      { id: '검색', icon: '🔍' }
+                    ].map(tab => {
+                      const isAct = tab.id === activeBottomTab;
+                      return (
+                        <div key={tab.id} className="flex flex-col items-center justify-center gap-0.5">
+                          <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[7px] font-black ${
+                            tab.id === 'B tv+'
+                              ? 'bg-white text-black rotate-0 rounded-[4px]'
+                              : isAct ? 'text-white' : 'text-slate-400'
+                          }`}>
+                            {tab.id === '홈' ? (
+                              <Home size={11} className={isAct ? 'text-white fill-white' : 'text-slate-300'} />
+                            ) : tab.id === '검색' ? (
+                              <Search size={11} className={isAct ? 'text-white' : 'text-slate-300'} />
+                            ) : tab.id === '쇼츠' ? (
+                              <div className="w-3.5 h-3.5 bg-white text-black rounded-[3px] flex items-center justify-center text-[6px] font-black">▶</div>
+                            ) : (
+                              <span className="text-[6px] font-black tracking-tighter">B+</span>
+                            )}
+                          </div>
+                          <span className={`text-[6.5px] font-bold leading-none ${isAct ? 'text-white' : 'text-slate-400'}`}>{tab.id}</span>
                         </div>
-                        <span className={`text-[6.5px] font-bold ${isAct ? 'text-white' : 'text-slate-500'}`}>{tab}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="w-16 h-0.5 bg-white/80 rounded-full mt-1" />
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       );
@@ -1574,8 +1590,8 @@
               </div>
             </div>
 
-            {/* 🌟 하단 포스터 리스트 2줄: 한 화면에 정확히 포스터 3.5개가 보이도록 w-[26.5%] 세팅 */}
-            <div className="pl-2.5 pt-1 flex-1 flex flex-col justify-around overflow-hidden pb-1">
+            {/* 하단 포스터 리스트 2줄: 한 화면에 정확히 포스터 3.5개가 보이도록 w-[26.5%] 세팅 */}
+            <div className="pl-2.5 pt-1 flex-1 flex flex-col justify-start gap-2 overflow-hidden pb-12">
               {['새로 들어온 무료 영화', '새로 들어온 영화'].map((secTitle, sIdx) => (
                 <div key={sIdx} className="space-y-1">
                   <div className="flex justify-between items-center pr-2.5">
@@ -1600,14 +1616,14 @@
       if (block.type === 'MOBILE_EVENT_BANNER') {
         const bgTone = block.data?.bgColor || '#7a8a8e';
         return (
-          <MobileDeviceShell activeBottomTab="탐색">
+          <MobileDeviceShell activeBottomTab="검색">
             <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5 shrink-0">
               <span className="text-slate-300 text-[9px]">〈</span>
               <span className="text-white font-bold text-[9px]">이벤트</span>
               <span className="w-2" />
             </div>
 
-            <div className="p-2.5 space-y-2 flex-1 overflow-hidden flex flex-col">
+            <div className="p-2.5 space-y-2 flex-1 overflow-hidden flex flex-col pb-12">
               {/* 메인 편집 대상 이벤트 배너 */}
               <div className="relative w-full aspect-[2.15/1] rounded-lg overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_15px_rgba(115,135,255,0.35)] flex items-center shrink-0" style={{ backgroundColor: bgTone }}>
                 <div className="absolute right-0 top-0 bottom-0 w-[58%] bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
@@ -1645,53 +1661,84 @@
         );
       }
 
-      // 📱 ③ [모바일] 빅배너 (모바일 화면 505x1125 + 빅배너 영역 599x911 비율 엄격 고정!)
+      // 📱 ③ [모바일] 빅배너 (신규 UI: 상단 B 로고 헤더 + 81x108 비율 라운드 카드 + 가운데 정렬 + 하단 원형 카테고리 칩 & 플로팅 독)
       if (block.type === 'MOBILE_BIG_BANNER') {
         return (
-          <MobileDeviceShell activeBottomTab="홈" showStatusBar={false}>
-            {/* 🌟 4) 상단 빅배너 영역: 599 x 911 비율 정확 고정 */}
-            <div className="relative w-full aspect-[599/911] border-[2px] border-[#7387FF] overflow-hidden bg-[#141620] flex flex-col justify-end shrink-0">
-              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                  <div className="absolute inset-0 bg-[#ffc40c] flex items-center justify-center">
-                    <span className="text-black font-black text-xs">모바일 빅배너 (599x911)</span>
-                  </div>
-                )}
-                <FallbackText text={block.data?.imageUrl} />
-              </div>
-              <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black via-black/75 to-transparent pointer-events-none" />
-              <div className="relative z-10 p-3 pb-2.5 text-left">
-                <div className="text-white font-black text-xl tracking-tight mb-0.5 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] uppercase">
-                  {block.data?.mainTitle || ''}
-                </div>
-                {block.data?.copy && (
-                  <p className="text-white font-bold text-[8px] leading-snug whitespace-pre-wrap drop-shadow">
-                    {block.data.copy}
-                  </p>
-                )}
-                {block.data?.hashtags && (
-                  <p className="text-slate-300 font-medium text-[7px] mt-1 tracking-tight">
-                    {block.data.hashtags}
-                  </p>
-                )}
+          <MobileDeviceShell activeBottomTab="홈" showStatusBar={true}>
+            {/* 상단 B 로고 & 우측 아이콘 바 */}
+            <div className="px-3.5 py-1 flex items-center justify-between shrink-0">
+              <span className="text-white font-black text-sm tracking-tighter">B</span>
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 rounded-full border border-white/30" />
+                <div className="w-3.5 h-3.5 rounded-sm border border-white/30" />
+                <div className="w-4 h-4 rounded-full bg-indigo-500" />
               </div>
             </div>
 
-            {/* 인디케이터 바 & 하단 오늘의 인기 순위 (3.5개 포스터 노출) */}
-            <div className="pl-2.5 pt-1.5 flex-1 flex flex-col justify-between pb-1 overflow-hidden">
-              <div className="w-8 h-0.5 bg-white rounded-full" />
-              <div className="space-y-1">
-                <div className="flex justify-between items-center pr-2.5">
-                  <span className="text-white font-extrabold text-[8px]">오늘의 인기 순위 #영화</span>
-                  <span className="text-slate-500 text-[6.5px]">전체보기</span>
-                </div>
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                  {[1, 2, 3, 4].map(n => (
-                    <div key={n} className="w-[26.5%] aspect-[2/2.8] bg-[#181920] rounded border border-white/5 relative p-1 shrink-0">
-                      <span className="bg-[#5235f6] text-white text-[6.5px] font-black px-1 py-0.5 rounded-sm leading-none">{n}</span>
+            {/* 🌟 중앙 81 x 108 비율 빅배너 카드 (좌우 여백 + 라운드 + 가운데 정렬) */}
+            <div className="px-2.5 pt-0.5 shrink-0">
+              <div className="relative w-full aspect-[81/108] rounded-[14px] border-[2px] border-[#7387FF] shadow-[0_8px_25px_rgba(0,0,0,0.8)] overflow-hidden bg-[#1a1c26] flex flex-col justify-end">
+                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#334155] via-[#1e293b] to-[#0f172a] flex items-center justify-center">
+                      <span className="text-white/40 font-black text-[10px]">모바일 빅배너 (81x108)</span>
                     </div>
-                  ))}
+                  )}
+                  <FallbackText text={block.data?.imageUrl} />
                 </div>
+
+                {/* 하단 그라데이션 & 가운데 정렬 텍스트 영역 */}
+                <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
+                <div className="relative z-10 px-3 pb-2.5 flex flex-col items-center text-center">
+                  <div className="text-white font-black text-lg tracking-tight leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
+                    {block.data?.mainTitle || ''}
+                  </div>
+                  {block.data?.subTitle && (
+                    <div className="text-white font-extrabold text-[9.5px] tracking-tight mt-0.5 drop-shadow">
+                      {block.data.subTitle}
+                    </div>
+                  )}
+                  {block.data?.copy && (
+                    <p className="text-white/90 font-medium text-[7.5px] leading-snug whitespace-pre-wrap mt-1.5 drop-shadow">
+                      {block.data.copy}
+                    </p>
+                  )}
+                  {/* 캐러셀 인디케이터 점 */}
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="w-2.5 h-1 rounded-full bg-white" />
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 중단 원형 카테고리 필터 칩 ('NOW', '랭킹', '영화', '시리즈', '키즈') */}
+            <div className="px-2 py-2 flex items-center justify-center gap-1.5 overflow-hidden shrink-0">
+              {['NOW', '랭킹', '영화', '시리즈', '키즈'].map(cat => {
+                const isMovie = cat === '영화';
+                return (
+                  <div
+                    key={cat}
+                    className={`px-2.5 py-1 rounded-full text-[7px] font-bold shrink-0 border ${
+                      isMovie
+                        ? 'bg-[#4f3df6] border-[#7387ff] text-white shadow'
+                        : 'bg-[#181920] border-white/10 text-slate-300'
+                    }`}
+                  >
+                    {cat}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 하단 포스터 카드 일부 노출 (플로팅 독 뒤편 배경) */}
+            <div className="px-2.5 flex-1 overflow-hidden">
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-900/50 to-slate-900 border border-white/10 p-2.5 flex items-start justify-between">
+                <span className="text-[#f5c542] font-black text-2xl leading-none drop-shadow">3</span>
+                <span className="text-white/60 font-black text-[9px]">추천 콘텐츠</span>
               </div>
             </div>
           </MobileDeviceShell>
@@ -4905,7 +4952,8 @@
                   if (g === 'OTT 홈' || g === 'OTT') return 'OTT홈';
                   return g;
                 });
-              if (cleanedGnb.length === 0) cleanedGnb = ['홈'];  
+              if (cleanedGnb.length === 0) cleanedGnb = ['홈'];
+              if (String(aiAsset.type || '').startsWith('MOBILE_')) cleanedGnb = ['모바일'];
               
               const rawName = aiAsset.name || `${aiAsset.type.replace('_', ' ')} (AI)`;
               const finalName = getUniqueAssetName(usedNames, rawName);
@@ -5265,6 +5313,7 @@
           if (asset?.type === 'TODAY_BTV') targetGnbs = ['홈'];
           if (asset?.type === 'SYNOPSIS_BANNER') targetGnbs = ['콘텐츠'];
           if (asset?.type === 'MINI_EPG_BANNER') targetGnbs = ['실시간 채널'];
+          if (String(asset?.type || '').startsWith('MOBILE_')) targetGnbs = ['모바일'];
           
           const targetGnbForAssign = targetGnbs[0];
           const assigneeInfo = configMap[targetGnbForAssign];
@@ -5819,11 +5868,13 @@
                         <label className="block text-[10px] font-bold text-slate-500 ml-1">편성 GNB (다중 선택)</label>
                         <div className="flex flex-wrap gap-1">
                           {GNB_OPTIONS.map(opt => {
-                            const isFixed = activeAsset.type === 'TODAY_BTV' || activeAsset.type === 'SYNOPSIS_BANNER' || activeAsset.type === 'MINI_EPG_BANNER';
+                            const isMobileAsset = String(activeAsset.type || '').startsWith('MOBILE_');
+                            const isFixed = activeAsset.type === 'TODAY_BTV' || activeAsset.type === 'SYNOPSIS_BANNER' || activeAsset.type === 'MINI_EPG_BANNER' || isMobileAsset;
                             let currentGnbs = Array.isArray(activeAsset.data?.gnb) ? activeAsset.data.gnb : [activeAsset.data?.gnb || '홈'];
                             if (activeAsset.type === 'TODAY_BTV') currentGnbs = ['홈'];
                             if (activeAsset.type === 'SYNOPSIS_BANNER') currentGnbs = ['콘텐츠'];
                             if (activeAsset.type === 'MINI_EPG_BANNER') currentGnbs = ['실시간 채널'];
+                            if (isMobileAsset) currentGnbs = ['모바일'];
                             const isSelected = currentGnbs.includes(opt);
                             const toggleGnb = () => {
                               if (isFixed) return; 
@@ -6198,10 +6249,10 @@
 
                               {activeAsset.type === 'MOBILE_BIG_BANNER' && (
                                 <>
-                                  <div className="col-span-2"><CopyInputWithSpec label="작품 타이틀 로고 텍스트" maxChars={15} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
-                                  <div className="col-span-2"><CopyInputWithSpec label="메인 카피 (2줄 권장)" maxChars={24} maxLines={2} multiline={true} value={activeAsset.data?.copy || ''} onChange={e => handleAssetChange(activeAsset.id, 'copy', e.target.value)} /></div>
-                                  <div className="col-span-2"><CopyInputWithSpec label="하단 해시태그" maxChars={30} textColorClass="text-slate-400" value={activeAsset.data?.hashtags || ''} onChange={e => handleAssetChange(activeAsset.id, 'hashtags', e.target.value)} /></div>
-                                  <div className="col-span-2"><input type="text" placeholder="세로형 포스터 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                  <div><CopyInputWithSpec label="메인 타이틀 로고 (가운데 정렬)" maxChars={15} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
+                                  <div><CopyInputWithSpec label="서브 타이틀/부제 (선택)" maxChars={18} textColorClass="text-slate-200 font-bold" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} /></div>
+                                  <div className="col-span-2"><CopyInputWithSpec label="하단 메인 카피 (2줄 권장 · 가운데 정렬)" maxChars={24} maxLines={2} multiline={true} value={activeAsset.data?.copy || ''} onChange={e => handleAssetChange(activeAsset.id, 'copy', e.target.value)} /></div>
+                                  <div className="col-span-2"><input type="text" placeholder="빅배너 이미지 URL (81x108 비율 권장)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                   <div className="col-span-2"><input type="text" placeholder="모바일 랜딩 경로" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                 </>
                               )}
@@ -6345,7 +6396,7 @@
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col h-full w-full">
+                  <div className="flex-1 flex flex-col h-full w-full min-w-0 overflow-hidden">
                     <header className="px-8 py-5 flex justify-between items-center z-20 border-b border-[#1a1c26] bg-[#0c0d14]/80 backdrop-blur">
                       <div className="flex items-center gap-3">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} title={isSidebarOpen ? '배너 설정 패널 닫기' : '배너 설정 패널 열기'} className="p-2 rounded-lg text-slate-400 border border-[#262833] hover:bg-[#1a1c26] hover:text-white transition-colors shrink-0">
@@ -6429,26 +6480,29 @@
                       </div>
                     </div>
 
-                    <div className="h-[180px] bg-[#0c0d14] border-t border-[#1a1c26] shrink-0 flex flex-col z-20">
-                      <div className="flex px-6 py-2.5 justify-between items-center border-b border-[#1a1c26] bg-[#0f111a]">
-                        <h3 className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5"><ImageIcon size={12}/> 편성 예정 배너 에셋 ({assets.length}개)</h3>
+                    <div className="h-[185px] w-full min-w-0 bg-[#0c0d14] border-t border-[#1a1c26] shrink-0 flex flex-col z-20">
+                      <div className="flex px-6 py-2 justify-between items-center border-b border-[#1a1c26] bg-[#0f111a] shrink-0">
+                        <h3 className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                          <ImageIcon size={12}/> 편성 예정 배너 에셋 ({assets.length}개)
+                          {assets.length >= 7 && <span className="text-[10px] text-[#7387ff] font-normal ml-2">↔ 좌우로 스크롤하여 전체 배너를 선택할 수 있습니다</span>}
+                        </h3>
                       </div>
                       
-                      <div className="flex-1 overflow-x-auto custom-scrollbar flex items-center gap-4 px-6 bg-[#06070a]">
+                      <div className="flex-1 w-full min-w-0 overflow-x-auto overflow-y-hidden custom-scrollbar flex items-center gap-4 px-6 py-2 bg-[#06070a]">
                         {assets.map((asset, idx) => (
                           <div 
                             key={asset.id} 
                             className={`relative w-[200px] h-[120px] rounded-xl border-2 transition-all shrink-0 flex flex-col overflow-hidden group cursor-pointer ${activeTabId === asset.id ? 'border-[#4f3df6] shadow-[0_0_15px_rgba(79,61,246,0.3)]' : 'border-[#262833] hover:border-[#4f3df6]/50'}`}
                             onClick={() => setActiveTabId(asset.id)}
                           >
-                            <div className="h-[180px] bg-[#0c0d14] border-t border-[#1a1c26] shrink-0 flex flex-col z-20 pointer-events-none">
+                            <div className="flex-1 bg-[#0c0d14] relative overflow-hidden pointer-events-none">
                               <div className="absolute top-0 left-0 w-[1000px] origin-top-left transform scale-[0.2]">
                                 <PreviewDisplay block={asset} />
                               </div>
                               <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
                             </div>
                             
-                            <div className={`h-[32px] px-3 flex justify-between items-center relative ${activeTabId === asset.id ? 'bg-[#4f3df6]' : 'bg-[#12141c]'}`}>
+                            <div className={`h-[32px] px-3 flex justify-between items-center shrink-0 relative ${activeTabId === asset.id ? 'bg-[#4f3df6]' : 'bg-[#12141c]'}`}>
                               <span className={`text-[10px] font-bold truncate pr-4 ${activeTabId === asset.id ? 'text-white' : 'text-slate-300'}`}>{asset.name}</span>
                               <button onClick={(e) => removeAsset(asset.id, e)} className={`absolute right-2 opacity-0 group-hover:opacity-100 p-1 rounded-full transition-all ${activeTabId === asset.id ? 'hover:bg-white/20 text-white' : 'hover:bg-red-500/20 text-red-400'}`}>
                                 <Trash2 size={10}/>
