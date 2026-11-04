@@ -4838,29 +4838,54 @@
         }
         const aiMeta = payload.rawGasData?.meta || {};
         const aiAssets = payload.rawGasData?.assets || [];
-        const aiMermaid = payload.mermaidCode || payload.rawGasData?.mermaidCode || "";
-      
-        if (aiAssets.length === 0 && !aiMermaid) {
-          alert("🚨 AI가 최종 시안 데이터를 정상적으로 렌더링하지 못했습니다. (서버 응답 오류)\n수동으로 배너를 추가하거나, AI에게 다시 시안 생성을 요청해 주세요.");
-          if (onInvalid) onInvalid();
-          return;
-        }
-        
-        if (assets.length > 0) {
-          const confirmOverwrite = window.confirm("⚠️ 이미 시안 편집 화면에 작업 중인 배너가 존재합니다.\n새로운 AI 기획안으로 덮어씌우시겠습니까?");
-          if (!confirmOverwrite) {
-            setUnlockedSteps(prev => ({ ...prev, step3: true }));
-            setCurrentView('EDITOR');
-            return;
+        let aiMermaid = payload.mermaidCode || payload.rawGasData?.mermaidCode || "";
+
+        // 🌟 [자동 보정 헬퍼] 배너명(name)을 분석해 AI가 잘못 매핑한 TV type을 모바일 type으로 강제 교정!
+        const resolveCorrectAssetType = (rawType = '', rawName = '') => {
+          const t = String(rawType).trim().toUpperCase();
+          const n = String(rawName).replace(/\s+/g, '');
+          if (t.startsWith('MOBILE_')) return t;
+          if (n.includes('1.5단')) return 'MOBILE_1_5_BANNER';
+          if (n.includes('모바일')) {
+            if (n.includes('이벤트페이지') || n.includes('상세페이지')) return 'MOBILE_EVENT_PAGE';
+            if (n.includes('이벤트배너') || n.includes('이벤트')) return 'MOBILE_EVENT_BANNER';
+            if (n.includes('빅배너')) return 'MOBILE_BIG_BANNER';
+            if (n.includes('시놉')) return 'MOBILE_SYNOPSIS_BANNER';
+            return 'MOBILE_1_5_BANNER';
+          }
+          return t || 'CUSTOM_BANNER';
+        };
+
+        // 🌟 [Mermaid 썸네일 자동 보정] 모바일 노드인데 TV 배너 이미지가 들어가 있으면 모바일 이미지로 자동 교체!
+        if (aiMermaid) {
+          const parsedFlow = parseMermaidGraph(aiMermaid);
+          let flowChanged = false;
+          const fixedNodes = parsedFlow.nodes.map(node => {
+            const titleClean = (node.title + ' ' + node.subText).replace(/\s+/g, '');
+            if (titleClean.includes('모바일') || titleClean.includes('1.5단')) {
+              let targetUrl = node.imgUrl;
+              if (titleClean.includes('1.5단')) targetUrl = TEMPLATE_URLS['MOBILE_1_5_BANNER'];
+              else if (titleClean.includes('이벤트페이지')) targetUrl = TEMPLATE_URLS['MOBILE_EVENT_PAGE'];
+              else if (titleClean.includes('이벤트')) targetUrl = TEMPLATE_URLS['MOBILE_EVENT_BANNER'];
+              else if (titleClean.includes('빅배너')) targetUrl = TEMPLATE_URLS['MOBILE_BIG_BANNER'];
+              else if (titleClean.includes('시놉')) targetUrl = TEMPLATE_URLS['MOBILE_SYNOPSIS_BANNER'];
+              if (targetUrl && targetUrl !== node.imgUrl) {
+                flowChanged = true;
+                return { ...node, imgUrl: targetUrl };
+              }
+            }
+            return node;
+          });
+          if (flowChanged) {
+            aiMermaid = serializeMermaidGraph(fixedNodes, parsedFlow.edges);
           }
         }
 
         const formMainImg = aiCampaignMeta.mainImageUrl || aiMeta.mainImageUrl || '';
-
         if (aiMermaid) setMermaidCode(aiMermaid);
         if (aiMeta) {
           if (!aiMeta.conceptCopy && (aiMeta.concept || aiMeta.mainCopy || aiMeta.keyConcept)) {
-             aiMeta.conceptCopy = aiMeta.concept || aiMeta.mainCopy || aiMeta.keyConcept;
+            aiMeta.conceptCopy = aiMeta.concept || aiMeta.mainCopy || aiMeta.keyConcept;
           }
           if (Array.isArray(aiMeta.bannerTypes)) aiMeta.bannerTypes = aiMeta.bannerTypes.join(', ');
           if (Array.isArray(aiMeta.gnbLocations)) aiMeta.gnbLocations = aiMeta.gnbLocations.join(', ');
@@ -4876,7 +4901,7 @@
             cycle: aiCampaignMeta.cycle || prev.cycle || '단발성'
           }));
         }
-
+        
         if (aiAssets && Array.isArray(aiAssets)) {
           if (aiAssets.length === 0) {
             setAssets([]); setActiveTabId(null);
@@ -4884,6 +4909,10 @@
             const timestamp = Date.now();
             const usedNames = [];
             const newAssets = aiAssets.map((aiAsset, index) => {
+              // 🌟 AI가 보낸 type 대신 이름 기반으로 교정된 resolvedType 사용!
+              const resolvedType = resolveCorrectAssetType(aiAsset.type, aiAsset.name);
+              aiAsset = { ...aiAsset, type: resolvedType };
+
               let baseData = {};
               if (aiAsset.type === 'TODAY_BTV') baseData = { ...DEFAULT_TODAY_BTV };
               else if (aiAsset.type === 'GENERAL_BANNER') baseData = { ...DEFAULT_GENERAL_BANNER };
