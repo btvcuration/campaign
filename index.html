@@ -322,39 +322,35 @@
             startOnLoad: false,
             theme: 'dark',
             securityLevel: 'loose',
-            flowchart: { htmlLabels: true, useMaxWidth: false, nodeSpacing: 26, rankSpacing: 40, padding: 12, curve: 'basis' }
+            flowchart: { htmlLabels: true, useMaxWidth: false, nodeSpacing: 28, rankSpacing: 45, padding: 14, curve: 'basis' }
           });
 
-          // 🌟 1) 불필요한 subgraph 제거 및 모든 <img> 태그에 고정 사이즈 주입 (Mermaid가 세로로 긴 박스를 만드는 것 원천 차단)
+          // 🌟 핵심 해결: <img> 태그를 고정 크기(96x58) 배경 이미지 <div>로 변환하여 Mermaid에 전달!
+          // (원본 이미지 해상도 때문에 박스가 길어지거나 박스 밖으로 튀어나가는 현상을 100% 원천 차단합니다)
           const normalizedCode = code
             .replace(/\\n/g, '<br/>')
-            .split('\n')
-            .filter(line => !/^\s*(subgraph\b|end\b)/i.test(line.trim()))
-            .map(line => line.replace(/<img\s+[^>]*src=['"]([^'"]+)['"][^>]*>/gi, "<img src='$1' width='96' height='58' style='width:96px;height:58px;object-fit:contain;'/>"))
-            .join('\n');
+            .replace(
+              /<img\s+[^>]*src=['"]([^'"]+)['"][^>]*>/gi,
+              "<div style='width:96px;height:58px;margin:2px auto 6px auto;border-radius:6px;background-color:#0a0812;background-image:url(\"$1\");background-size:contain;background-repeat:no-repeat;background-position:center;border:1px solid rgba(255,255,255,0.2);box-sizing:border-box;'></div>"
+            );
 
           window.mermaid.render(`mermaid-${Date.now()}`, normalizedCode).then(({svg}) => {
             if (containerRef.current) {
               containerRef.current.innerHTML = svg;
               const svgEl = containerRef.current.querySelector('svg');
               if (svgEl) {
-                // 🌟 2) 혹시라도 높이가 과도하게 잡힌 노드 박스(rect/foreignObject)가 있다면 균일한 높이로 즉시 보정
+                const viewBox = svgEl.getAttribute('viewBox');
+                if (viewBox) {
+                  const parts = viewBox.split(/\s+|,/).map(Number);
+                  if (parts.length === 4 && parts[2] > 0) {
+                    svgEl.style.width = `${Math.min(parts[2], 620)}px`;
+                    svgEl.style.maxWidth = '100%';
+                    svgEl.style.height = 'auto';
+                  }
+                }
+
                 const nodeEls = svgEl.querySelectorAll('.node');
                 nodeEls.forEach(nodeEl => {
-                  const rectEl = nodeEl.querySelector('rect');
-                  const foEl = nodeEl.querySelector('foreignObject');
-                  if (rectEl && foEl) {
-                    const hasImg = Boolean(foEl.querySelector('img'));
-                    const maxAllowedH = hasImg ? 118 : 68;
-                    const curRectH = parseFloat(rectEl.getAttribute('height') || '0');
-                    if (curRectH > maxAllowedH + 20) {
-                      rectEl.setAttribute('height', String(maxAllowedH));
-                      rectEl.setAttribute('y', String(-maxAllowedH / 2));
-                      foEl.setAttribute('height', String(maxAllowedH - 16));
-                      foEl.setAttribute('y', String(-(maxAllowedH - 16) / 2));
-                    }
-                  }
-
                   const rawDomId = nodeEl.id || '';
                   const matchedNode = parsed.nodes.find(n => {
                     const regex = new RegExp(`^flowchart-${n.id}-\\d+$`);
@@ -370,16 +366,6 @@
                     });
                   }
                 });
-
-                const viewBox = svgEl.getAttribute('viewBox');
-                if (viewBox) {
-                  const parts = viewBox.split(/\s+|,/).map(Number);
-                  if (parts.length === 4 && parts[2] > 0) {
-                    svgEl.style.width = `${Math.min(parts[2], 620)}px`;
-                    svgEl.style.maxWidth = '100%';
-                    svgEl.style.height = 'auto';
-                  }
-                }
               }
             }
           }).catch(e => console.error("Mermaid Render Error:", e));
