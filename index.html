@@ -103,12 +103,17 @@
     #mermaid-export-area .nodeLabel img,
     #mermaid-export-area .label img {
       width: 96px !important;
-      height: 54px !important;
-      object-fit: cover !important;
+      height: 58px !important;
+      max-width: 96px !important;
+      max-height: 58px !important;
+      object-fit: contain !important;
+      background-color: #0a0812 !important;
       border-radius: 6px !important;
       margin: 2px auto 6px auto !important;
       display: block !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      padding: 2px !important;
+      box-sizing: border-box !important;
     }
 
     /* 다크 모드 FullCalendar 커스텀 테마 */
@@ -270,7 +275,8 @@
       const lines = ['graph TD'];
       nodes.forEach(n => {
         const parts = [];
-        if (n.imgUrl) parts.push(`<img src='${n.imgUrl}' width='120' height='68'/>`);
+        // 🌟 인라인 style로 width/height와 object-fit:contain을 명시해 Mermaid가 박스 높이를 과도하게 늘리는 현상 방지!
+        if (n.imgUrl) parts.push(`<img src='${n.imgUrl}' width='96' height='58' style='width:96px;height:58px;object-fit:contain;'/>`);
         if (n.title) parts.push(n.title.replace(/"/g, "'"));
         if (n.subText) parts.push(n.subText.replace(/"/g, "'"));
         const label = parts.join('<br/>') || n.id;
@@ -316,29 +322,39 @@
             startOnLoad: false,
             theme: 'dark',
             securityLevel: 'loose',
-            flowchart: { htmlLabels: true, useMaxWidth: false, nodeSpacing: 28, rankSpacing: 45, padding: 14, curve: 'basis' }
+            flowchart: { htmlLabels: true, useMaxWidth: false, nodeSpacing: 26, rankSpacing: 40, padding: 12, curve: 'basis' }
           });
 
-          const normalizedCode = code.replace(/\\n/g, '<br/>');
+          // 🌟 1) 불필요한 subgraph 제거 및 모든 <img> 태그에 고정 사이즈 주입 (Mermaid가 세로로 긴 박스를 만드는 것 원천 차단)
+          const normalizedCode = code
+            .replace(/\\n/g, '<br/>')
+            .split('\n')
+            .filter(line => !/^\s*(subgraph\b|end\b)/i.test(line.trim()))
+            .map(line => line.replace(/<img\s+[^>]*src=['"]([^'"]+)['"][^>]*>/gi, "<img src='$1' width='96' height='58' style='width:96px;height:58px;object-fit:contain;'/>"))
+            .join('\n');
 
           window.mermaid.render(`mermaid-${Date.now()}`, normalizedCode).then(({svg}) => {
             if (containerRef.current) {
               containerRef.current.innerHTML = svg;
               const svgEl = containerRef.current.querySelector('svg');
               if (svgEl) {
-                const viewBox = svgEl.getAttribute('viewBox');
-                if (viewBox) {
-                  const parts = viewBox.split(/\s+|,/).map(Number);
-                  if (parts.length === 4 && parts[2] > 0) {
-                    // 병렬 노드가 여러 개일 때도 자연스럽게 보이도록 최대 폭을 620px까지 허용하되 컨테이너 안에 맞춤
-                    svgEl.style.width = `${Math.min(parts[2], 620)}px`;
-                    svgEl.style.maxWidth = '100%';
-                    svgEl.style.height = 'auto';
-                  }
-                }
-
+                // 🌟 2) 혹시라도 높이가 과도하게 잡힌 노드 박스(rect/foreignObject)가 있다면 균일한 높이로 즉시 보정
                 const nodeEls = svgEl.querySelectorAll('.node');
                 nodeEls.forEach(nodeEl => {
+                  const rectEl = nodeEl.querySelector('rect');
+                  const foEl = nodeEl.querySelector('foreignObject');
+                  if (rectEl && foEl) {
+                    const hasImg = Boolean(foEl.querySelector('img'));
+                    const maxAllowedH = hasImg ? 118 : 68;
+                    const curRectH = parseFloat(rectEl.getAttribute('height') || '0');
+                    if (curRectH > maxAllowedH + 20) {
+                      rectEl.setAttribute('height', String(maxAllowedH));
+                      rectEl.setAttribute('y', String(-maxAllowedH / 2));
+                      foEl.setAttribute('height', String(maxAllowedH - 16));
+                      foEl.setAttribute('y', String(-(maxAllowedH - 16) / 2));
+                    }
+                  }
+
                   const rawDomId = nodeEl.id || '';
                   const matchedNode = parsed.nodes.find(n => {
                     const regex = new RegExp(`^flowchart-${n.id}-\\d+$`);
@@ -354,6 +370,16 @@
                     });
                   }
                 });
+
+                const viewBox = svgEl.getAttribute('viewBox');
+                if (viewBox) {
+                  const parts = viewBox.split(/\s+|,/).map(Number);
+                  if (parts.length === 4 && parts[2] > 0) {
+                    svgEl.style.width = `${Math.min(parts[2], 620)}px`;
+                    svgEl.style.maxWidth = '100%';
+                    svgEl.style.height = 'auto';
+                  }
+                }
               }
             }
           }).catch(e => console.error("Mermaid Render Error:", e));
