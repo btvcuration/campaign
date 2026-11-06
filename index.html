@@ -330,10 +330,13 @@
             .replace(/\\n/g, '<br/>')
             .replace(
               /<img\s+[^>]*src=['"]([^'"]+)['"][^>]*>/gi,
-              "<div style='width:96px;height:58px;margin:2px auto 6px auto;border-radius:6px;background-color:#0a0812;background-image:url(\"$1\");background-size:contain;background-repeat:no-repeat;background-position:center;border:1px solid rgba(255,255,255,0.2);box-sizing:border-box;'></div>"
+              // ⚠️ 라벨이 ["..."]로 감싸져 있으므로 내부에 큰따옴표(")를 쓰면 Mermaid 문법 오류 발생 → url() 따옴표 제거
+              // ⚠️ '#hex;' 형태는 Mermaid가 HTML 엔티티로 오인하므로 rgb()로 표기
+              (_m, src) => `<div style='width:96px;height:58px;margin:2px auto 6px auto;border-radius:6px;background-color:rgb(10,8,18);background-image:url(${src.replace(/[()'"\s]/g, encodeURIComponent)});background-size:contain;background-repeat:no-repeat;background-position:center;border:1px solid rgba(255,255,255,0.2);box-sizing:border-box;'></div>`
             );
 
-          window.mermaid.render(`mermaid-${Date.now()}`, normalizedCode).then(({svg}) => {
+          const renderId = `mermaid-${Date.now()}`;
+          window.mermaid.render(renderId, normalizedCode).then(({svg}) => {
             if (containerRef.current) {
               containerRef.current.innerHTML = svg;
               const svgEl = containerRef.current.querySelector('svg');
@@ -369,7 +372,14 @@
                 }
               }
             }
-          }).catch(e => console.error("Mermaid Render Error:", e));
+          }).catch(e => {
+            console.error("Mermaid Render Error:", e, "\n--- code ---\n", normalizedCode);
+            // 🌟 렌더 실패 시 Mermaid가 body 하단에 남기는 💣 'Syntax error' 잔여 요소 정리
+            document.querySelectorAll(`#d${renderId}, #${renderId}`).forEach(el => el.remove());
+            if (containerRef.current) {
+              containerRef.current.innerHTML = "<div style='color:#f87171;font-size:12px;padding:12px;'>⚠️ 플로우차트 문법 오류로 미리보기를 표시할 수 없습니다. (콘솔에서 원본 코드 확인)</div>";
+            }
+          });
         }
       }, [code, activeNodeId, cleanCaptureMode]);
 
