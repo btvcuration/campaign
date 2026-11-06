@@ -4900,7 +4900,7 @@
           if (!aiMeta.conceptCopy && (aiMeta.concept || aiMeta.mainCopy || aiMeta.keyConcept)) {
             aiMeta.conceptCopy = aiMeta.concept || aiMeta.mainCopy || aiMeta.keyConcept;
           }
-          if (Array.isArray(aiMeta.bannerTypes)) aiMeta.bannerTypes = aiData?.bannerTypes || aiMeta.bannerTypes.join(', ');
+          if (Array.isArray(aiMeta.bannerTypes)) aiMeta.bannerTypes = aiMeta.bannerTypes.join(', ');
           if (Array.isArray(aiMeta.gnbLocations)) aiMeta.gnbLocations = aiMeta.gnbLocations.join(', ');
           if (formMainImg) aiMeta.mainImageUrl = formMainImg;
           setCampaignMeta(prev => ({ 
@@ -6734,7 +6734,6 @@
           )}
 
           {isSettingsOpen && (
-            {isSettingsOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
               <div className="bg-[#12141c] w-[500px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10">
                 <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
