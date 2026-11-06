@@ -2562,6 +2562,21 @@
         return sum;
       }, 0);
     };
+    // 🌟 관리자 비밀번호 설정 (원하시는 비밀번호로 변경하세요)
+    const ADMIN_PASSWORD = 'btvadmin';
+
+    // 🌟 관리자 비밀번호 검증 헬퍼 (현재 탭 세션 동안 인증 유지)
+    const verifyAdminPassword = (actionLabel = '관리자 전용 기능') => {
+      if (sessionStorage.getItem('btv_admin_auth') === 'true') return true;
+      const input = window.prompt(`🔒 [${actionLabel}]\n관리자 비밀번호를 입력해 주세요:`);
+      if (input === null) return false;
+      if (input.trim() === ADMIN_PASSWORD) {
+        sessionStorage.setItem('btv_admin_auth', 'true');
+        return true;
+      }
+      alert('🚨 비밀번호가 일치하지 않습니다. 관리자에게 문의해 주세요.');
+      return false;
+    };
 
     // ====================================================================================
     // 🌟 Step 1. 프로모션 Capa 뷰 (월간 캘린더 제거 경량화 + MASS 패스트트랙 + 단일 스마트 버튼)
@@ -2630,6 +2645,7 @@
       useEffect(() => { fetchScheduleData(); }, []);
 
       const handleAssignExecutionTimes = async () => {
+        if (!verifyAdminPassword('스케줄 확정 및 실행시각 자동배정')) return;
         setIsAssigning(true);
         try {
           const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
@@ -3843,6 +3859,7 @@
       };
 
       const handleAssignExecutionTimes = async () => {
+        if (!verifyAdminPassword('스케줄 확정 및 실행시각 자동배정')) return;
         setIsAssigning(true);
         try {
           const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
@@ -4837,9 +4854,64 @@
       const [isSettingsOpen, setIsSettingsOpen] = useState(false);
       const [openAccordions, setOpenAccordions] = useState({ campaign: true, banner: true });
 
-      const handleSettingsClick = () => setIsSettingsOpen(true);
-      const handleConfigChange = (gnbName, field, value) => setConfigMap(prev => ({ ...prev, [gnbName]: { ...prev[gnbName], [field]: value } }));
-      const handleSaveConfig = async () => { setIsSettingsOpen(false); };
+      // 🌟 프로필 모달 상태: 브라우저 캐시(localStorage)에 프로필 3종 중 하나라도 비어 있으면 최초 진입 시 무조건 자동 오픈!
+      const isProfileIncomplete = !myProfile.jiraId.trim() || !myProfile.department.trim() || !myProfile.marketer.trim();
+      const [isProfileModalOpen, setIsProfileModalOpen] = useState(() => {
+        return !(localStorage.getItem('myJiraId')?.trim() && localStorage.getItem('myDepartment')?.trim() && localStorage.getItem('myMarketerName')?.trim());
+      });
+
+      // 🌟 시스템 설정(Admin) 모달 내 관리자 잠금 해제 상태
+      const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => sessionStorage.getItem('btv_admin_auth') === 'true');
+      const [adminPwdInput, setAdminPwdInput] = useState('');
+      const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+      const handleProfileClick = () => setIsProfileModalOpen(true);
+      const handleSettingsClick = () => {
+        setIsAdminUnlocked(sessionStorage.getItem('btv_admin_auth') === 'true');
+        setAdminPwdInput('');
+        setIsSettingsOpen(true);
+      };
+
+      const handleUnlockAdminInModal = (e) => {
+        e.preventDefault();
+        if (adminPwdInput.trim() === ADMIN_PASSWORD) {
+          sessionStorage.setItem('btv_admin_auth', 'true');
+          setIsAdminUnlocked(true);
+          setAdminPwdInput('');
+        } else {
+          alert('🚨 관리자 비밀번호가 일치하지 않습니다.');
+        }
+      };
+
+      const handleConfigChange = (gnbName, field, value) => {
+        if (!isAdminUnlocked) return;
+        setConfigMap(prev => ({ ...prev, [gnbName]: { ...prev[gnbName], [field]: value } }));
+      };
+
+      const handleSaveConfig = async () => {
+        if (!isAdminUnlocked) {
+          setIsSettingsOpen(false);
+          return;
+        }
+        setIsSavingConfig(true);
+        try {
+          const configData = Object.entries(configMap).map(([gnb, info]) => ({
+            gnb,
+            name: info?.name || '',
+            jiraId: info?.jiraId || ''
+          }));
+          await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateConfig", configData })
+          });
+          setIsSettingsOpen(false);
+        } catch (err) {
+          alert("⚠️ Config 시트 저장 중 오류가 발생했습니다: " + err.message);
+        } finally {
+          setIsSavingConfig(false);
+        }
+      };
 
       // Step 2 -> Step 3 이동 (Step 3 잠금 해제)
       const handleMoveToEditor = (payload, onInvalid) => {
@@ -5838,7 +5910,7 @@
                 {/* 🌟 현재 로그인/설정된 요청자 프로필 상시 표시 배지 */}
                 <button
                   type="button"
-                  onClick={handleSettingsClick}
+                  onClick={handleProfileClick}
                   title={`요청자 프로필: ${myProfile.department} / ${myProfile.marketer || '이름 미설정'} (${myProfile.jiraId || 'Jira ID 미설정'}) — 클릭하여 수정`}
                   className={`h-[46px] flex items-center rounded-xl border border-[#303340] bg-[#141722] hover:border-[#7387ff] transition-all ${
                     isNavExpanded ? 'px-3 w-full justify-start' : 'w-[48px] justify-center px-0'
@@ -5984,7 +6056,7 @@
                             <span className="block text-[9px] font-bold text-slate-500 flex items-center gap-1"><Lock size={9}/> 요청자 (설정 기준 고정)</span>
                             <span className="text-xs font-bold text-slate-200 truncate">{myProfile.department} · <b className="text-[#7387ff]">{myProfile.marketer || '미설정'}</b></span>
                           </div>
-                          <button type="button" onClick={handleSettingsClick} className="px-2 py-1 bg-[#1a1c26] hover:bg-[#262833] text-[10px] font-bold text-slate-300 rounded border border-[#303340]">변경 ⚙️</button>
+                          <button type="button" onClick={handleProfileClick} className="px-2 py-1 bg-[#1a1c26] hover:bg-[#262833] text-[10px] font-bold text-slate-300 rounded border border-[#303340]">변경 ⚙️</button>
                         </div>
                         <div>
                           <select name="target" value={campaignMeta.target || 'MASS'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none transition-all">
@@ -6528,7 +6600,7 @@
                 onResetMermaid={() => setMermaidCode('')}
                 onMoveToEditor={handleMoveToEditor}
                 onUpdateMermaid={setMermaidCode}
-                onOpenSettings={handleSettingsClick}
+                onOpenSettings={handleProfileClick}
               />
             )}
 
@@ -6733,41 +6805,135 @@
             />
           )}
 
+          {/* 🌟 1) 사용자 전용 [내 프로필 설정] 모달 (최초 진입 시 미입력 상태면 강제 팝업 & 캐시 저장) */}
+          {isProfileModalOpen && (
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[85] flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
+              <div className="bg-[#12141c] w-full max-w-md border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-[#4f3df6]/40">
+                <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <User size={18} className="text-[#7387ff]"/> 내 프로필 설정 (요청자 정보)
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {isProfileIncomplete
+                        ? "👋 환영합니다! 캠페인 기획을 시작하기 전에 본인 정보를 1회 입력해 주세요."
+                        : "입력하신 정보는 브라우저에 자동 캐싱되어 모든 캠페인에 기본 적용됩니다."}
+                    </p>
+                  </div>
+                  {!isProfileIncomplete && (
+                    <button onClick={() => setIsProfileModalOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white transition-colors">
+                      <X size={16}/>
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-6 space-y-4 bg-[#0a0812]">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">요청 부서 (소속 팀) *</label>
+                    <input
+                      type="text"
+                      value={myProfile.department}
+                      onChange={(e) => updateMyProfile('department', e.target.value)}
+                      className="w-full bg-[#12141c] border border-[#303340] rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:border-[#4f3df6] outline-none"
+                      placeholder="예: Btv큐레이션팀"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">담당자 이름 (본인 성함) *</label>
+                    <input
+                      type="text"
+                      value={myProfile.marketer}
+                      onChange={(e) => updateMyProfile('marketer', e.target.value)}
+                      className="w-full bg-[#12141c] border border-[#303340] rounded-xl px-3.5 py-2.5 text-xs text-white font-bold focus:border-[#4f3df6] outline-none"
+                      placeholder="예: 심효섭"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">내 Jira ID (사번 ID 또는 이메일) *</label>
+                    <input
+                      type="text"
+                      value={myProfile.jiraId}
+                      onChange={(e) => updateMyProfile('jiraId', e.target.value)}
+                      className="w-full bg-[#12141c] border border-[#303340] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:border-[#4f3df6] outline-none"
+                      placeholder="예: hs3986 또는 hs3986@sk.com"
+                    />
+                  </div>
+                  <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3 text-[10px] text-slate-400 leading-relaxed">
+                    💡 한 번 저장해 두시면 브라우저 캐시(<code className="text-[#7387ff]">localStorage</code>)에 보관되어 다음 접속 시 다시 묻지 않습니다. 좌측 하단 프로필 배지를 눌러 언제든 변경할 수 있습니다.
+                  </div>
+                </div>
+
+                <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!myProfile.department.trim() || !myProfile.marketer.trim() || !myProfile.jiraId.trim()) {
+                        return alert("⚠️ 요청 부서, 담당자 이름, Jira ID 3가지 항목을 모두 입력해 주세요.");
+                      }
+                      setIsProfileModalOpen(false);
+                    }}
+                    className="w-full py-2.5 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-xl text-xs font-black transition-all shadow-lg"
+                  >
+                    프로필 저장 및 완료
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🌟 2) 관리자 전용 [시스템 설정 (Admin) — GNB별 담당자 매핑] 모달 (비밀번호 잠금 보호) */}
           {isSettingsOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
-              <div className="bg-[#12141c] w-[500px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10">
+              <div className="bg-[#12141c] w-[520px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10">
                 <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
-                  <h3 className="text-base font-black text-white flex items-center gap-2"><Settings size={18} className="text-[#4f3df6]"/> 시스템 설정 (Admin)</h3>
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <Settings size={18} className="text-pink-400"/> 시스템 설정 (Admin 전용)
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">GNB 편성 영역별 담당자 및 Jira ID 매핑 관리</p>
+                  </div>
                   <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white transition-colors"><X size={16}/></button>
                 </div>
                 
-                <div className="p-6 space-y-6 bg-[#0a0812] max-h-[70vh] overflow-y-auto custom-scrollbar">
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-[#7387ff] flex items-center gap-1.5"><User size={14}/> 내 계정 및 마케터 정보 연동</h4>
-                    <div className="bg-[#1a1c26] p-4 rounded-xl border border-[#262833] space-y-3">
-                      <div>
-                        <label className="block text-[10px] text-slate-400 mb-1">기본 담당자 Jira ID (이메일 또는 사번 ID)</label>
-                        <input type="text" value={myProfile.jiraId} onChange={(e) => updateMyProfile('jiraId', e.target.value)} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" placeholder="example@sk.com" />
+                <div className="p-6 space-y-4 bg-[#0a0812] max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  {/* 관리자 비밀번호 잠금 / 해제 상태 바 */}
+                  {!isAdminUnlocked ? (
+                    <form onSubmit={handleUnlockAdminInModal} className="bg-pink-500/10 border border-pink-500/30 rounded-xl p-3.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-pink-300">
+                        <Lock size={15} className="text-pink-400 shrink-0" />
+                        <span>관리자 잠금 상태 (조회만 가능)</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[10px] text-slate-400 mb-1">기본 요청 부서</label>
-                          <input type="text" value={myProfile.department} onChange={(e) => updateMyProfile('department', e.target.value)} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" placeholder="Btv큐레이션팀" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] text-slate-400 mb-1">요청자(내 이름)</label>
-                          <input type="text" value={myProfile.marketer} onChange={(e) => updateMyProfile('marketer', e.target.value)} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" placeholder="심효섭" />
-                        </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="password"
+                          value={adminPwdInput}
+                          onChange={(e) => setAdminPwdInput(e.target.value)}
+                          placeholder="관리자 비밀번호"
+                          className="w-32 bg-[#0a0812] border border-pink-500/40 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-pink-400"
+                        />
+                        <button type="submit" className="px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-black shrink-0">
+                          잠금 해제
+                        </button>
                       </div>
-                      <p className="text-[9px] text-slate-500">* 여기서 설정한 요청자 정보는 Step 1~3 및 Jira 발송 시 모든 캠페인의 요청자 정보로 일관되게 고정됩니다.</p>
+                    </form>
+                  ) : (
+                    <div className="bg-[#32d782]/10 border border-[#32d782]/30 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-[#32d782]">
+                      <span className="flex items-center gap-1.5"><CheckCircle size={15}/> 관리자 편집 모드가 활성화되었습니다.</span>
+                      <button
+                        type="button"
+                        onClick={() => { sessionStorage.removeItem('btv_admin_auth'); setIsAdminUnlocked(false); }}
+                        className="text-[10px] text-slate-400 hover:text-white underline"
+                      >
+                        다시 잠그기
+                      </button>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-pink-400 flex items-center gap-1.5"><Users size={14}/> GNB별 자동 멘션 (편집 가능)</h4>
-                    <p className="text-[10px] text-slate-400 leading-snug">
-                      현재 Config 시트에서 불러온 담당자 매핑 정보입니다. 내용을 수정하면 이번 세션의 하위 일감(Sub-task) 담당자 할당에 즉시 반영됩니다.
-                    </p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-pink-400 flex items-center gap-1.5"><Users size={14}/> GNB별 하위 일감 · 자동 멘션 담당자</h4>
+                      <span className="text-[10px] text-slate-500">{isAdminUnlocked ? '✏️ 수정 가능' : '🔒 읽기 전용'}</span>
+                    </div>
                     
                     <div className="bg-[#1a1c26] rounded-xl border border-[#262833] overflow-hidden">
                       <div className="grid grid-cols-3 gap-0 text-[10px] bg-[#262833] text-slate-300 font-bold">
@@ -6787,16 +6953,18 @@
                             <input 
                               type="text" 
                               placeholder="이름"
+                              disabled={!isAdminUnlocked}
                               value={info.name || ''} 
                               onChange={(e) => handleConfigChange(gnbName, 'name', e.target.value)}
-                              className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white outline-none focus:border-[#4f3df6] transition-colors" 
+                              className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white outline-none focus:border-[#4f3df6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                             />
                             <input 
                               type="text" 
                               placeholder="Jira ID"
+                              disabled={!isAdminUnlocked}
                               value={info.jiraId || ''} 
                               onChange={(e) => handleConfigChange(gnbName, 'jiraId', e.target.value)}
-                              className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white outline-none focus:border-[#4f3df6] transition-colors" 
+                              className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white font-mono outline-none focus:border-[#4f3df6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
                             />
                           </div>
                         </div>
@@ -6805,8 +6973,13 @@
                   </div>
                 </div>
                 
-                <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end">
-                  <button onClick={handleSaveConfig} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold transition-all shadow-lg">저장 및 닫기</button>
+                <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end gap-2">
+                  <button onClick={() => setIsSettingsOpen(false)} className="px-4 py-2 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 rounded-lg text-xs font-bold">닫기</button>
+                  {isAdminUnlocked && (
+                    <button onClick={handleSaveConfig} disabled={isSavingConfig} className="px-6 py-2 bg-[#4f3df6] hover:bg-[#6252ff] text-white rounded-lg text-xs font-bold transition-all shadow-lg disabled:opacity-50">
+                      {isSavingConfig ? "시트 저장 중..." : "시트에 저장 및 닫기"}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
