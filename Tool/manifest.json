@@ -1,6 +1,6 @@
 {
   "name": "B tv Campaign to Jira",
-  "version": "1.8",
+  "version": "1.7",
   "manifest_version": 3,
   "permissions": [
     "scripting",
