@@ -300,6 +300,37 @@
       return `N${nodes.length + 1}`;
     };
 
+    // 🌟 [수정 변경 시나리오용] 배너 데이터 변경 감지 헬퍼
+    const VOLATILE_ASSET_KEYS = ['selectedCardIndex', 'startDate', 'dueDate']; // 캡처용 UI 상태값·캠페인 공통 일정은 배너별 변경 감지에서 제외 (일정 변경은 '공통 정보 변경'으로 안내)
+    const hashAssetData = (asset) => {
+      const data = { ...(asset?.data || {}) };
+      VOLATILE_ASSET_KEYS.forEach(k => delete data[k]);
+      Object.keys(data).forEach(k => { if (k.startsWith('_')) delete data[k]; });
+      const str = JSON.stringify({ name: asset?.name, type: asset?.type, data });
+      let h = 5381;
+      for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+      return String(h >>> 0);
+    };
+    const snapshotAsset = (a) => ({ id: a.id, name: a.name, type: a.type, gnb: a?.data?.gnb, sig: hashAssetData(a) });
+    const resolveTargetGnbs = (type, gnb) => {
+      if (type === 'TODAY_BTV') return ['홈'];
+      if (type === 'SYNOPSIS_BANNER') return ['콘텐츠'];
+      if (type === 'MINI_EPG_BANNER') return ['실시간 채널'];
+      if (String(type || '').startsWith('MOBILE_')) return ['모바일'];
+      return Array.isArray(gnb) ? gnb : [gnb || '홈'];
+    };
+    const META_CHANGE_FIELDS = [
+      { key: 'campaignName', label: '캠페인명' },
+      { key: 'startDate', label: '시작일' },
+      { key: 'dueDate', label: '종료일' },
+      { key: 'target', label: '타겟 유형' },
+      { key: 'targetSize', label: '타겟 모수' },
+      { key: 'hasCoupon', label: 'B tv 쿠폰' },
+      { key: 'couponBenefit', label: '쿠폰 혜택' },
+      { key: 'externalGift', label: '외부 사은품' }
+    ];
+    const snapshotMeta = (meta) => META_CHANGE_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: meta?.[f.key] ?? '' }), {});
+
     // 🌟 마우스 클릭 조작 및 클린 캡처(cleanCaptureMode)를 지원하는 인터랙티브 MermaidViewer
     const MermaidViewer = ({ code, onChange, selectedNodeId: externalSelectedId, onSelectNode, cleanCaptureMode = false }) => {
       const containerRef = useRef(null);
@@ -4790,16 +4821,31 @@
         fetchBannerSpecsFromSheet();
       }, []);
 
+      // 🌟 시트 규격 매칭 (타겟 가능 여부 등은 100% 구글 시트 값 기준 → 시트에서 바꾸면 해당 배너에 즉시 반영)
+      //   - 모바일 배너는 모바일 행끼리, TV 배너는 TV 행끼리만 비교 ('[모바일] 빅배너'가 TV '빅배너' 행에 잘못 매칭되던 문제 방지)
+      //   - 매칭 순서: type 정확 일치 → 이름 정확 일치 → 가장 긴 이름 부분일치
+      const findSheetSpec = (type, name) => {
+        if (!sheetBannerSpecs.length) return null;
+        const norm = (v) => String(v || '').replace(/\s+/g, '');
+        const aName = norm(name);
+        const isMobileRow = (s) => String(s.type || '').startsWith('MOBILE_') || /모바일/.test(String(s.bannerName || '')) || /모바일/.test(String(s.gnbArea || ''));
+        const isMobileAsset = String(type || '').startsWith('MOBILE_') || /모바일/.test(String(name || ''));
+        const candidates = sheetBannerSpecs.filter(s => isMobileRow(s) === isMobileAsset);
+        return candidates.find(s => s.type && s.type === type)
+          || candidates.find(s => norm(s.bannerName) === aName)
+          || candidates
+              .filter(s => norm(s.bannerName) && aName.includes(norm(s.bannerName)))
+              .sort((a, b) => norm(b.bannerName).length - norm(a.bannerName).length)[0]
+          || null;
+      };
+
       const getMatchedSheetSpec = (asset) => {
         if (!asset || sheetBannerSpecs.length === 0) return null;
-        const aName = String(asset.name || '').replace(/\s+/g, '');
         if (asset.type === 'BIG_BANNER' && asset.data?.subType === '가입하기형') {
-          const subMatch = sheetBannerSpecs.find(s => s.bannerName.replace(/\s+/g, '').includes('월정액'));
+          const subMatch = sheetBannerSpecs.find(s => String(s.bannerName || '').replace(/\s+/g, '').includes('월정액'));
           if (subMatch) return subMatch;
         }
-        const byName = sheetBannerSpecs.find(s => aName.includes(s.bannerName.replace(/\s+/g, '')));
-        if (byName) return byName;
-        return sheetBannerSpecs.find(s => s.type === asset.type) || null;
+        return findSheetSpec(asset.type, asset.name);
       };
 
       const [campaignMeta, setCampaignMeta] = useState({ 
@@ -5085,7 +5131,7 @@
               return { id: `ai-asset-${index}-${timestamp}`, type: aiAsset.type, name: finalName, data: { ...baseData, ...aiData, gnb: cleanedGnb, startDate: aiMeta?.startDate || aiCampaignMeta.startDate || baseData.startDate, dueDate: aiMeta?.dueDate || aiCampaignMeta.dueDate || baseData.dueDate } };
             });
             setAssets(newAssets); setActiveTabId(newAssets[0].id); 
-            setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: newAssets.map(a => ({ id: a.id, name: a.name })) }));
+            setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: newAssets.map(snapshotAsset) }));
           }
         }
         setUnlockedSteps({ step1: true, step2: true, step3: true });
@@ -5230,6 +5276,10 @@
         if (name === 'department') localStorage.setItem('myDepartment', value);
         if (name === 'marketer') localStorage.setItem('myMarketerName', value);
         setCampaignMeta({ ...campaignMeta, [name]: value });
+        // 🌟 캠페인 일정 변경 시 모든 배너 일정도 동기화 (하위 Jira 일감·시트 일정이 예전 값으로 남던 문제 해결)
+        if (name === 'startDate' || name === 'dueDate') {
+          setAssets(prev => prev.map(a => ({ ...a, data: { ...a.data, [name]: value } })));
+        }
       };
       
       const handleAssetChange = (id, field, value) => {
@@ -5358,11 +5408,7 @@
 
         const assetPlans = (assets || []).map((asset, idx) => {
           const data = asset?.data || {};
-          let targetGnbs = Array.isArray(data.gnb) ? data.gnb : [data.gnb || '홈'];
-          if (asset?.type === 'TODAY_BTV') targetGnbs = ['홈'];
-          if (asset?.type === 'SYNOPSIS_BANNER') targetGnbs = ['콘텐츠'];
-          if (asset?.type === 'MINI_EPG_BANNER') targetGnbs = ['실시간 채널'];
-          if (String(asset?.type || '').startsWith('MOBILE_')) targetGnbs = ['모바일'];
+          const targetGnbs = resolveTargetGnbs(asset?.type, data.gnb);
 
           const gnbManagers = targetGnbs.map(g => {
             const info = configMap[g];
@@ -5396,6 +5442,76 @@
           return `• [${item.gnb}] 영역 담당: ${item.managerName} 매니저님 (${mentionTag}) ➔ 대상 배너: ${item.banners.join(', ')}`;
         });
 
+        // 🌟 [수정 변경 시나리오] 기존 Jira 티켓(parentJiraKey)이 있으면 '업데이트'로 간주하고 변경분만 안내
+        const isUpdate = Boolean(campaignMeta.parentJiraKey);
+        const originalAssets = campaignMeta.aiOriginalAssets || [];
+        const currentIds = (assets || []).map(a => a.id);
+        const addedAssets = (assets || []).filter(a => !originalAssets.find(oa => oa.id === a.id));
+        const deletedAssets = originalAssets.filter(oa => !currentIds.includes(oa.id));
+        const modifiedAssets = (assets || []).filter(a => {
+          const oa = originalAssets.find(o => o.id === a.id);
+          return oa && oa.sig && oa.sig !== hashAssetData(a);
+        });
+        const origMeta = campaignMeta.aiOriginalMeta;
+        const metaChanges = origMeta
+          ? META_CHANGE_FIELDS
+              .filter(f => String(origMeta[f.key] ?? '').trim() !== String(campaignMeta[f.key] ?? '').trim())
+              .map(f => `${f.label}: ${origMeta[f.key] || '없음'} → ${campaignMeta[f.key] || '없음'}`)
+          : [];
+        const hasChanges = addedAssets.length + deletedAssets.length + modifiedAssets.length + metaChanges.length > 0;
+
+        const campaignTitle = campaignMeta.campaignName || '신규 캠페인';
+        let commentText = '';
+        let commentGnbLines = gnbLines;
+
+        if (!isUpdate) {
+          // 신규 등록: 기존과 동일하게 전체 GNB 담당자 호출
+          commentText =
+            `📌 [편성 GNB별 담당자 할당 및 호출 안내]\n` +
+            `${gnbLines.join('\n')}\n\n` +
+            `담당자님, [${campaignTitle}] 프로모션이 등록되었습니다. 위 담당 GNB 영역 및 각 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.`;
+        } else if (hasChanges) {
+          // 수정 업데이트: 변경 내역 + 영향받는 GNB 담당자만 호출
+          // (캠페인 공통 정보가 바뀌면 모든 배너가 영향을 받으므로 전체 담당자 호출)
+          const affected = {}; // { gnb: { managerName, jiraId, banners: [] } }
+          const addAffected = (type, gnb, bannerName) => {
+            resolveTargetGnbs(type, gnb).forEach(g => {
+              const info = configMap[g];
+              if (!affected[g]) {
+                affected[g] = {
+                  managerName: (info?.name || '').trim() || myName,
+                  jiraId: (info?.jiraId || '').split('@')[0].trim() || cleanMyId,
+                  banners: []
+                };
+              }
+              if (!affected[g].banners.includes(bannerName)) affected[g].banners.push(bannerName);
+            });
+          };
+          if (metaChanges.length > 0) (assets || []).forEach(a => addAffected(a.type, a?.data?.gnb, a.name));
+          addedAssets.forEach(a => addAffected(a.type, a?.data?.gnb, a.name));
+          modifiedAssets.forEach(a => addAffected(a.type, a?.data?.gnb, a.name));
+          deletedAssets.forEach(a => addAffected(a.type, a.gnb, `${a.name}(제외)`));
+
+          commentGnbLines = Object.entries(affected).map(([g, it]) =>
+            `• [${g}] ${it.managerName} 매니저님 (${it.jiraId ? `[~${it.jiraId}]` : it.managerName}) ➔ ${it.banners.join(', ')}`
+          );
+          const changeLines = [
+            ...metaChanges.map(c => `• 📅 ${c}`),
+            ...addedAssets.map(a => `• ➕ 배너 추가: ${a.name}`),
+            ...modifiedAssets.map(a => `• ✏️ 배너 수정: ${a.name}`),
+            ...deletedAssets.map(a => `• ➖ 편성 제외: ${a.name}`)
+          ];
+          commentText =
+            `🔄 [프로모션 수정 안내] ${campaignTitle}\n\n` +
+            `[변경 내역]\n${changeLines.join('\n')}\n\n` +
+            `[확인 요청 담당자]\n${commentGnbLines.join('\n')}\n\n` +
+            `위 변경 사항이 본문 및 하위 일감에 반영되었습니다. 해당 배너 세팅 확인 부탁드립니다.`;
+        } else {
+          // 수정 업데이트지만 변경 사항 없음 → 댓글/멘션 생략
+          commentText = '';
+          commentGnbLines = [];
+        }
+
         return {
           cleanMyId,
           myName,
@@ -5403,7 +5519,15 @@
           assetPlans,
           gnbToBannersMap,
           uniqueMentionIds,
-          gnbLines
+          gnbLines,
+          isUpdate,
+          hasChanges,
+          addedAssets,
+          deletedAssets,
+          modifiedAssets,
+          metaChanges,
+          commentText,
+          commentGnbLines
         };
       };
 
@@ -5494,23 +5618,17 @@
 
         setExportState({ isExporting: true, progress: 65, msg: "편성 변경 내역 및 담당자 매핑 중..." });
 
-        const originalAssets = meta.aiOriginalAssets || [];
-        const currentAssetIds = assets.map(a => a.id);
-        const addedAssets = assets.filter(a => !originalAssets.find(oa => oa.id === a.id));
-        const deletedAssets = originalAssets.filter(oa => !currentAssetIds.includes(oa.id));
+        const { addedAssets, deletedAssets, modifiedAssets, metaChanges } = plan;
 
         let changeLogHtml = "";
-        let changeCommentNote = "";
-        if (addedAssets.length > 0 || deletedAssets.length > 0) {
+        if (plan.isUpdate && plan.hasChanges) {
           changeLogHtml += "<div style='background-color:#fff0f0; border:1px solid #ffccc7; padding:15px; border-radius:8px; margin-bottom:20px;'>";
           changeLogHtml += "<h3 style='color:#e74c3c; margin-top:0;'>🚨 배너 편성 변경/제외 안내</h3><ul style='margin-bottom:0;'>";
           addedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>➕ 추가된 배너:</b> ${a.name}</li>`);
           deletedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>➖ 편성 제외(삭제)된 배너:</b> ${a.name}</li>`);
+          modifiedAssets.forEach(a => changeLogHtml += `<li style='color:#333;'><b>✏️ 내용이 수정된 배너:</b> ${a.name}</li>`);
+          metaChanges.forEach(c => changeLogHtml += `<li style='color:#333;'><b>📅 공통 정보 변경:</b> ${c}</li>`);
           changeLogHtml += "</ul><p style='color:#666; font-size:12px; margin-top:10px;'><i>※ 제외된 배너는 시트 슬롯에서 반환되었으며, 실제 세팅은 하단 최신 종합표를 기준으로 진행해 주세요.</i></p></div>";
-
-          if (deletedAssets.length > 0) {
-            changeCommentNote = `\n\n⚠️ [편성 제외 안내] 이번 업데이트에서 [${deletedAssets.map(d => d.name).join(', ')}] 배너가 편성 제외되었습니다.`;
-          }
         }
 
         setExportState({ isExporting: true, progress: 85, msg: "Jira 데이터 조립 중..." });
@@ -5525,7 +5643,8 @@
 
         const childIssues = await Promise.all(plan.assetPlans.map(async (ap) => {
           const { asset, idx, targetGnbs, gnbManagers, primaryManager } = ap;
-          const data = asset?.data || {};
+          // 🌟 배너 일정은 캠페인 공통 일정을 우선 적용 (불러온 배너에 예전 일정이 남아 있어도 최신 일정으로 전송)
+          const data = { ...(asset?.data || {}), startDate: meta.startDate || asset?.data?.startDate || '', dueDate: meta.dueDate || asset?.data?.dueDate || '' };
           const dateInfo = data.startDate ? `${data.startDate} ~ ${data.dueDate || ''}` : '미지정';
 
           // GNB별 담당자 명시 문자열 (예: 영화시리즈(심효섭), TV 방송(권오준))
@@ -5567,7 +5686,7 @@
               childTableRows +
               "</table>" + multiGnbNoticeHtml + "<br><h3>🎨 캡처 시안 (상태별)</h3>" + compressedBodyHTML + "<p>※ 고화질 원본은 본문 하단 <b>첨부파일</b>을 확인해 주세요.</p>";
 
-            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: setImagesArr[0], startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs };
+            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: setImagesArr[0], startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs, assetName: asset?.name || '' };
           } else {
             let copyText = [data.topText, data.mainTitle, data.copy, data.bannerCopy, data.previewTitle, data.bottomText, data.subTitle, data.badgeText, data.buttonText]
               .filter(Boolean)
@@ -5598,7 +5717,7 @@
               (compressedBody ? `<img src="${compressedBody}" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; margin: 10px 0;" />` : '') +
               `<p>※ 고화질 원본은 본문 하단 <b>첨부파일(preview.png)</b>을 확인해 주세요.</p>`;
 
-            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: imgDataUrl, startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs };
+            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: imgDataUrl, startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs, assetName: asset?.name || '' };
           }
         }));
 
@@ -5630,17 +5749,15 @@
           changeLogHtml + 
           "<h3>📊 배너 편성 종합표</h3>" + parentTable + "<br><hr><br><p>하위 작업(Sub-task)으로 개별 상세 기획안이 첨부되어 있습니다.</p>";
         
-        // 🌟 어떤 GNB 담당이기 때문에 호출했는지 명시된 댓글 본문
-        const parentCommentText =
-          `📌 [편성 GNB별 담당자 할당 및 호출 안내]\n` +
-          `${plan.gnbLines.join('\n')}\n\n` +
-          `담당자님, [${meta.campaignName || '신규 캠페인'}] 프로모션이 등록(또는 업데이트) 되었습니다. 위 담당 GNB 영역 및 각 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.${changeCommentNote}`;
+        // 🌟 신규: 전체 GNB 담당자 호출 / 수정: 변경 내역 + 영향 담당자만 호출 / 수정인데 변경 없음: 댓글 생략('')
+        const parentCommentText = plan.commentText;
 
         const uniqueCode = meta.uniqueCode || `BTV-${Date.now().toString(36).toUpperCase()}`;
         const safeTargetSize = String(meta.targetSize || '0').replace(/[^0-9]/g, '');
 
         const finalData = {
           skipJira: false, parentJiraKey: meta.parentJiraKey || "", uniqueCode: uniqueCode,
+          isUpdate: plan.isUpdate, skipComment: !plan.commentText,
           parent: { title: `[캠페인] ${meta.campaignName || "신규 캠페인"}`, desc: parentDescText, assignee: plan.cleanMyId, startDate: meta.startDate, dueDate: meta.dueDate, images: parentImagesToUpload, comment: parentCommentText },
           children: childIssues,
           rawGasData: { 
@@ -5653,13 +5770,19 @@
               cycle: meta.cycle || '단발성',
               uiVersion: meta.uiVersion || '5.0'
             }, 
-            assignee: plan.cleanMyId, assets: assets, mermaidCode: mermaidCode 
+            assignee: plan.cleanMyId,
+            assets: assets.map(a => ({ ...a, data: { ...a.data, startDate: meta.startDate || a.data?.startDate || '', dueDate: meta.dueDate || a.data?.dueDate || '' } })),
+            mermaidCode: mermaidCode 
           }
         };
         const event = new CustomEvent('TEST_JIRA_SEND', { detail: finalData });
         window.dispatchEvent(event);
         
         setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 새 탭에서 Jira를 확인하세요." });
+        // 🌟 수정 전송 후에는 현재 상태를 새 기준점으로 저장 → 같은 화면에서 재전송 시 중복 안내 방지
+        if (plan.isUpdate) {
+          setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: assets.map(snapshotAsset), aiOriginalMeta: snapshotMeta(prev) }));
+        }
         const completedDraftId = meta.uniqueCode || `DRAFT_${(meta.campaignName || '무제').trim()}_${meta.startDate || 'NODATE'}`;
         deleteDraftSlot(completedDraftId);
         setTimeout(() => {
@@ -5673,7 +5796,8 @@
       const handleLoadCampaign = (meta, loadedAssets, loadedMermaid) => {
         setCampaignMeta(prev => ({ 
             ...prev, ...meta,
-            aiOriginalAssets: loadedAssets ? loadedAssets.map(a => ({ id: a.id, name: a.name })) : []
+            aiOriginalAssets: loadedAssets ? loadedAssets.map(snapshotAsset) : [],
+            aiOriginalMeta: snapshotMeta({ ...prev, ...meta }) // 🌟 수정 변경 감지 기준점
         }));
 
         if (loadedAssets && loadedAssets.length > 0) {
@@ -5691,7 +5815,8 @@
       const handleDuplicateCampaign = (meta, loadedAssets, loadedMermaid) => {
         setCampaignMeta(prev => ({ 
             ...prev, ...meta,
-            aiOriginalAssets: loadedAssets ? loadedAssets.map(a => ({ id: a.id, name: a.name })) : []
+            aiOriginalAssets: loadedAssets ? loadedAssets.map(snapshotAsset) : [],
+            parentJiraKey: '', aiOriginalMeta: null // 🌟 복제는 신규 등록이므로 이전 수정건의 Jira 키가 남지 않도록 초기화
         }));
         setAiCampaignMeta(prev => ({ ...prev, ...meta }));
         if (loadedAssets && loadedAssets.length > 0) {
@@ -7084,10 +7209,18 @@
 
                     {/* 3. Jira 상위 댓글 자동 멘션 미리보기 */}
                     <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 space-y-2">
-                      <span className="text-xs font-black text-[#32d782] block">3. Jira 댓글에 자동 등록될 GNB별 호출 문구 미리보기</span>
-                      <div className="bg-[#0a0812] border border-[#262833] rounded-lg p-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
-                        {`📌 [편성 GNB별 담당자 할당 및 호출 안내]\n${plan.gnbLines.join('\n')}`}
-                      </div>
+                      <span className="text-xs font-black text-[#32d782] block">
+                        3. Jira 댓글 미리보기 {plan.isUpdate ? '(수정 업데이트: 변경분 담당자만 호출)' : '(신규 등록: GNB별 전체 담당자 호출)'}
+                      </span>
+                      {plan.commentText ? (
+                        <div className="bg-[#0a0812] border border-[#262833] rounded-lg p-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                          {plan.commentText}
+                        </div>
+                      ) : (
+                        <div className="bg-[#0a0812] border border-[#262833] rounded-lg p-3 text-[11px] text-slate-400">
+                          ℹ️ 기존 등록 내용 대비 변경 사항이 없어 <b className="text-white">댓글 및 담당자 호출을 생략</b>합니다. (본문만 최신 상태로 갱신)
+                        </div>
+                      )}
                     </div>
 
                     {/* 4. 유저플로우 이미지 캡처 포함 안내 */}
@@ -7175,9 +7308,9 @@
 
                 <div className="p-8 grid grid-cols-2 lg:grid-cols-3 gap-5 max-h-[70vh] overflow-y-auto custom-scrollbar bg-[#0a0812]">
                   {BANNER_SPECS.filter(spec => spec.category === templateCategoryTab).map((spec) => {
-                    const matchedSheet = sheetBannerSpecs.find(s => s.type === spec.type || s.bannerName.replace(/\s+/g, '') === spec.name.replace(/\s+/g, ''));
-                    // 🌟 구글 시트 규격('targetable')을 최우선 반영하여 '불가'인 경우 초록색(MASS 전용) 처리
-                    const targetableStr = String(matchedSheet?.targetable || spec.targetable || '가능');
+                    const matchedSheet = findSheetSpec(spec.type, spec.name);
+                    // 🌟 구글 시트 규격('targetable')만 기준으로 판단 (시트 로드 실패 시에만 코드 기본값 사용)
+                    const targetableStr = String(matchedSheet ? (matchedSheet.targetable || '') : (sheetBannerSpecs.length ? '' : (spec.targetable || '')));
                     const isMassOnly = targetableStr.includes('불가') || targetableStr.includes('MASS');
                     
                     return (
