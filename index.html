@@ -330,10 +330,13 @@
             .replace(/\\n/g, '<br/>')
             .replace(
               /<img\s+[^>]*src=['"]([^'"]+)['"][^>]*>/gi,
-              "<div style='width:96px;height:58px;margin:2px auto 6px auto;border-radius:6px;background-color:#0a0812;background-image:url(\"$1\");background-size:contain;background-repeat:no-repeat;background-position:center;border:1px solid rgba(255,255,255,0.2);box-sizing:border-box;'></div>"
+              // ⚠️ 라벨이 ["..."]로 감싸져 있으므로 내부에 큰따옴표(")를 쓰면 Mermaid 문법 오류 발생 → url() 따옴표 제거
+              // ⚠️ '#hex;' 형태는 Mermaid가 HTML 엔티티로 오인하므로 rgb()로 표기
+              (_m, src) => `<div style='width:96px;height:58px;margin:2px auto 6px auto;border-radius:6px;background-color:rgb(10,8,18);background-image:url(${src.replace(/[()'"\s]/g, encodeURIComponent)});background-size:contain;background-repeat:no-repeat;background-position:center;border:1px solid rgba(255,255,255,0.2);box-sizing:border-box;'></div>`
             );
 
-          window.mermaid.render(`mermaid-${Date.now()}`, normalizedCode).then(({svg}) => {
+          const renderId = `mermaid-${Date.now()}`;
+          window.mermaid.render(renderId, normalizedCode).then(({svg}) => {
             if (containerRef.current) {
               containerRef.current.innerHTML = svg;
               const svgEl = containerRef.current.querySelector('svg');
@@ -369,7 +372,14 @@
                 }
               }
             }
-          }).catch(e => console.error("Mermaid Render Error:", e));
+          }).catch(e => {
+            console.error("Mermaid Render Error:", e, "\n--- code ---\n", normalizedCode);
+            // 🌟 렌더 실패 시 Mermaid가 body 하단에 남기는 💣 'Syntax error' 잔여 요소 정리
+            document.querySelectorAll(`#d${renderId}, #${renderId}`).forEach(el => el.remove());
+            if (containerRef.current) {
+              containerRef.current.innerHTML = "<div style='color:#f87171;font-size:12px;padding:12px;'>⚠️ 플로우차트 문법 오류로 미리보기를 표시할 수 없습니다. (콘솔에서 원본 코드 확인)</div>";
+            }
+          });
         }
       }, [code, activeNodeId, cleanCaptureMode]);
 
@@ -5802,7 +5812,7 @@
                 <button
                   onClick={handleStartNewCampaign}
                   title="기존 작업 초기화 후 새 프로모션 처음부터 시작"
-                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-2.5 mb-1 rounded-xl transition-all duration-300 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 shadow-sm ${isNavExpanded ? 'w-[211px]' : ''}`}
+                  className={`${isNavExpanded ? 'w-[211px]' : 'w-[48px]'} overflow-hidden flex items-center justify-start px-3 py-2.5 mb-1 rounded-xl transition-all duration-300 border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 shadow-sm `}
                 >
                   <RotateCcw size={18} className="shrink-0 text-emerald-400" />
                   <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
@@ -5817,7 +5827,7 @@
                 <button
                   onClick={() => setCurrentView('STEP1_CAPA')}
                   title="Step 1. 프로모션 Capa 검증"
-                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'STEP1_CAPA' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-400 hover:text-white hover:bg-[#1a1c26]'}`}
+                  className={`${isNavExpanded ? 'w-[211px]' : 'w-[48px]'} overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300  ${currentView === 'STEP1_CAPA' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-400 hover:text-white hover:bg-[#1a1c26]'}`}
                 >
                   <BarChart3 size={20} className="shrink-0" />
                   <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
@@ -5835,7 +5845,7 @@
                     setCurrentView('PLANNER');
                   }}
                   title={unlockedSteps.step2 ? "Step 2. 프로모션 기획" : "🔒 Step 1 완료 후 열립니다"}
-                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'PLANNER' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : unlockedSteps.step2 ? 'text-slate-400 hover:text-white hover:bg-[#1a1c26]' : 'text-slate-600 bg-[#12141c]/60 cursor-not-allowed'}`}
+                  className={`${isNavExpanded ? 'w-[211px]' : 'w-[48px]'} overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300  ${currentView === 'PLANNER' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : unlockedSteps.step2 ? 'text-slate-400 hover:text-white hover:bg-[#1a1c26]' : 'text-slate-600 bg-[#12141c]/60 cursor-not-allowed'}`}
                 >
                   <div className="relative shrink-0">
                     <Bot size={20} />
@@ -5856,7 +5866,7 @@
                     setCurrentView('EDITOR');
                   }}
                   title={unlockedSteps.step3 ? "Step 3. 프로모션 시안 편집" : "🔒 Step 2 시안 생성 후 열립니다"}
-                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'EDITOR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : unlockedSteps.step3 ? 'text-slate-400 hover:text-white hover:bg-[#1a1c26]' : 'text-slate-600 bg-[#12141c]/60 cursor-not-allowed'}`}
+                  className={`${isNavExpanded ? 'w-[211px]' : 'w-[48px]'} overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300  ${currentView === 'EDITOR' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : unlockedSteps.step3 ? 'text-slate-400 hover:text-white hover:bg-[#1a1c26]' : 'text-slate-600 bg-[#12141c]/60 cursor-not-allowed'}`}
                 >
                   <div className="relative shrink-0">
                     <LayoutTemplate size={20} />
@@ -5876,7 +5886,7 @@
                 <button
                   onClick={() => setCurrentView('STATUS')}
                   title="통합 프로모션 현황 (캘린더 & 목록)"
-                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} ${currentView === 'STATUS' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-400 hover:text-white hover:bg-[#1a1c26]'}`}
+                  className={`${isNavExpanded ? 'w-[211px]' : 'w-[48px]'} overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300  ${currentView === 'STATUS' ? 'bg-[#4f3df6] text-white shadow-lg shadow-[#4f3df6]/30' : 'text-slate-400 hover:text-white hover:bg-[#1a1c26]'}`}
                 >
                   <CalendarDays size={20} className="shrink-0" />
                   <div className={`flex flex-col items-start ml-3.5 whitespace-nowrap transition-opacity duration-300 ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
@@ -5889,7 +5899,7 @@
                 <button
                   onClick={() => setIsDraftBoxOpen(true)}
                   title="임시저장 보관함 (최대 3개)"
-                  className={`w-[48px] overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300 ${isNavExpanded ? 'w-[211px]' : ''} text-slate-400 hover:text-white hover:bg-[#1a1c26] relative`}
+                  className={`${isNavExpanded ? 'w-[211px]' : 'w-[48px]'} overflow-hidden flex items-center justify-start px-3 py-3 rounded-xl transition-all duration-300  text-slate-400 hover:text-white hover:bg-[#1a1c26] relative`}
                 >
                   <div className="relative shrink-0">
                     <Database size={20} className={drafts.length > 0 ? "text-amber-400" : ""} />
