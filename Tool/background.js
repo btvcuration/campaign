@@ -138,6 +138,27 @@ async function createJiraHierarchy(data, sourceTabId) {
         const pRes = await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${parentKey}`, { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
         const pData = await pRes.json();
         const existingSubtasks = pData.fields?.subtasks || [];
+
+        // 🌟 [수정] 기존 Sub-task를 순번이 아닌 '배너명'으로 매칭
+        //   (중간 배너 삭제/추가 시 다른 배너 일감에 덮어쓰거나 엉뚱한 일감이 편성제외되던 문제 방지)
+        const EXCLUDED_PREFIX = "[🚫편성제외]";
+        const subSummary = (sub) => String(sub.fields?.summary || "");
+        const assetNameOf = (c) => String(c.assetName || String(c.title || "").split(" _ ").pop() || "").trim();
+        const usedSubKeys = new Set();
+        const subtaskForChild = data.children.map(c => {
+          const name = assetNameOf(c);
+          const found = name && existingSubtasks.find(sub =>
+            !usedSubKeys.has(sub.key) && subSummary(sub).replace(EXCLUDED_PREFIX, "").trim().endsWith(`_ ${name}`)
+          );
+          if (found) { usedSubKeys.add(found.key); return found; }
+          return null;
+        });
+        // 이름으로 못 찾은 배너(배너명 변경 등)는 남은 '편성제외 아닌' 일감에 순서대로 배정, 없으면 새로 생성
+        data.children.forEach((c, i) => {
+          if (subtaskForChild[i]) return;
+          const spare = existingSubtasks.find(sub => !usedSubKeys.has(sub.key) && !subSummary(sub).startsWith(EXCLUDED_PREFIX));
+          if (spare) { usedSubKeys.add(spare.key); subtaskForChild[i] = spare; }
+        });
         
         for (let i = 0; i < data.children.length; i++) {
           const childData = data.children[i];
@@ -150,8 +171,8 @@ async function createJiraHierarchy(data, sourceTabId) {
           if (childData.startDate) childFields[START_DATE_FIELD] = childData.startDate;
           if (childData.dueDate) childFields[FINISH_DATE_FIELD] = childData.dueDate;
           
-          if (i < existingSubtasks.length) {
-            const subKey = existingSubtasks[i].key;
+          if (subtaskForChild[i]) {
+            const subKey = subtaskForChild[i].key;
             await deleteAllAttachments(baseUrl, subKey);
             const cUpdateFields = { ...childFields }; delete cUpdateFields.project; delete cUpdateFields.issuetype; delete cUpdateFields.parent;
             await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${subKey}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' }, credentials: 'include', body: JSON.stringify({ fields: cUpdateFields }) });
@@ -163,12 +184,12 @@ async function createJiraHierarchy(data, sourceTabId) {
         }
 
         // 🌟 [핵심 추가] 기존보다 배너 개수가 줄어든 경우(특정 배너 편성 제외/삭제 시), 남은 기존 Sub-task에 [🚫편성제외/취소] 표시
-        if (existingSubtasks.length > data.children.length) {
-          for (let j = data.children.length; j < existingSubtasks.length; j++) {
-            const orphanSub = existingSubtasks[j];
+        const orphanSubtasks = existingSubtasks.filter(sub => !usedSubKeys.has(sub.key) && !subSummary(sub).startsWith(EXCLUDED_PREFIX));
+        if (orphanSubtasks.length > 0) {
+          for (const orphanSub of orphanSubtasks) {
             const orphanKey = orphanSub.key;
             const prevSummary = orphanSub.fields?.summary || "배너 일감";
-            const canceledSummary = prevSummary.startsWith("[🚫편성제외]") ? prevSummary : `[🚫편성제외] ${prevSummary}`;
+            const canceledSummary = prevSummary.startsWith(EXCLUDED_PREFIX) ? prevSummary : `${EXCLUDED_PREFIX} ${prevSummary}`;
             try {
               await deleteAllAttachments(baseUrl, orphanKey);
               await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${orphanKey}`, {
@@ -206,7 +227,7 @@ async function createJiraHierarchy(data, sourceTabId) {
       }
 
       // 🌟 [신규 보강] 상위 티켓에 GNB 담당자 멘션 및 기획 변경 안내 댓글(Comment) 자동 등록
-      if (parentKey && data.parent.comment) {
+      if (parentKey && data.parent.comment && !data.skipComment) {
         try {
           await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${parentKey}/comment`, {
             method: 'POST',
