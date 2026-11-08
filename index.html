@@ -862,6 +862,13 @@
 
     const GNB_OPTIONS = ['홈', 'Btv+', '영화시리즈', 'TV 방송', '무료', '애니메이션', '해피시니어', '키즈', 'OTT홈', '실시간 채널', '광고 홈', '콘텐츠', '기타', '모바일'];
 
+    // 🌟 상위 일감(Parent Task) 매체별 담당자 매핑용 키 정의 (우선순위: B tv > Mobile > 메타 이미지)
+    const PARENT_POC_KEYS = [
+      { key: '[상위] B tv', label: 'B tv (TV 캠페인 상위 일감)', shortLabel: 'B tv' },
+      { key: '[상위] 모바일', label: 'Mobile (모바일 캠페인 상위 일감)', shortLabel: 'Mobile' },
+      { key: '[상위] 메타 이미지', label: '메타 이미지 (메타 상위 일감)', shortLabel: '메타 이미지' }
+    ];
+
     const TEMPLATE_URLS = {
       'TODAY_BTV': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/today_btv.png',
       'GENERAL_BANNER_1COL': 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/general_banner_1col.png',
@@ -5253,19 +5260,33 @@
       };
 
       useEffect(() => {
+        const buildFullConfigMap = (rawMap = {}) => {
+          const merged = {};
+          // 1) 상위 일감 담당자 3종 (B tv / Mobile / 메타 이미지) 기본 보장
+          PARENT_POC_KEYS.forEach(({ key }) => {
+            merged[key] = rawMap[key] || { name: '', jiraId: '' };
+          });
+          // 2) 전체 GNB 옵션 14종 기본 보장
+          GNB_OPTIONS.forEach(gnb => {
+            merged[gnb] = rawMap[gnb] || { name: '', jiraId: '' };
+          });
+          // 3) 시트에 저장된 기존 기타 키 보존
+          Object.keys(rawMap || {}).forEach(k => {
+            if (!merged[k]) merged[k] = rawMap[k];
+          });
+          return merged;
+        };
+
         const fetchConfig = async () => {
           try {
             const proxyUrl = "https://btv-proxy.alcheminos.workers.dev?action=getConfig";
             const response = await fetch(proxyUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
             if (!response.ok) throw new Error("네트워크 응답이 올바르지 않습니다.");
             const configData = await response.json();
-            if (!configData['모바일']) {
-              configData['모바일'] = { name: localStorage.getItem('myMarketerName') || '담당자 미지정', jiraId: (localStorage.getItem('myJiraId') || '').split('@')[0] };
-            }
-            setConfigMap(configData);
+            setConfigMap(buildFullConfigMap(configData));
           } catch (error) {
             console.error("Config 로드 실패:", error);
-            setConfigMap({ "영화시리즈": { "name": "담당자 미지정", "jiraId": "system_auto" }, "TV 방송": { "name": "담당자 미지정", "jiraId": "system_auto" } });
+            setConfigMap(buildFullConfigMap({}));
           }
         };
         fetchConfig();
@@ -5397,18 +5418,37 @@
         }
       };
 
-      // 🌟 각 배너의 편성 GNB별 담당자 매핑 및 댓글 호출 구조를 계산하는 헬퍼 (확인 모달 & 실제 전송 공용)
+      // 🌟 상위 일감(B tv > Mobile > 메타 이미지 우선순위) 및 하위 일감(GNB별) 담당자 매핑 계산 헬퍼
       const computeExportAssignmentPlan = () => {
         const cleanMyId = (myProfile.jiraId || localStorage.getItem('myJiraId') || '').split('@')[0].trim();
         const myName = (myProfile.marketer || localStorage.getItem('myMarketerName') || cleanMyId || '미지정').trim();
         const myDept = (myProfile.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀').trim();
 
-        const gnbToBannersMap = {}; // { [gnb]: { gnb, managerName, jiraId, banners: [] } }
+        const gnbToBannersMap = {};
         const uniqueMentionIds = new Set();
 
+        // 1) 캠페인 내 포함된 매체 유형(B tv / Mobile / 메타 이미지) 판별
+        let hasBtvAsset = false;
+        let hasMobileAsset = false;
+        let hasMetaAsset = false;
+
         const assetPlans = (assets || []).map((asset, idx) => {
+          const typeStr = String(asset?.type || '').toUpperCase();
+          const nameStr = String(asset?.name || '');
+          if (typeStr.startsWith('MOBILE_') || nameStr.includes('모바일')) {
+            hasMobileAsset = true;
+          } else if (typeStr.startsWith('META_') || nameStr.includes('메타')) {
+            hasMetaAsset = true;
+          } else {
+            hasBtvAsset = true;
+          }
+
           const data = asset?.data || {};
-          const targetGnbs = resolveTargetGnbs(asset?.type, data.gnb);
+          let targetGnbs = Array.isArray(data.gnb) ? data.gnb : [data.gnb || '홈'];
+          if (asset?.type === 'TODAY_BTV') targetGnbs = ['홈'];
+          if (asset?.type === 'SYNOPSIS_BANNER') targetGnbs = ['콘텐츠'];
+          if (asset?.type === 'MINI_EPG_BANNER') targetGnbs = ['실시간 채널'];
+          if (typeStr.startsWith('MOBILE_')) targetGnbs = ['모바일'];
 
           const gnbManagers = targetGnbs.map(g => {
             const info = configMap[g];
@@ -5427,110 +5467,54 @@
           });
 
           const primaryManager = gnbManagers[0] || { gnb: targetGnbs[0] || '홈', name: myName, jiraId: cleanMyId, isFallback: true };
-          return {
-            asset,
-            idx,
-            targetGnbs,
-            gnbManagers,
-            primaryManager
-          };
+          return { asset, idx, targetGnbs, gnbManagers, primaryManager };
         });
 
-        // 🌟 어떤 GNB 담당이기 때문에 호출했는지 직관적으로 보여주는 댓글 문구 조립
+        // 🌟 2) 상위 일감 메인 담당자 결정 (B tv와 Mobile 등이 함께 있으면 무조건 B tv 우선!)
+        const involvedParentKeys = [];
+        if (hasBtvAsset) involvedParentKeys.push('[상위] B tv');
+        if (hasMobileAsset) involvedParentKeys.push('[상위] 모바일');
+        if (hasMetaAsset) involvedParentKeys.push('[상위] 메타 이미지');
+        if (involvedParentKeys.length === 0) involvedParentKeys.push('[상위] B tv');
+
+        const primaryParentKey = involvedParentKeys[0]; // B tv > 모바일 > 메타 이미지 순
+        const parentConfigInfo = configMap[primaryParentKey];
+        const parentAssigneeId = (parentConfigInfo?.jiraId || '').split('@')[0].trim() || cleanMyId;
+        const parentAssigneeName = (parentConfigInfo?.name || '').trim() || myName;
+        const isMixedPoc = involvedParentKeys.length > 1;
+
+        // 상위 일감 담당자들(복합 편성 시 부가 매체 상위 담당자 포함)도 댓글 멘션에 추가
+        const parentLines = involvedParentKeys.map((pKey, idx) => {
+          const pInfo = configMap[pKey];
+          const pId = (pInfo?.jiraId || '').split('@')[0].trim() || cleanMyId;
+          const pName = (pInfo?.name || '').trim() || myName;
+          if (pId) uniqueMentionIds.add(pId);
+          const roleTag = idx === 0 ? '👑 상위 일감 메인 담당' : '🤝 복합 매체 상위 참조';
+          return `• ${pKey.replace('[상위] ', '')} (${roleTag}): ${pName} 매니저님 (${pId ? `[~${pId}]` : pName})`;
+        });
+
         const gnbLines = Object.values(gnbToBannersMap).map(item => {
           const mentionTag = item.jiraId ? `[~${item.jiraId}]` : item.managerName;
           return `• [${item.gnb}] 영역 담당: ${item.managerName} 매니저님 (${mentionTag}) ➔ 대상 배너: ${item.banners.join(', ')}`;
         });
 
-        // 🌟 [수정 변경 시나리오] 기존 Jira 티켓(parentJiraKey)이 있으면 '업데이트'로 간주하고 변경분만 안내
-        const isUpdate = Boolean(campaignMeta.parentJiraKey);
-        const originalAssets = campaignMeta.aiOriginalAssets || [];
-        const currentIds = (assets || []).map(a => a.id);
-        const addedAssets = (assets || []).filter(a => !originalAssets.find(oa => oa.id === a.id));
-        const deletedAssets = originalAssets.filter(oa => !currentIds.includes(oa.id));
-        const modifiedAssets = (assets || []).filter(a => {
-          const oa = originalAssets.find(o => o.id === a.id);
-          return oa && oa.sig && oa.sig !== hashAssetData(a);
-        });
-        const origMeta = campaignMeta.aiOriginalMeta;
-        const metaChanges = origMeta
-          ? META_CHANGE_FIELDS
-              .filter(f => String(origMeta[f.key] ?? '').trim() !== String(campaignMeta[f.key] ?? '').trim())
-              .map(f => `${f.label}: ${origMeta[f.key] || '없음'} → ${campaignMeta[f.key] || '없음'}`)
-          : [];
-        const hasChanges = addedAssets.length + deletedAssets.length + modifiedAssets.length + metaChanges.length > 0;
-
-        const campaignTitle = campaignMeta.campaignName || '신규 캠페인';
-        let commentText = '';
-        let commentGnbLines = gnbLines;
-
-        if (!isUpdate) {
-          // 신규 등록: 기존과 동일하게 전체 GNB 담당자 호출
-          commentText =
-            `📌 [편성 GNB별 담당자 할당 및 호출 안내]\n` +
-            `${gnbLines.join('\n')}\n\n` +
-            `담당자님, [${campaignTitle}] 프로모션이 등록되었습니다. 위 담당 GNB 영역 및 각 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.`;
-        } else if (hasChanges) {
-          // 수정 업데이트: 변경 내역 + 영향받는 GNB 담당자만 호출
-          // (캠페인 공통 정보가 바뀌면 모든 배너가 영향을 받으므로 전체 담당자 호출)
-          const affected = {}; // { gnb: { managerName, jiraId, banners: [] } }
-          const addAffected = (type, gnb, bannerName) => {
-            resolveTargetGnbs(type, gnb).forEach(g => {
-              const info = configMap[g];
-              if (!affected[g]) {
-                affected[g] = {
-                  managerName: (info?.name || '').trim() || myName,
-                  jiraId: (info?.jiraId || '').split('@')[0].trim() || cleanMyId,
-                  banners: []
-                };
-              }
-              if (!affected[g].banners.includes(bannerName)) affected[g].banners.push(bannerName);
-            });
-          };
-          if (metaChanges.length > 0) (assets || []).forEach(a => addAffected(a.type, a?.data?.gnb, a.name));
-          addedAssets.forEach(a => addAffected(a.type, a?.data?.gnb, a.name));
-          modifiedAssets.forEach(a => addAffected(a.type, a?.data?.gnb, a.name));
-          deletedAssets.forEach(a => addAffected(a.type, a.gnb, `${a.name}(제외)`));
-
-          commentGnbLines = Object.entries(affected).map(([g, it]) =>
-            `• [${g}] ${it.managerName} 매니저님 (${it.jiraId ? `[~${it.jiraId}]` : it.managerName}) ➔ ${it.banners.join(', ')}`
-          );
-          const changeLines = [
-            ...metaChanges.map(c => `• 📅 ${c}`),
-            ...addedAssets.map(a => `• ➕ 배너 추가: ${a.name}`),
-            ...modifiedAssets.map(a => `• ✏️ 배너 수정: ${a.name}`),
-            ...deletedAssets.map(a => `• ➖ 편성 제외: ${a.name}`)
-          ];
-          commentText =
-            `🔄 [프로모션 수정 안내] ${campaignTitle}\n\n` +
-            `[변경 내역]\n${changeLines.join('\n')}\n\n` +
-            `[확인 요청 담당자]\n${commentGnbLines.join('\n')}\n\n` +
-            `위 변경 사항이 본문 및 하위 일감에 반영되었습니다. 해당 배너 세팅 확인 부탁드립니다.`;
-        } else {
-          // 수정 업데이트지만 변경 사항 없음 → 댓글/멘션 생략
-          commentText = '';
-          commentGnbLines = [];
-        }
-
         return {
           cleanMyId,
           myName,
           myDept,
+          primaryParentKey,
+          parentAssigneeId,
+          parentAssigneeName,
+          isMixedPoc,
+          involvedParentKeys,
+          parentLines,
           assetPlans,
           gnbToBannersMap,
           uniqueMentionIds,
-          gnbLines,
-          isUpdate,
-          hasChanges,
-          addedAssets,
-          deletedAssets,
-          modifiedAssets,
-          metaChanges,
-          commentText,
-          commentGnbLines
+          gnbLines
         };
       };
-
+      
       // 🌟 1단계: [Jira 전송] 버튼 클릭 시 확인 모달 오픈
       const handleExport = () => {
         if (!assets || assets.length === 0) {
@@ -5735,7 +5719,8 @@
           "<h3>📌 캠페인 공통 정보</h3>" +
           "<ul>" +
             "<li><b>캠페인명:</b> " + (meta.campaignName || "미지정") + "</li>" +
-            "<li><b>요청 부서 / 담당자:</b> " + plan.myDept + " / " + plan.myName + " (" + plan.cleanMyId + ")</li>" +
+            "<li><b>캠페인 요청자:</b> " + plan.myDept + " / " + plan.myName + " (" + plan.cleanMyId + ")</li>" +
+            "<li><b>상위 일감 메인 담당자:</b> [" + plan.primaryParentKey.replace('[상위] ', '') + "] " + plan.parentAssigneeName + " (" + plan.parentAssigneeId + ")" + (plan.isMixedPoc ? " <i>※ 복합 매체 캠페인 B tv 우선 배정</i>" : "") + "</li>" +
             "<li><b>대상 상품:</b> " + (meta.product || "미지정") + "</li>" +
             "<li><b>타겟 유형:</b> " + (meta.target || "MASS") + "</li>" +
             "<li><b>예상 모수:</b> " + (meta.targetSize ? meta.targetSize + "명" : "미지정") + "</li>" +
@@ -5749,16 +5734,19 @@
           changeLogHtml + 
           "<h3>📊 배너 편성 종합표</h3>" + parentTable + "<br><hr><br><p>하위 작업(Sub-task)으로 개별 상세 기획안이 첨부되어 있습니다.</p>";
         
-        // 🌟 신규: 전체 GNB 담당자 호출 / 수정: 변경 내역 + 영향 담당자만 호출 / 수정인데 변경 없음: 댓글 생략('')
-        const parentCommentText = plan.commentText;
+        const parentCommentText =
+          `📌 [상위 일감 및 편성 GNB별 담당자 호출 안내]\n` +
+          `${plan.parentLines.join('\n')}\n` +
+          `${plan.gnbLines.join('\n')}\n\n` +
+          `담당자님, [${meta.campaignName || '신규 캠페인'}] 프로모션(요청자: ${plan.myDept} ${plan.myName})이 등록(또는 업데이트) 되었습니다. 위 담당 영역 및 각 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.${changeCommentNote}`;
 
         const uniqueCode = meta.uniqueCode || `BTV-${Date.now().toString(36).toUpperCase()}`;
         const safeTargetSize = String(meta.targetSize || '0').replace(/[^0-9]/g, '');
 
         const finalData = {
           skipJira: false, parentJiraKey: meta.parentJiraKey || "", uniqueCode: uniqueCode,
-          isUpdate: plan.isUpdate, skipComment: !plan.commentText,
-          parent: { title: `[캠페인] ${meta.campaignName || "신규 캠페인"}`, desc: parentDescText, assignee: plan.cleanMyId, startDate: meta.startDate, dueDate: meta.dueDate, images: parentImagesToUpload, comment: parentCommentText },
+          // 🌟 상위 일감의 assignee에는 [상위] B tv / Mobile / 메타 이미지 담당자(plan.parentAssigneeId)를 전달!
+          parent: { title: `[캠페인] ${meta.campaignName || "신규 캠페인"}`, desc: parentDescText, assignee: plan.parentAssigneeId, reporter: plan.cleanMyId, startDate: meta.startDate, dueDate: meta.dueDate, images: parentImagesToUpload, comment: parentCommentText },
           children: childIssues,
           rawGasData: { 
             meta: { 
@@ -5770,11 +5758,10 @@
               cycle: meta.cycle || '단발성',
               uiVersion: meta.uiVersion || '5.0'
             }, 
-            assignee: plan.cleanMyId,
-            assets: assets.map(a => ({ ...a, data: { ...a.data, startDate: meta.startDate || a.data?.startDate || '', dueDate: meta.dueDate || a.data?.dueDate || '' } })),
-            mermaidCode: mermaidCode 
+            assignee: plan.cleanMyId, assets: assets, mermaidCode: mermaidCode 
           }
         };
+        
         const event = new CustomEvent('TEST_JIRA_SEND', { detail: finalData });
         window.dispatchEvent(event);
         
@@ -7016,21 +7003,21 @@
             </div>
           )}
 
-          {/* 🌟 2) 관리자 전용 [시스템 설정 (Admin) — GNB별 담당자 매핑] 모달 (비밀번호 잠금 보호) */}
+          {/* 🌟 2) 관리자 전용 [시스템 설정 (Admin) — 상위 일감 3종 & 하위 GNB 14종 담당자 매핑] 모달 */}
           {isSettingsOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
-              <div className="bg-[#12141c] w-[520px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10">
+              <div className="bg-[#12141c] w-[540px] border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10">
                 <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
                   <div>
                     <h3 className="text-base font-black text-white flex items-center gap-2">
                       <Settings size={18} className="text-pink-400"/> 시스템 설정 (Admin 전용)
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">GNB 편성 영역별 담당자 및 Jira ID 매핑 관리</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">상위 일감(B tv / Mobile / 메타) 및 하위 GNB별 담당자 매핑 관리</p>
                   </div>
                   <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white transition-colors"><X size={16}/></button>
                 </div>
                 
-                <div className="p-6 space-y-4 bg-[#0a0812] max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="p-6 space-y-5 bg-[#0a0812] max-h-[72vh] overflow-y-auto custom-scrollbar">
                   {/* 관리자 비밀번호 잠금 / 해제 상태 바 */}
                   {!isAdminUnlocked ? (
                     <form onSubmit={handleUnlockAdminInModal} className="bg-pink-500/10 border border-pink-500/30 rounded-xl p-3.5 flex items-center justify-between gap-2">
@@ -7064,12 +7051,60 @@
                     </div>
                   )}
 
-                  <div className="space-y-2.5">
+                  {/* 1. 상위 일감(Parent Task) 매체별 담당자 설정 (B tv / Mobile / 메타 이미지) */}
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-pink-400 flex items-center gap-1.5"><Users size={14}/> GNB별 하위 일감 · 자동 멘션 담당자</h4>
+                      <h4 className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">👑 1. 상위 일감(Parent) 매체별 메인 담당자</h4>
                       <span className="text-[10px] text-slate-500">{isAdminUnlocked ? '✏️ 수정 가능' : '🔒 읽기 전용'}</span>
                     </div>
-                    
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      캠페인 상위 티켓의 담당자로 배정됩니다. <b className="text-white">B tv와 Mobile 배너가 함께 포함된 경우 B tv 담당자가 메인으로 우선 지정</b>됩니다.
+                    </p>
+                    <div className="bg-[#1a1c26] rounded-xl border border-cyan-500/30 overflow-hidden">
+                      <div className="grid grid-cols-3 gap-0 text-[10px] bg-[#262833] text-slate-300 font-bold">
+                        <div className="p-2.5 text-center border-r border-[#1a1c26]">상위 매체 구분</div>
+                        <div className="col-span-2 grid grid-cols-2 gap-2 p-2.5 text-center">
+                          <div>담당자 이름</div>
+                          <div>Jira ID</div>
+                        </div>
+                      </div>
+                      {PARENT_POC_KEYS.map(({ key, shortLabel }) => {
+                        const info = configMap[key] || { name: '', jiraId: '' };
+                        return (
+                          <div key={key} className="grid grid-cols-3 gap-0 text-xs border-t border-[#262833] items-center">
+                            <div className="p-2.5 text-center border-r border-[#262833] text-cyan-300 font-black">
+                              {shortLabel}
+                            </div>
+                            <div className="col-span-2 grid grid-cols-2 gap-2 p-2">
+                              <input
+                                type="text"
+                                placeholder="이름"
+                                disabled={!isAdminUnlocked}
+                                value={info.name || ''}
+                                onChange={(e) => handleConfigChange(key, 'name', e.target.value)}
+                                className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white outline-none focus:border-cyan-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Jira ID"
+                                disabled={!isAdminUnlocked}
+                                value={info.jiraId || ''}
+                                onChange={(e) => handleConfigChange(key, 'jiraId', e.target.value)}
+                                className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white font-mono outline-none focus:border-cyan-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. 하위 일감(Sub-task) GNB 편성 영역별 담당자 설정 */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-pink-400 flex items-center gap-1.5"><Users size={14}/> 2. 하위 일감(Sub-task) GNB별 담당자</h4>
+                      <span className="text-[10px] text-slate-500">총 {GNB_OPTIONS.length}개 GNB</span>
+                    </div>
                     <div className="bg-[#1a1c26] rounded-xl border border-[#262833] overflow-hidden">
                       <div className="grid grid-cols-3 gap-0 text-[10px] bg-[#262833] text-slate-300 font-bold">
                         <div className="p-2.5 text-center border-r border-[#1a1c26]">GNB 명칭</div>
@@ -7078,32 +7113,34 @@
                           <div>Jira ID</div>
                         </div>
                       </div>
-                      
-                      {Object.entries(configMap).map(([gnbName, info], i) => (
-                        <div key={i} className="grid grid-cols-3 gap-0 text-xs border-t border-[#262833] items-center">
-                          <div className="p-2.5 text-center border-r border-[#262833] text-slate-400 font-bold">
-                            {gnbName}
+                      {GNB_OPTIONS.map((gnbName) => {
+                        const info = configMap[gnbName] || { name: '', jiraId: '' };
+                        return (
+                          <div key={gnbName} className="grid grid-cols-3 gap-0 text-xs border-t border-[#262833] items-center">
+                            <div className="p-2.5 text-center border-r border-[#262833] text-slate-300 font-bold">
+                              {gnbName}
+                            </div>
+                            <div className="col-span-2 grid grid-cols-2 gap-2 p-2">
+                              <input
+                                type="text"
+                                placeholder="이름"
+                                disabled={!isAdminUnlocked}
+                                value={info.name || ''}
+                                onChange={(e) => handleConfigChange(gnbName, 'name', e.target.value)}
+                                className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white outline-none focus:border-[#4f3df6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Jira ID"
+                                disabled={!isAdminUnlocked}
+                                value={info.jiraId || ''}
+                                onChange={(e) => handleConfigChange(gnbName, 'jiraId', e.target.value)}
+                                className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white font-mono outline-none focus:border-[#4f3df6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              />
+                            </div>
                           </div>
-                          <div className="col-span-2 grid grid-cols-2 gap-2 p-2">
-                            <input 
-                              type="text" 
-                              placeholder="이름"
-                              disabled={!isAdminUnlocked}
-                              value={info.name || ''} 
-                              onChange={(e) => handleConfigChange(gnbName, 'name', e.target.value)}
-                              className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white outline-none focus:border-[#4f3df6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                            />
-                            <input 
-                              type="text" 
-                              placeholder="Jira ID"
-                              disabled={!isAdminUnlocked}
-                              value={info.jiraId || ''} 
-                              onChange={(e) => handleConfigChange(gnbName, 'jiraId', e.target.value)}
-                              className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-white font-mono outline-none focus:border-[#4f3df6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -7120,7 +7157,7 @@
             </div>
           )}
 
-          {/* 🌟 [신규] Jira 전송 전 최종 확인(Pre-flight) 모달 */}
+          {/* 🌟 3) Jira 전송 전 최종 확인(Pre-flight) 모달 */}
           {isExportConfirmModalOpen && (() => {
             const plan = computeExportAssignmentPlan();
             return (
@@ -7131,17 +7168,17 @@
                       <h3 className="text-base font-black text-white flex items-center gap-2">
                         <Send size={17} className="text-[#7387ff]" /> Jira 전송 및 담당자 호출 최종 확인
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">전송 전 요청자 정보와 각 GNB별 하위 일감 담당자·멘션 대상을 확인해 주세요.</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">전송 전 요청자 정보, 상위 일감 메인 담당자, 각 GNB별 하위 일감 담당자를 확인해 주세요.</p>
                     </div>
                     <button onClick={() => setIsExportConfirmModalOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white"><X size={18}/></button>
                   </div>
 
-                  <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar bg-[#0a0812]">
+                  <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar bg-[#0a0812]">
                     {/* 1. 요청자(보고자) 정보 확인 및 즉시 수정 */}
                     <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-cyan-400 flex items-center gap-1.5"><User size={14}/> 1. 캠페인 요청자 (내 정보)</span>
-                        <span className="text-[10px] text-slate-500">* 수정 시 시스템 설정에도 즉시 동기화됩니다</span>
+                        <span className="text-xs font-black text-cyan-400 flex items-center gap-1.5"><User size={14}/> 1. 캠페인 요청자 (내 프로필 정보)</span>
+                        <span className="text-[10px] text-slate-500">* 수정 시 내 프로필 캐시에도 즉시 반영됩니다</span>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
@@ -7159,11 +7196,32 @@
                       </div>
                     </div>
 
+                    {/* 1-2. 상위 일감(Parent Task) 메인 담당자 자동 배정 결과 */}
+                    <div className="bg-[#12141c] border border-cyan-500/30 rounded-xl p-3.5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
+                          👑 상위 일감([캠페인] 티켓) 메인 담당자: [{plan.primaryParentKey.replace('[상위] ', '')}] {plan.parentAssigneeName} ({plan.parentAssigneeId})
+                        </span>
+                        <p className="text-[10px] text-slate-400">
+                          {plan.isMixedPoc
+                            ? `※ 복합 매체(${plan.involvedParentKeys.map(k => k.replace('[상위] ', '')).join(' + ')}) 구성으로 우선순위에 따라 B tv 상위 담당자가 메인 배정되며, 나머지 상위 담당자도 댓글로 동시 호출됩니다.`
+                            : `※ 포함된 배너 매체(${plan.primaryParentKey.replace('[상위] ', '')}) 기준 상위 일감 담당자로 자동 배정됩니다.`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setIsExportConfirmModalOpen(false); handleSettingsClick(); }}
+                        className="px-2.5 py-1 bg-[#1a1c26] hover:bg-[#262833] text-cyan-300 border border-cyan-500/30 rounded-lg text-[10px] font-bold shrink-0"
+                      >
+                        담당자 설정 〉
+                      </button>
+                    </div>
+
                     {/* 2. 배너별 편성 GNB 및 하위 일감 담당자 매핑 표 */}
                     <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-[#7387ff] flex items-center gap-1.5"><LayoutTemplate size={14}/> 2. 생성될 하위 일감({plan.assetPlans.length}건) 및 GNB별 담당자 매핑</span>
-                        <button type="button" onClick={() => { setIsExportConfirmModalOpen(false); setIsSettingsOpen(true); }} className="text-[10px] font-bold text-pink-400 hover:underline">GNB별 담당자 설정 변경 〉</button>
+                        <button type="button" onClick={() => { setIsExportConfirmModalOpen(false); handleSettingsClick(); }} className="text-[10px] font-bold text-pink-400 hover:underline">GNB별 담당자 설정 변경 〉</button>
                       </div>
                       <div className="border border-[#262833] rounded-lg overflow-hidden">
                         <table className="w-full text-left border-collapse text-xs">
@@ -7209,18 +7267,10 @@
 
                     {/* 3. Jira 상위 댓글 자동 멘션 미리보기 */}
                     <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 space-y-2">
-                      <span className="text-xs font-black text-[#32d782] block">
-                        3. Jira 댓글 미리보기 {plan.isUpdate ? '(수정 업데이트: 변경분 담당자만 호출)' : '(신규 등록: GNB별 전체 담당자 호출)'}
-                      </span>
-                      {plan.commentText ? (
-                        <div className="bg-[#0a0812] border border-[#262833] rounded-lg p-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
-                          {plan.commentText}
-                        </div>
-                      ) : (
-                        <div className="bg-[#0a0812] border border-[#262833] rounded-lg p-3 text-[11px] text-slate-400">
-                          ℹ️ 기존 등록 내용 대비 변경 사항이 없어 <b className="text-white">댓글 및 담당자 호출을 생략</b>합니다. (본문만 최신 상태로 갱신)
-                        </div>
-                      )}
+                      <span className="text-xs font-black text-[#32d782] block">3. Jira 댓글에 자동 등록될 상위/GNB별 호출 문구 미리보기</span>
+                      <div className="bg-[#0a0812] border border-[#262833] rounded-lg p-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                        {`📌 [상위 일감 및 편성 GNB별 담당자 호출 안내]\n${plan.parentLines.join('\n')}\n${plan.gnbLines.join('\n')}`}
+                      </div>
                     </div>
 
                     {/* 4. 유저플로우 이미지 캡처 포함 안내 */}
