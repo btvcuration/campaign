@@ -69,34 +69,6 @@ async function deleteAllAttachments(baseUrl, issueKey) {
 
 const formatLabel = (str) => str ? str.replace(/\s+/g, '_') : '';
 
-// 🌟 [신규] 수정 가능한 필드만 골라서 업데이트 (완료/종료 상태 일감이나 화면에 없는 필드 때문에 400 에러로 전체 전송이 중단되던 문제 방지)
-//   반환: { ok: true, skipped: [...] }  /  { ok: false, reason: 'NOT_EDITABLE' }
-async function updateIssueSafely(baseUrl, issueKey, fields) {
-  let editableKeys = null;
-  try {
-    const metaRes = await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}/editmeta`, { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
-    const meta = await metaRes.json();
-    editableKeys = Object.keys(meta.fields || {});
-  } catch (e) {
-    console.warn(`⚠️ [${issueKey}] editmeta 조회 실패, 전체 필드로 시도합니다:`, e.message);
-  }
-  if (editableKeys && editableKeys.length === 0) return { ok: false, reason: 'NOT_EDITABLE' };
-
-  const safeFields = {};
-  const skipped = [];
-  Object.entries(fields).forEach(([k, v]) => {
-    if (!editableKeys || editableKeys.includes(k)) safeFields[k] = v;
-    else skipped.push(k);
-  });
-  if (Object.keys(safeFields).length === 0) return { ok: false, reason: 'NOT_EDITABLE' };
-
-  await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' }, credentials: 'include', body: JSON.stringify({ fields: safeFields }) });
-  return { ok: true, skipped };
-}
-
-const FIELD_LABELS = { summary: '제목', description: '본문', assignee: '담당자', reporter: '보고자', labels: '레이블', customfield_10134: '시작일', customfield_10135: '종료일' };
-const describeSkipped = (keys) => keys.map(k => FIELD_LABELS[k] || k).join(', ');
-
 chrome.action.onClicked.addListener((tab) => chrome.tabs.create({ url: "https://btvcuration.github.io/campaign/" }));
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -141,13 +113,13 @@ async function createJiraHierarchy(data, sourceTabId) {
     data.parent.desc = data.parent.desc.replace(mermaidBlock.fullMatch, MERMAID_PLACEHOLDER);
   }
   const projectKey = "BTVMKT";
+  // 🌟 상위 일감 담당자(targetUserId)와 작성자/보고자(reporterUserId)를 명확히 분리!
   const targetUserId = data.parent?.assignee || "system";
+  const reporterUserId = data.parent?.reporter || data.rawGasData?.assignee || targetUserId;
   const PARENT_ISSUE_TYPE = "Task", CHILD_ISSUE_TYPE = "Sub-Task";
   const START_DATE_FIELD = "customfield_10134", FINISH_DATE_FIELD = "customfield_10135";
   let parentKey = data.parentJiraKey || "";
   let createdIssues = [];
-  const warnings = [];            // 전송 후 사용자에게 보여줄 안내
-  const lockedKeys = new Set();   // 수정 불가(완료/종료 등) 일감 → 첨부/본문 갱신 생략
 
   try {
     // 🌟 1단계: Jira 상위 이슈 및 하위 Sub-task 생성/업데이트
@@ -155,26 +127,25 @@ async function createJiraHierarchy(data, sourceTabId) {
       const uniqueLabels = Array.from(new Set((data.children || []).flatMap(c => (c.gnb || []).map(formatLabel))));
       const safeInitialDesc = data.parent.desc.replace(/data:image\/[a-zA-Z0-9+;/=]+/g, "UPLOADING_IMAGE_WAIT...");
       const parentFields = {
-        project: { key: projectKey }, summary: data.parent.title, description: safeInitialDesc,
-        issuetype: { name: PARENT_ISSUE_TYPE }, reporter: { name: targetUserId }, assignee: { name: targetUserId }, labels: uniqueLabels
+        project: { key: projectKey },
+        summary: data.parent.title,
+        description: safeInitialDesc,
+        issuetype: { name: PARENT_ISSUE_TYPE },
+        reporter: { name: reporterUserId }, // 🌟 보고자는 항상 작성자 본인
+        assignee: { name: targetUserId },   // 🌟 담당자는 상위 일감 매체 담당자
+        labels: uniqueLabels
       };
       if (data.parent.startDate) parentFields[START_DATE_FIELD] = data.parent.startDate;
       if (data.parent.dueDate) parentFields[FINISH_DATE_FIELD] = data.parent.dueDate;
 
       if (parentKey) {
         const updateFields = { ...parentFields }; delete updateFields.project; delete updateFields.issuetype;
-        const pUpd = await updateIssueSafely(baseUrl, parentKey, updateFields);
-        if (!pUpd.ok) {
-          throw new Error(`상위 일감(${parentKey})이 완료/종료 등 '수정 불가' 상태라 업데이트할 수 없습니다.\nJira에서 상태를 다시 열어(Reopen) 주신 뒤 재전송해 주세요.`);
-        }
-        if (pUpd.skipped.length) warnings.push(`• 상위 일감(${parentKey}): 수정 화면에 없는 필드 [${describeSkipped(pUpd.skipped)}]는 반영되지 않았습니다.`);
+        await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${parentKey}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' }, credentials: 'include', body: JSON.stringify({ fields: updateFields }) });
         await deleteAllAttachments(baseUrl, parentKey);
         const pRes = await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${parentKey}`, { method: 'GET', headers: { 'Content-Type': 'application/json' }, credentials: 'include' });
         const pData = await pRes.json();
         const existingSubtasks = pData.fields?.subtasks || [];
 
-        // 🌟 [수정] 기존 Sub-task를 순번이 아닌 '배너명'으로 매칭
-        //   (중간 배너 삭제/추가 시 다른 배너 일감에 덮어쓰거나 엉뚱한 일감이 편성제외되던 문제 방지)
         const EXCLUDED_PREFIX = "[🚫편성제외]";
         const subSummary = (sub) => String(sub.fields?.summary || "");
         const assetNameOf = (c) => String(c.assetName || String(c.title || "").split(" _ ").pop() || "").trim();
@@ -187,10 +158,9 @@ async function createJiraHierarchy(data, sourceTabId) {
           if (found) { usedSubKeys.add(found.key); return found; }
           return null;
         });
-        // 이름으로 못 찾은 배너(배너명 변경 등)는 남은 '편성제외 아닌' 일감에 순서대로 배정, 없으면 새로 생성
         data.children.forEach((c, i) => {
           if (subtaskForChild[i]) return;
-          const spare = existingSubtasks.find(sub => !usedSubKeys.has(sub.key) && !subSummary(sub).startsWith(EXCLUDED_PREFIX) && sub.fields?.status?.statusCategory?.key !== 'done'); // 완료된 일감은 다른 배너용으로 재사용하지 않음
+          const spare = existingSubtasks.find(sub => !usedSubKeys.has(sub.key) && !subSummary(sub).startsWith(EXCLUDED_PREFIX));
           if (spare) { usedSubKeys.add(spare.key); subtaskForChild[i] = spare; }
         });
         
@@ -200,22 +170,18 @@ async function createJiraHierarchy(data, sourceTabId) {
           const childFields = {
             project: { key: projectKey }, summary: childData.title, description: safeChildDesc,
             issuetype: { name: CHILD_ISSUE_TYPE }, parent: { key: parentKey },
-            reporter: { name: targetUserId }, assignee: { name: childData.assignee || targetUserId }, labels: (childData.gnb || []).map(formatLabel)
+            reporter: { name: reporterUserId }, // 🌟 하위 일감 보고자도 작성자 본인
+            assignee: { name: childData.assignee || targetUserId },
+            labels: (childData.gnb || []).map(formatLabel)
           };
           if (childData.startDate) childFields[START_DATE_FIELD] = childData.startDate;
           if (childData.dueDate) childFields[FINISH_DATE_FIELD] = childData.dueDate;
           
           if (subtaskForChild[i]) {
             const subKey = subtaskForChild[i].key;
+            await deleteAllAttachments(baseUrl, subKey);
             const cUpdateFields = { ...childFields }; delete cUpdateFields.project; delete cUpdateFields.issuetype; delete cUpdateFields.parent;
-            const cUpd = await updateIssueSafely(baseUrl, subKey, cUpdateFields);
-            if (cUpd.ok) {
-              await deleteAllAttachments(baseUrl, subKey);
-              if (cUpd.skipped.length) warnings.push(`• ${subKey} (${childData.assetName || childData.title}): [${describeSkipped(cUpd.skipped)}] 필드는 수정 화면에 없어 반영되지 않았습니다.`);
-            } else {
-              lockedKeys.add(subKey);
-              warnings.push(`• ${subKey} (${childData.assetName || childData.title}): 완료/종료 상태라 수정하지 못했습니다. 변경이 필요하면 Jira에서 다시 열고 재전송해 주세요.`);
-            }
+            await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${subKey}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' }, credentials: 'include', body: JSON.stringify({ fields: cUpdateFields }) });
             createdIssues.push({ key: subKey });
           } else {
             const cRes = await fetchWithRetry(`${baseUrl}/rest/api/2/issue`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Atlassian-Token': 'no-check' }, credentials: 'include', body: JSON.stringify({ fields: childFields }) });
@@ -223,7 +189,6 @@ async function createJiraHierarchy(data, sourceTabId) {
           }
         }
 
-        // 🌟 [핵심 추가] 기존보다 배너 개수가 줄어든 경우(특정 배너 편성 제외/삭제 시), 남은 기존 Sub-task에 [🚫편성제외/취소] 표시
         const orphanSubtasks = existingSubtasks.filter(sub => !usedSubKeys.has(sub.key) && !subSummary(sub).startsWith(EXCLUDED_PREFIX));
         if (orphanSubtasks.length > 0) {
           for (const orphanSub of orphanSubtasks) {
@@ -256,7 +221,13 @@ async function createJiraHierarchy(data, sourceTabId) {
         if (data.children && data.children.length > 0) {
           const childUpdates = data.children.map(child => {
             const safeChildDesc = child.desc.replace(/data:image\/[a-zA-Z0-9+;/=]+/g, "UPLOADING_IMAGE_WAIT...");
-            const fieldData = { project: { key: projectKey }, summary: child.title, description: safeChildDesc, issuetype: { name: CHILD_ISSUE_TYPE }, parent: { key: parentKey }, reporter: { name: targetUserId }, assignee: { name: child.assignee || targetUserId }, labels: (child.gnb || []).map(formatLabel) };
+            const fieldData = {
+              project: { key: projectKey }, summary: child.title, description: safeChildDesc,
+              issuetype: { name: CHILD_ISSUE_TYPE }, parent: { key: parentKey },
+              reporter: { name: reporterUserId }, // 🌟 하위 일감 보고자도 작성자 본인
+              assignee: { name: child.assignee || targetUserId },
+              labels: (child.gnb || []).map(formatLabel)
+            };
             if (child.startDate) fieldData[START_DATE_FIELD] = child.startDate;
             if (child.dueDate) fieldData[FINISH_DATE_FIELD] = child.dueDate;
             return { fields: fieldData };
@@ -266,7 +237,6 @@ async function createJiraHierarchy(data, sourceTabId) {
         }
       }
 
-      // 🌟 [신규 보강] 상위 티켓에 GNB 담당자 멘션 및 기획 변경 안내 댓글(Comment) 자동 등록
       if (parentKey && data.parent.comment && !data.skipComment) {
         try {
           await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${parentKey}/comment`, {
@@ -281,7 +251,7 @@ async function createJiraHierarchy(data, sourceTabId) {
       }
     }
 
-    // 🌟 2단계: 구글 시트 동기화 ('요청 접수' 시트에는 오직 배너 에셋 행만 깔끔하게 기록 + 담당자 '부서 / 이름' 포맷 적용)
+    // 🌟 2단계: 구글 시트 동기화
     if (data.rawGasData) {
       const { meta, assignee, assets } = data.rawGasData;
       const uniqueCode = data.uniqueCode || meta.uniqueCode;
@@ -322,7 +292,6 @@ async function createJiraHierarchy(data, sourceTabId) {
           landingUrl: assetData.landingValue || '',
           designLink: assetData.imageUrl || assetData.bgImg || assetData.bannerImg || meta.mainImageUrl || '',
           hasCoupon: (meta.hasCoupon || '').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
-          // 첫 번째 배너 행의 U열에 전체 마스터 JSON(assets, mermaidCode, meta) 저장
           assets: i === 0 ? assets : undefined,
           mermaidCode: i === 0 ? (data.rawGasData.mermaidCode || "") : undefined,
           meta: i === 0 ? { ...meta, parentJiraKey: parentKey } : undefined
@@ -420,7 +389,6 @@ async function createJiraHierarchy(data, sourceTabId) {
         const childData = data.children[i];
         if (!createdIssues[i]) continue;
         const issueKey = createdIssues[i].key;
-        if (lockedKeys.has(issueKey)) continue; // 수정 불가 일감은 첨부/본문 갱신 생략
 
         if (childData.imageData) {
           const formData = new FormData(); formData.append("file", dataURLtoBlob(childData.imageData), "preview.png");
@@ -433,24 +401,19 @@ async function createJiraHierarchy(data, sourceTabId) {
         }
       }
     }
-    if (warnings.length > 0 && sourceTabId) {
-      chrome.scripting.executeScript({ target: { tabId: sourceTabId }, func: (msg) => alert("⚠️ Jira 전송은 완료되었지만 일부 항목이 반영되지 않았습니다.\n\n" + msg), args: [warnings.join('\n')] }).catch(e=>e);
-    }
   } catch (error) {
     if (sourceTabId) chrome.scripting.executeScript({ target: { tabId: sourceTabId }, func: (errMsg) => alert("🚨 Jira 전송 에러 상세 정보:\n\n" + errMsg), args: [error.message] }).catch(e=>e);
   }
 }
-// 🌟 [신규 추가] 프로모션 삭제/취소 시 Jira 상위 티켓 및 하위 Sub-task 일괄 삭제(또는 취소 표기)
+
 async function cancelOrDeleteJiraIssue(data) {
   const baseUrl = "https://jira.skbroadband.com";
   const rawKey = String(data.jiraKey || "").trim();
   if (!rawKey || rawKey === "-") return { status: "skipped", message: "연결된 Jira 키 없음" };
 
-  // URL 형태("https://.../browse/BTVMKT-123")로 들어와도 순수 Key("BTVMKT-123")만 추출
   const issueKey = rawKey.split('/').pop().trim();
   if (!issueKey) return { status: "skipped" };
 
-  // 1. 기존 이슈 정보 및 하위 일감(Sub-tasks) 목록 조회
   const pRes = await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
@@ -459,7 +422,6 @@ async function cancelOrDeleteJiraIssue(data) {
   const pData = await pRes.json();
   const subtasks = pData.fields?.subtasks || [];
 
-  // 2. 1차 시도: Jira 이슈 완전 삭제 (deleteSubtasks=true 파라미터로 하위 일감까지 일괄 삭제 시도)
   try {
     const delRes = await fetch(`${baseUrl}/rest/api/2/issue/${issueKey}?deleteSubtasks=true`, {
       method: 'DELETE',
@@ -473,7 +435,6 @@ async function cancelOrDeleteJiraIssue(data) {
     console.warn(`⚠️ [${issueKey}] 직접 삭제 권한 없음, 취소 상태 표기로 전환합니다.`);
   }
 
-  // 3. 2차 안전장치(Fallback): 사내 Jira 정책상 삭제(DELETE) 권한이 막혀있는 경우 -> 제목/본문을 [🚫프로모션취소]로 덮어쓰고 댓글 알림!
   await deleteAllAttachments(baseUrl, issueKey);
   const prevSummary = pData.fields?.summary || data.campaignName || "캠페인";
   const canceledSummary = prevSummary.startsWith("[🚫취소됨]") ? prevSummary : `[🚫취소됨] ${prevSummary}`;
@@ -490,7 +451,6 @@ async function cancelOrDeleteJiraIssue(data) {
     })
   });
 
-  // 하위 일감(Sub-task)들도 모두 [🚫취소됨]으로 일괄 변경
   for (const sub of subtasks) {
     try {
       await deleteAllAttachments(baseUrl, sub.key);
@@ -509,7 +469,6 @@ async function cancelOrDeleteJiraIssue(data) {
     } catch (e) {}
   }
 
-  // 부모 티켓에 취소 안내 댓글 등록
   try {
     await fetchWithRetry(`${baseUrl}/rest/api/2/issue/${issueKey}/comment`, {
       method: 'POST',
