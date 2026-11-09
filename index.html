@@ -1938,7 +1938,7 @@
     // ====================================================================================
     // 🌟 Step 2. AI 프로모션 기획 뷰
     // ====================================================================================
-    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onUpdateMermaid, onResetMermaid, onMoveToEditor, onOpenSettings }) => {
+    const AiPlannerView = ({ campaignMeta, setCampaignMeta, chatHistory, setChatHistory, assets, mermaidCode, onUpdateMermaid, onResetMermaid, onMoveToEditor, onOpenSettings, onBackToStep1 }) => {
       const [inputValue, setInputValue] = useState('');
       const [isLoading, setIsLoading] = useState(false);
       const [pendingAiPayload, setPendingAiPayload] = useState(null); 
@@ -1953,15 +1953,21 @@
       };
 
       const handleResetPlanner = () => {
-        if (!window.confirm("현재 작성 중인 기획 폼과 AI 대화 내역을 모두 초기화하시겠습니까?\n(요청 부서와 담당자 이름은 유지됩니다.)")) return;
-        setCampaignMeta({
-          campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
-          hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
-          bannerTypes: '', gnbLocations: '', bannerPlan: [], isCapaChecked: false,
-          department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
-          marketer: localStorage.getItem('myMarketerName') || '',
+        if (!window.confirm("현재 작성 중인 기획 텍스트와 AI 대화 내역을 초기화하시겠습니까?\n(Step 1에서 확정한 일정·타겟·모수 및 요청자 정보는 유지됩니다.)")) return;
+        setCampaignMeta(prev => ({
+          campaignName: '', product: '',
+          target: prev.target || 'MASS',
+          targetSize: prev.targetSize || '',
+          startDate: prev.startDate || '',
+          dueDate: prev.dueDate || '',
+          hasCoupon: prev.hasCoupon || 'N',
+          couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
+          bannerTypes: '', gnbLocations: '', bannerPlan: [],
+          isCapaChecked: prev.isCapaChecked ?? true,
+          department: localStorage.getItem('myDepartment') || prev.department || 'Btv큐레이션팀',
+          marketer: localStorage.getItem('myMarketerName') || prev.marketer || '',
           cycle: '단발성', uiVersion: '5.0'
-        });
+        }));
         setChatHistory([
           { id: 'msg-init', sender: 'ai', text: '매니저님, 기획 폼이 깨끗하게 초기화되었습니다!\n새로 기획하실 프로모션 목적이나 상품을 편하게 말씀해 주세요.' }
         ]);
@@ -2093,6 +2099,10 @@
             const safeUpdate = { ...resData.rawGasData };
             delete safeUpdate.department;
             delete safeUpdate.marketer;
+            // 🌟 Step 1에서 확정된 타겟 유형/모수/쿠폰 여부는 AI가 임의로 덮어쓰지 못하도록 보호!
+            delete safeUpdate.target;
+            delete safeUpdate.targetSize;
+            delete safeUpdate.hasCoupon;
             setCampaignMeta(prev => ({
               ...prev,
               ...safeUpdate,
@@ -2116,6 +2126,10 @@
               setCampaignMeta(prev => ({ 
                 ...prev, 
                 ...metaData,
+                // 🌟 Step 1 확정값(target, targetSize, hasCoupon)은 무조건 기존 기획폼(prev) 값 우선 유지!
+                target: prev.target || 'MASS',
+                targetSize: prev.target === 'TARGET' ? (prev.targetSize || metaData.targetSize || '') : '',
+                hasCoupon: prev.hasCoupon || 'N',
                 mainImageUrl: prev.mainImageUrl || metaData.mainImageUrl || '',
                 department: prev.department || metaData.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
                 marketer: prev.marketer || metaData.marketer || localStorage.getItem('myMarketerName') || '',
@@ -2289,10 +2303,24 @@
                     <input type="date" name="dueDate" value={campaignMeta.dueDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:invert" />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">타겟 유형</label>
-                    <select name="target" value={campaignMeta.target || 'MASS'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
-                      <option value="MASS">MASS</option><option value="TARGET">TARGET</option>
-                    </select>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
+                      <Lock size={10} /> 타겟 유형 (Step 1 고정)
+                    </label>
+                    <div className="w-full bg-[#12141c] border border-[#262833] rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                      <span className={`text-xs font-black ${campaignMeta.target === 'TARGET' ? 'text-pink-400' : 'text-[#32d782]'}`}>
+                        {campaignMeta.target === 'TARGET' ? '🎯 선별 TARGET' : '🌐 전체 MASS'}
+                      </span>
+                      {onBackToStep1 && (
+                        <button
+                          type="button"
+                          onClick={onBackToStep1}
+                          className="px-2 py-0.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 border border-[#303340] rounded text-[9px] font-bold shrink-0"
+                          title="타겟/모수 변경은 Step 1에서 다시 검증해야 합니다"
+                        >
+                          Step 1 변경 〉
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2321,8 +2349,23 @@
 
                 <div className="grid grid-cols-2 gap-3 mb-3.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">타겟 모수 (TARGET 전용)</label>
-                    <input type="text" name="targetSize" value={campaignMeta.targetSize || ''} onChange={handleMetaChange} onBlur={handleTargetSizeBlur} disabled={campaignMeta.target !== 'TARGET'} placeholder="입력 후 폼 밖을 누르면 자동 변환" className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-pink-500 outline-none disabled:opacity-30" />
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
+                      <Lock size={10} /> 확정 타겟 모수 (Step 1 검증값)
+                    </label>
+                    <div className="w-full bg-[#12141c] border border-[#262833] rounded-lg px-3 py-2 flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-300">
+                        {campaignMeta.target === 'TARGET' ? `${campaignMeta.targetSize || '0'}명` : '전체 고객 (모수 제한 없음)'}
+                      </span>
+                      {onBackToStep1 && (
+                        <button
+                          type="button"
+                          onClick={onBackToStep1}
+                          className="text-[10px] font-bold text-pink-400 hover:underline shrink-0"
+                        >
+                          모수 재검증 〉
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">제작 배너 · 편성 GNB</label>
@@ -2351,10 +2394,23 @@
 
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">B tv 쿠폰 발급</label>
-                    <select name="hasCoupon" value={campaignMeta.hasCoupon || 'N'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none">
-                      <option value="N">미포함</option><option value="Y">포함</option>
-                    </select>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
+                      <Lock size={10} /> B tv 쿠폰 (Step 1 고정)
+                    </label>
+                    <div className="w-full bg-[#12141c] border border-[#262833] rounded-lg px-2.5 py-2 flex items-center justify-between">
+                      <span className={`text-xs font-black ${campaignMeta.hasCoupon === 'Y' ? 'text-pink-400' : 'text-slate-400'}`}>
+                        {campaignMeta.hasCoupon === 'Y' ? '🎫 쿠폰 포함' : '미포함'}
+                      </span>
+                      {onBackToStep1 && (
+                        <button
+                          type="button"
+                          onClick={onBackToStep1}
+                          className="px-2 py-0.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 border border-[#303340] rounded text-[9px] font-bold shrink-0"
+                        >
+                          변경 〉
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">쿠폰 혜택 명</label>
@@ -3181,7 +3237,7 @@
                     type="button"
                     onClick={handleDynamicSmartAction}
                     disabled={!targetNumVal || !isAllCapaOk || !hasAnyChannel}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-[#262833] disabled:to-[#262833] disabled:text-slate-500 text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-[#1a1c26] disabled:to-[#1a1c26] disabled:text-slate-500 disabled:shadow-none disabled:border disabled:border-[#262833] disabled:cursor-not-allowed text-white rounded-xl text-xs font-black shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     <PlusCircle size={15} />
                     <span>
@@ -3197,7 +3253,7 @@
                     type="button"
                     onClick={handleDynamicSmartAction}
                     disabled={!targetNumVal || !isAllCapaOk}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4f3df6] to-[#6252ff] hover:from-[#3b2bc7] hover:to-[#4f3df6] disabled:from-[#262833] disabled:to-[#262833] disabled:text-slate-500 text-white rounded-xl text-xs font-black shadow-lg shadow-[#4f3df6]/25 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-[#4f3df6] to-[#6252ff] hover:from-[#3b2bc7] hover:to-[#4f3df6] disabled:from-[#1a1c26] disabled:to-[#1a1c26] disabled:text-slate-500 disabled:shadow-none disabled:border disabled:border-[#262833] disabled:cursor-not-allowed text-white rounded-xl text-xs font-black shadow-lg shadow-[#4f3df6]/25 transition-all flex items-center justify-center gap-2"
                   >
                     <Bot size={15} />
                     <span>
@@ -6210,13 +6266,31 @@
                           </div>
                           <button type="button" onClick={handleProfileClick} className="px-2 py-1 bg-[#1a1c26] hover:bg-[#262833] text-[10px] font-bold text-slate-300 rounded border border-[#303340]">변경 ⚙️</button>
                         </div>
-                        <div>
-                          <select name="target" value={campaignMeta.target || 'MASS'} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none transition-all">
-                            <option value="MASS">MASS 타겟</option>
-                            <option value="TARGET">선별 TARGET</option>
-                          </select>
+                        <div className="col-span-2 bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 flex items-center justify-between">
+                          <div className="min-w-0">
+                            <span className="block text-[9px] font-bold text-slate-500 flex items-center gap-1">
+                              <Lock size={9}/> 타겟 유형 · 모수 (Step 1 검증 기준 고정)
+                            </span>
+                            <span className="text-xs font-bold text-slate-200 truncate">
+                              {campaignMeta.target === 'TARGET' ? (
+                                <><b className="text-pink-400">선별 TARGET</b> · {campaignMeta.targetSize ? `${campaignMeta.targetSize}명` : '모수 미지정'}</>
+                              ) : (
+                                <><b className="text-[#32d782]">전체 MASS</b> (모수 차감 없음)</>
+                              )}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm("타겟 유형(MASS ↔ TARGET) 또는 발송 모수를 변경하시려면 [Step 1. 프로모션 Capa] 화면에서 잔여 한도를 다시 검증해야 합니다.\n\nStep 1 화면으로 이동하시겠습니까? (현재 제작된 배너 시안은 그대로 유지됩니다.)")) {
+                                setCurrentView('STEP1_CAPA');
+                              }
+                            }}
+                            className="px-2 py-1 bg-[#1a1c26] hover:bg-[#262833] text-[10px] font-bold text-pink-400 rounded border border-pink-500/30 shrink-0"
+                          >
+                            Step 1 변경 〉
+                          </button>
                         </div>
-                        <div><input type="text" name="targetSize" placeholder="모수 (예: 5만명)" value={campaignMeta.targetSize || ''} onChange={handleMetaChange} disabled={campaignMeta.target !== 'TARGET'} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none transition-all disabled:opacity-30 disabled:cursor-not-allowed" /></div>
                         <div><label className="block text-[10px] text-slate-500 mb-1 ml-1">시작일</label><input type="date" name="startDate" value={campaignMeta.startDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
                         <div><label className="block text-[10px] text-slate-500 mb-1 ml-1">종료일</label><input type="date" name="dueDate" value={campaignMeta.dueDate || ''} onChange={handleMetaChange} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-slate-300 outline-none focus:border-[#4f3df6] [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert" /></div>
                       </div>
@@ -6753,6 +6827,11 @@
                 onMoveToEditor={handleMoveToEditor}
                 onUpdateMermaid={setMermaidCode}
                 onOpenSettings={handleProfileClick}
+                onBackToStep1={() => {
+                  if (window.confirm("타겟 유형(MASS ↔ TARGET)이나 발송 모수를 변경하기 위해 [Step 1. 프로모션 Capa] 화면으로 이동합니다.\n다시 검증을 완료하고 넘어오시면 현재 작성 중인 기획 내용이 이어집니다.")) {
+                    setCurrentView('STEP1_CAPA');
+                  }
+                }}
               />
             )}
 
@@ -7001,13 +7080,13 @@
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">내 Jira ID (사번 ID 또는 이메일) *</label>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5">내 Jira ID (Jira 로그인 ID 또는 이메일) *</label>
                     <input
                       type="text"
                       value={myProfile.jiraId}
                       onChange={(e) => updateMyProfile('jiraId', e.target.value)}
                       className="w-full bg-[#12141c] border border-[#303340] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:border-[#4f3df6] outline-none"
-                      placeholder="예: hs3986 또는 hs3986@sk.com"
+                      placeholder="예: hs3986 또는 hs3986@sk.com (※ 숫자 사번이 아닌 Jira 계정 ID)"
                     />
                   </div>
                   <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3 text-[10px] text-slate-400 leading-relaxed">
