@@ -6136,27 +6136,44 @@
                     </div>
                   )}
                 </button>
+                {/* 🌟 1) Jira 연동 상태 배지 + 개별 새로고침 버튼 */}
                 <div 
-                  title={jiraSession === 'LOGGED_IN' ? 'Jira 세션 유효' : 'Jira 로그인 필요 (클릭 시 이동)'}
-                  onClick={() => jiraSession !== 'LOGGED_IN' && window.open('https://jira.skbroadband.com', '_blank')}
-                  className={`h-[44px] flex items-center rounded-xl border transition-all cursor-pointer ${
+                  className={`h-[44px] flex items-center justify-between rounded-xl border transition-all ${
                     jiraSession === 'LOGGED_IN' 
                       ? 'bg-[#32d782]/10 border-[#32d782]/30 text-[#32d782]' 
-                      : 'bg-pink-500/10 border-pink-500/30 text-pink-400 hover:bg-pink-500/20'
+                      : 'bg-pink-500/10 border-pink-500/30 text-pink-400'
                   } ${isNavExpanded ? 'px-3.5 w-full' : 'w-[48px] justify-center px-0'}`}
                 >
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    jiraSession === 'LOGGED_IN' 
-                      ? 'bg-[#32d782] shadow-[0_0_8px_#32d782]' 
-                      : 'bg-pink-500 shadow-[0_0_8px_#ec4899] animate-pulse'
-                  }`}></div>
-                  {isNavExpanded && (
-                    <span className="text-[11px] font-bold ml-3 whitespace-nowrap truncate">
-                      {jiraSession === 'LOGGED_IN' ? 'Jira 연동됨' : 'Jira 로그인 필요'}
-                    </span>
-                  )}
+                  <div 
+                    onClick={() => jiraSession !== 'LOGGED_IN' && window.open('https://jira.skbroadband.com', '_blank')}
+                    title={jiraSession === 'LOGGED_IN' ? 'Jira 세션 유효 (클릭 시 Jira 이동)' : 'Jira 로그인 필요 (클릭 시 이동)'}
+                    className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1"
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      jiraSession === 'LOGGED_IN' 
+                        ? 'bg-[#32d782] shadow-[0_0_8px_#32d782]' 
+                        : 'bg-pink-500 shadow-[0_0_8px_#ec4899] animate-pulse'
+                    }`}></div>
+                    {isNavExpanded && (
+                      <span className="text-[11px] font-bold whitespace-nowrap truncate">
+                        {jiraSession === 'LOGGED_IN' ? 'Jira 연동됨' : 'Jira 로그인 필요'}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      checkJiraSessionNow();
+                    }}
+                    title="Jira 세션 상태 새로고침"
+                    className="p-1 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors shrink-0"
+                  >
+                    <RefreshCw size={13} className={jiraSession === 'CHECKING' ? 'animate-spin' : ''} />
+                  </button>
                 </div>
 
+                {/* 🌟 2) 확장프로그램 버전 배지 + 개별 새로고침 버튼 */}
                 {(() => {
                   const cleanVer = (v) => v ? String(v).trim().replace(/^v/, '') : '';
                   const curV = cleanVer(extensionVersion);
@@ -6164,48 +6181,79 @@
 
                   let extBtnText = "확장앱 확인 중";
                   let extBtnClass = "text-slate-500 bg-[#1a1c26] border-transparent";
-                  let extIcon = <Loader2 size={18} className="shrink-0 animate-spin" />;
+                  let extIcon = <Loader2 size={16} className="shrink-0 animate-spin" />;
                   let extClick = () => {};
                   let tooltip = "확장 프로그램 상태 확인 중";
 
                   if (!curV) {
                     extBtnText = "확장앱 설치 필요";
                     extBtnClass = "text-pink-400 bg-pink-500/10 border-pink-500/30 hover:bg-pink-500/20";
-                    extIcon = <Download size={18} className="shrink-0" />;
+                    extIcon = <Download size={16} className="shrink-0" />;
                     extClick = handleDownloadExtension;
                     tooltip = "확장 프로그램 미설치: 클릭 시 다운로드";
                   } else if (gitV && curV !== gitV) {
                     extBtnText = `v${gitV} 업데이트 필요`;
                     extBtnClass = "text-orange-400 bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20";
-                    extIcon = <RefreshCw size={18} className="shrink-0" />;
+                    extIcon = <RefreshCw size={16} className="shrink-0" />;
                     extClick = handleDownloadExtension;
                     tooltip = `업데이트 가능 (현재: v${curV} / 최신: v${gitV})`;
                   } else {
                     extBtnText = `확장앱 최신 (v${curV || '1.6'})`;
                     extBtnClass = "text-[#32d782] bg-[#32d782]/10 border-[#32d782]/30";
-                    extIcon = <CheckCircle size={18} className="shrink-0" />;
+                    extIcon = <CheckCircle size={16} className="shrink-0" />;
                     extClick = () => {};
                     tooltip = `최신 버전 사용 중 (v${curV || '1.6'})`;
                   }
 
+                  const handleRefreshExtensionInfo = (e) => {
+                    e.stopPropagation();
+                    setExtensionVersion(null);
+                    setGithubVersion(null);
+                    // GitHub 최신 매니페스트 다시 가져오기
+                    fetch('https://raw.githubusercontent.com/btvcuration/campaign/main/Tool/manifest.json?t=' + Date.now())
+                      .then(res => res.json())
+                      .then(data => setGithubVersion(data.version))
+                      .catch(e => console.error("버전 체크 실패", e));
+                    
+                    // DOM 내 확장프로그램 마커 재확인
+                    const extNode = document.getElementById('btv-campaign-extension-installed');
+                    if (extNode) {
+                      setExtensionVersion(extNode.getAttribute('data-version') || '1.0.0');
+                    } else {
+                      setExtensionVersion('');
+                    }
+                  };
+
                   return (
-                    <button 
-                      onClick={extClick} 
-                      title={tooltip}
-                      className={`h-[44px] flex items-center rounded-xl border transition-all ${extBtnClass} ${
+                    <div 
+                      className={`h-[44px] flex items-center justify-between rounded-xl border transition-all ${extBtnClass} ${
                         isNavExpanded ? 'px-3.5 w-full' : 'w-[48px] justify-center px-0'
                       }`}
                     >
-                      {extIcon}
-                      {isNavExpanded && (
-                        <span className="text-[11px] font-bold ml-3 whitespace-nowrap truncate">
-                          {extBtnText}
-                        </span>
-                      )}
-                    </button>
+                      <div 
+                        onClick={extClick}
+                        title={tooltip}
+                        className="flex items-center gap-2 cursor-pointer min-w-0 flex-1"
+                      >
+                        {extIcon}
+                        {isNavExpanded && (
+                          <span className="text-[11px] font-bold whitespace-nowrap truncate">
+                            {extBtnText}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRefreshExtensionInfo}
+                        title="확장 프로그램 상태 및 버전 정보 새로고침"
+                        className="p-1 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors shrink-0"
+                      >
+                        <RefreshCw size={13} />
+                      </button>
+                    </div>
                   );
                 })()}
-
+                
                 <button 
                   onClick={() => setIsNavExpanded(!isNavExpanded)} 
                   title={isNavExpanded ? "메뉴 닫기" : "메뉴 열기"}
