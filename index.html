@@ -994,23 +994,177 @@
       );
     };
 
+    // 🌟 [공통 헬퍼] 이미지 크기(Scale 50~200%) 및 위치(X/Y 0~100%) 변환 스타일 생성
+    const getTransformStyle = (data, prefix = '') => {
+      const scaleKey = prefix ? `${prefix}Scale` : 'scale';
+      const posXKey = prefix ? `${prefix}PosX` : 'posX';
+      const posYKey = prefix ? `${prefix}PosY` : 'posY';
+      const scale = Number(data?.[scaleKey] ?? 100);
+      const posX = Number(data?.[posXKey] ?? 50);
+      const posY = Number(data?.[posYKey] ?? 50);
+      const tx = posX - 50;
+      const ty = posY - 50;
+      const s = scale / 100;
+      return {
+        transform: `translate(${tx}%, ${ty}%) scale(${s})`,
+        transformOrigin: 'center center'
+      };
+    };
+
+    // 🌟 [공통 컴포넌트 1] 배경 톤 색상 선택기 (컬러 피커 + HEX 입력 + 추천 팔레트)
+    const BgColorPickerControl = ({
+      label = '배경 톤 색상 (컬러 피커 & 팔레트)',
+      value = '#1a1c26',
+      onChange,
+      presets = ['#1a1c26', '#2b1d16', '#1e293b', '#2f4b43', '#3b2848', '#4b3621', '#5c2d38', '#7a8a8e']
+    }) => {
+      const curColor = value || '#1a1c26';
+      return (
+        <div className="col-span-2 bg-[#0a0812] border border-[#262833] rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] font-bold text-slate-400">{label}</label>
+            <span className="text-[10px] font-mono font-bold text-slate-300">{curColor}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="relative w-8 h-8 rounded-lg border-2 border-white/20 cursor-pointer shrink-0 overflow-hidden shadow-md flex items-center justify-center" style={{ backgroundColor: curColor }} title="클릭하여 색상 직접 선택">
+              <input
+                type="color"
+                value={/^#[0-9A-Fa-f]{6}$/.test(curColor) ? curColor : '#1a1c26'}
+                onChange={e => onChange(e.target.value)}
+                className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+              />
+            </label>
+            <input
+              type="text"
+              value={curColor}
+              onChange={e => onChange(e.target.value)}
+              placeholder="#1a1c26"
+              className="w-20 bg-[#12141c] border border-[#303340] rounded-lg px-2 py-1.5 text-xs font-mono text-white outline-none focus:border-[#4f3df6]"
+            />
+            <div className="flex items-center gap-1 flex-wrap flex-1 justify-end">
+              {presets.map(hex => (
+                <button
+                  key={hex}
+                  type="button"
+                  onClick={() => onChange(hex)}
+                  title={hex}
+                  className={`w-5 h-5 rounded-md border transition-transform ${curColor.toLowerCase() === hex.toLowerCase() ? 'border-white scale-110 ring-2 ring-[#7387ff]' : 'border-white/15 hover:scale-105'}`}
+                  style={{ backgroundColor: hex }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // 🌟 [공통 컴포넌트 2] 모든 배너 공용 이미지 크기(Zoom) · 위치(X/Y) 조정 슬라이더
+    const ImageTransformControl = ({ label = '이미지 크기 · 위치 조정', data = {}, prefix = '', onUpdate }) => {
+      const scaleKey = prefix ? `${prefix}Scale` : 'scale';
+      const posXKey = prefix ? `${prefix}PosX` : 'posX';
+      const posYKey = prefix ? `${prefix}PosY` : 'posY';
+      const scale = Number(data?.[scaleKey] ?? 100);
+      const posX = Number(data?.[posXKey] ?? 50);
+      const posY = Number(data?.[posYKey] ?? 50);
+      const isModified = scale !== 100 || posX !== 50 || posY !== 50;
+
+      const handleReset = () => {
+        onUpdate(scaleKey, 100);
+        onUpdate(posXKey, 50);
+        onUpdate(posYKey, 50);
+      };
+
+      return (
+        <div className="col-span-2 bg-[#0a0812]/90 border border-[#262833] rounded-xl p-2.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              🔍 {label}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-slate-500">
+                크기 {scale}% · X {posX}% · Y {posY}%
+              </span>
+              {isModified && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="text-[9px] font-bold text-pink-400 hover:underline flex items-center gap-0.5"
+                >
+                  <RotateCcw size={9} /> 초기화
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+            <div>
+              <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                <span>크기(Zoom)</span>
+                <span className="font-mono text-[#7387ff]">{scale}%</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="200"
+                step="2"
+                value={scale}
+                onChange={e => onUpdate(scaleKey, Number(e.target.value))}
+                className="w-full h-1.5 bg-[#1a1c26] rounded-lg appearance-none cursor-pointer accent-[#4f3df6]"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                <span>가로(X)</span>
+                <span className="font-mono text-cyan-400">{posX}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={posX}
+                onChange={e => onUpdate(posXKey, Number(e.target.value))}
+                className="w-full h-1.5 bg-[#1a1c26] rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                <span>세로(Y)</span>
+                <span className="font-mono text-[#32d782]">{posY}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={posY}
+                onChange={e => onUpdate(posYKey, Number(e.target.value))}
+                className="w-full h-1.5 bg-[#1a1c26] rounded-lg appearance-none cursor-pointer accent-[#32d782]"
+              />
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const DEFAULT_CUSTOM_BANNER = { mainTitle: '신규 배너 메인 문구', subTitle: '서브 문구 입력', buttonText: '바로가기', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_MINI_EPG_BANNER = { imageUrl: '', buttonText: '감상하기', landingValue: 'UI_PATH: /join', gnb: '실시간 채널', note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_TODAY_BTV = { topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_GENERAL_BANNER = { colType: '2단', previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역', previewImg: '', bannerCopy: '배너 텍스트', bannerImg: '', landingValue: 'UI_PATH: /join', gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_TODAY_BTV = { topText: '상단 문구', mainTitle: '메인 문구', subText: '서브 텍스트', landingValue: 'UI_PATH: /join', buttonText: '자세히 보기', imageUrl: '', bgColor: '#0a0a0f', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_GENERAL_BANNER = { colType: '2단', previewTitle: '배경 좌상단 텍스트 (1줄)', previewSub: '서브 설명글 영역', previewImg: '', bannerCopy: '배너 텍스트', bannerImg: '', bgColor: '#1a1c26', landingValue: 'UI_PATH: /join', gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_GENERAL_SET_BANNER = { 
       colType: '2단', 
-      cardCount: 3, // 🌟 2개 또는 3개 자유 선택 지원!
+      cardCount: 3,
+      imageMode: 'PANORAMA', // 🌟 'PANORAMA' (1장 자동 분할) | 'INDIVIDUAL' (카드별 개별 이미지)
+      panoramaImg: '',
       selectedCardIndex: 0,
       cards: [
-        { heroTitle: '세트 1 좌상단 타이틀', heroSub: '세트 1에 대한 서브 설명글', heroImg: '', cardCopy: '카드 1 타이틀', cardImg: '', landingValue: 'UI_PATH: /set1' },
-        { heroTitle: '세트 2 좌상단 타이틀', heroSub: '세트 2에 대한 서브 설명글', heroImg: '', cardCopy: '카드 2 타이틀', cardImg: '', landingValue: 'UI_PATH: /set2' },
-        { heroTitle: '세트 3 좌상단 타이틀', heroSub: '세트 3에 대한 서브 설명글', heroImg: '', cardCopy: '카드 3 타이틀', cardImg: '', landingValue: 'UI_PATH: /set3' }
+        { heroTitle: '세트 1 좌상단 타이틀', heroSub: '세트 1에 대한 서브 설명글', heroImg: '', cardCopy: '', cardImg: '', landingValue: 'UI_PATH: /set1' },
+        { heroTitle: '세트 2 좌상단 타이틀', heroSub: '세트 2에 대한 서브 설명글', heroImg: '', cardCopy: '', cardImg: '', landingValue: 'UI_PATH: /set2' },
+        { heroTitle: '세트 3 좌상단 타이틀', heroSub: '세트 3에 대한 서브 설명글', heroImg: '', cardCopy: '', cardImg: '', landingValue: 'UI_PATH: /set3' }
       ], 
       gnb: '영화시리즈', note: '', memos: [], startDate: '', dueDate: '' 
     };
 
-    // 🌟 모바일 B tv 5종 기본 데이터 (편성 GNB '모바일'로 통일 & 빅배너 가운데 정렬 반영)
+    // 🌟 모바일 B tv 5종 기본 데이터
     const DEFAULT_MOBILE_1_5_BANNER = { badgeText: '쿠폰', mainTitle: 'HOPE', subTitle: '', imageUrl: '', landingValue: 'MOBILE_PATH: /synopsis', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_MOBILE_EVENT_BANNER = { statusBadge: '종료 임박', topTag: '호프', mainTitle: '런칭 이벤트', periodText: '2026.10.21(수) ~ 2026.11.3(화)', bgColor: '#7a8a8e', imageUrl: '', landingValue: 'MOBILE_PATH: /event', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_MOBILE_BIG_BANNER = { subTitle: '브랜드 뉴 데이', mainTitle: '스파이더맨', copy: '피터 파커를 기억하는 역대급 빌런!\n가장 통제 할 수 없는 대결이 시작된다!', hashtags: '', imageUrl: '', landingValue: 'MOBILE_PATH: /event', gnb: ['모바일'], note: '', memos: [], startDate: '', dueDate: '' };
@@ -1025,7 +1179,7 @@
     const DEFAULT_FULL_PROMO_BANNER = { bgImg: '', topLogo: '상단 타이틀', mainCopy: '메인 하이라이트 문구', subCopy: '서브 텍스트 라인', card1Title: '블룸 하우스', card1Sub: '카드 1 설명', card1Img: '', card1Landing: '', card2Title: '블룸 하우스', card2Sub: '카드 2 설명', card2Img: '', card2Landing: '', card3Title: '블룸 하우스', card3Sub: '카드 3 설명', card3Img: '', card3Landing: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_BIG_BANNER = { subType: '기본형', mainTitle: '메인 문구', subTitle: '서브 타이틀', desc: '상세 설명글을 입력해주세요.', buttonText: '바로가기', imageUrl: '', logoImg: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_LONG_BANNER = { copy: '세로형 배너 메인 카피', subTitle: '서브 카피 입력', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
-    const DEFAULT_STRIP_BANNER = { mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', memos: [], startDate: '', dueDate: '' };
+    const DEFAULT_STRIP_BANNER = { mainTitle: '메인 이벤트 타이틀', subTitle: '서브 프로모션 텍스트', imageUrl: '', bgColor: '#1a1c26', landingValue: 'UI_PATH: /join', gnb: '이벤트', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_SYNOPSIS_BANNER = { badgeType: 'COUPON', mainTitle: '2천명 추첨', subTitle: '~7.20 발급', imageUrl: '', badgeText: '영화 쿠폰\n3,300원', landingValue: 'UI_PATH: /join', gnb: '콘텐츠', note: '', memos: [], startDate: '', dueDate: '' };
     const DEFAULT_PROMO_POPUP = { imageUrl: '', buttonText: '바로가기', closeText: '닫기', landingValue: 'UI_PATH: /join', gnb: '홈', note: '', memos: [], startDate: '', dueDate: '' };
 
@@ -1116,7 +1270,7 @@
       const FallbackText = ({ text, alignClass = 'justify-center items-center text-center px-4' }) => {
         if (!checkHasText(text) || checkIsUrl(text)) return null;
         return (
-          <div className={`absolute inset-0 flex flex-col sm:flex-row gap-2 ${alignClass} text-white font-black select-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] z-20`}>
+          <div className={`absolute inset-0 flex flex-col sm:flex-row gap-2 ${alignClass} text-white font-black select-none drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] z-20 pointer-events-none`}>
             <div className="flex items-center text-white/90 shrink-0 bg-black/20 px-2 py-1 rounded-lg backdrop-blur-sm">
               <ImageIcon size={22} className="mr-1.5 opacity-90" />
               <span className="text-sm font-bold tracking-tight">요청 이미지</span>
@@ -1126,28 +1280,68 @@
         );
       };
 
+      // 🌟 상단 히어로/프리뷰 이미지의 좌측·하단 직선 경계선(Seam)을 부드럽게 녹이는 이중 CSS 마스크 스타일
+      const heroMaskRight = {
+        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.25) 14%, rgba(0,0,0,0.75) 30%, black 48%)',
+        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.25) 14%, rgba(0,0,0,0.75) 30%, black 48%)'
+      };
+      const heroMaskBottom = {
+        WebkitMaskImage: 'linear-gradient(to top, transparent 0%, rgba(0,0,0,0.3) 14%, rgba(0,0,0,0.85) 30%, black 46%)',
+        maskImage: 'linear-gradient(to top, transparent 0%, rgba(0,0,0,0.3) 14%, rgba(0,0,0,0.85) 30%, black 46%)'
+      };
+      const innerEdgeFeather = {
+        WebkitMaskImage: 'radial-gradient(ellipse 96% 96% at 55% 45%, black 72%, transparent 100%)',
+        maskImage: 'radial-gradient(ellipse 96% 96% at 55% 45%, black 72%, transparent 100%)'
+      };
+
+      // 📺 1) Today B tv: 소프트 그라데이션 + 이미지 영역 확장(86%) + 배경 톤 색상 연동 + 경계선 페더링
       if (block.type === 'TODAY_BTV') {
+        const bgTone = block.data?.bgColor || '#0a0a0f';
         return (
-          <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
-            <div className="absolute inset-0 bg-[#0a0a0f]"></div>
-            <div className="absolute right-[0%] top-[0%] w-[70%] h-[70%] bg-no-repeat bg-cover bg-right-top z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-              {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b] to-[#0a0a0f] opacity-50"></div>}
-              <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-start pt-10 pr-10" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-transparent to-transparent w-[35%]"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent h-[35%] top-auto bottom-0"></div>
+          <div className="relative w-full aspect-[16/9] overflow-hidden shrink-0" style={{ backgroundColor: bgTone }}>
+            {/* 우측 상단 확장 아트워크 영역 (직선 경계선 원천 제거 마스크 적용) */}
+            <div className="absolute right-0 top-0 w-[86%] h-[86%] z-0 overflow-hidden" style={heroMaskRight}>
+              <div className="w-full h-full relative overflow-hidden" style={heroMaskBottom}>
+                <div
+                  className="absolute inset-0 bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data),
+                    ...innerEdgeFeather
+                  }}
+                >
+                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
+                    <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b]/60 to-transparent" />
+                  )}
+                </div>
+                <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-start pt-12 pr-12" />
+              </div>
             </div>
-            <div className="absolute inset-0 w-[50%] bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute inset-0 top-[40%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/90 to-transparent z-10 pointer-events-none"></div>
+
+            {/* 실제 B tv 스타일의 은은하고 부드러운 좌측·하단 소프트 음영 */}
+            <div
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{
+                background: `linear-gradient(90deg, ${bgTone} 0%, ${bgTone}cc 24%, ${bgTone}55 46%, transparent 72%)`
+              }}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 h-[46%] z-10 pointer-events-none"
+              style={{
+                background: `linear-gradient(0deg, ${bgTone} 0%, ${bgTone}bf 28%, transparent 100%)`
+              }}
+            />
+
             <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white px-10">
-              <div className="absolute left-[80px] top-[48%] -translate-y-1/2 w-[45%] pl-2">
-                <h3 className="text-[#32d782] text-sm font-bold mb-2 tracking-tight">{block.data?.topText || '상단 카피'}</h3>
-                <h1 className="text-white text-4xl font-black mb-3 leading-[1.15] whitespace-pre-wrap tracking-tighter drop-shadow-lg">{block.data?.mainTitle || '타이틀 입력'}</h1>
-                <p className="text-slate-200 text-sm font-medium leading-[1.6] drop-shadow-md whitespace-pre-wrap">{block.data?.subText || '서브 텍스트'}</p>
-                <div className="mt-5 inline-flex bg-[#4631e6] text-white px-6 py-2.5 rounded font-bold text-sm shadow-xl">자세히 보기</div>
+              <div className="absolute left-[80px] top-[46%] -translate-y-1/2 w-[46%] pl-2">
+                <h3 className="text-[#32d782] text-sm font-bold mb-2 tracking-tight drop-shadow">{block.data?.topText || '상단 카피'}</h3>
+                <h1 className="text-white text-4xl font-black mb-3 leading-[1.15] whitespace-pre-wrap tracking-tighter drop-shadow-[0_4px_12px_rgba(0,0,0,0.75)]">{block.data?.mainTitle || '타이틀 입력'}</h1>
+                <p className="text-slate-100 text-sm font-medium leading-[1.6] drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)] whitespace-pre-wrap">{block.data?.subText || '서브 텍스트'}</p>
+                <div className="mt-5 inline-flex bg-[#4631e6] text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-xl">{block.data?.buttonText || '자세히 보기'}</div>
               </div>
               <div className="absolute bottom-10 left-[80px] right-0 flex gap-3 overflow-hidden">
                 {[1,2,3,4,5,6,7].map(i => (
-                  <div key={i} className="w-[14%] aspect-[14/9] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0"></div>
+                  <div key={i} className="w-[14%] aspect-[14/9] bg-[#222530]/85 rounded-md border border-white/10 shadow-lg shrink-0" />
                 ))}
               </div>
             </div>
@@ -1155,26 +1349,48 @@
         );
       }
       
+      // 📺 2) 풀프로모션 배너 (전체 배경 + 카드 1~3 개별 크기/위치 조정 지원)
       if (block.type === 'FULL_PROMO_BANNER') {
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
-            <div className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0" style={{backgroundImage: checkIsUrl(block.data?.bgImg) ? `url(${block.data.bgImg})` : 'none'}}>
-              {!checkIsUrl(block.data?.bgImg) && !checkHasText(block.data?.bgImg) && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]"></div>}
+            <div className="absolute inset-0 overflow-hidden z-0">
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-75"
+                style={{
+                  backgroundImage: checkIsUrl(block.data?.bgImg) ? `url(${block.data.bgImg})` : 'none',
+                  ...getTransformStyle(block.data)
+                }}
+              >
+                {!checkIsUrl(block.data?.bgImg) && !checkHasText(block.data?.bgImg) && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]" />}
+              </div>
               <FallbackText text={block.data?.bgImg} />
             </div>
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none" />
             <div className="relative z-10 flex flex-col items-center pt-[8%] px-10 gap-4">
               <h2 className="text-white text-[1.8rem] font-black drop-shadow-lg">{block.data?.topLogo || '상단 타이틀'}</h2>
-              <div className="w-[10%] h-0.5 bg-white/50 rounded-full mb-2"></div>
+              <div className="w-[10%] h-0.5 bg-white/50 rounded-full mb-2" />
               {block.data?.mainCopy && <div className="text-cyan-300 px-6 py-1.5 text-2xl font-black leading-snug whitespace-pre-wrap text-center max-w-[85%] drop-shadow-xl">{block.data.mainCopy}</div>}
               {block.data?.subCopy && <div className="text-purple-300 px-5 py-1 text-sm font-bold leading-snug whitespace-pre-wrap text-center max-w-[80%] drop-shadow-md">{block.data.subCopy}</div>}
             </div>
             <div className="absolute bottom-[8%] left-[5%] right-[5%] flex justify-center gap-6 z-10 h-[40%]">
               {[1,2,3].map(i => (
                 <div key={i} className="flex-1 bg-[#0a0812]/90 border border-white/10 rounded-xl flex flex-col overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] ring-1 ring-white/5">
-                  <div className="p-4 text-center flex flex-col gap-1 items-center justify-center h-[35%] bg-gradient-to-b from-[#1a1c26] to-[#0a0812]"><h4 className="text-white font-black text-sm truncate w-full">{block.data?.[`card${i}Title`] || `카드 ${i} 타이틀`}</h4><p className="text-yellow-400 text-[10px] font-bold truncate w-full">{block.data?.[`card${i}Sub`] || '서브 텍스트 입력'}</p></div>
-                  <div className="flex-1 bg-cover bg-center bg-[#1a1c26] relative" style={{backgroundImage: checkIsUrl(block.data?.[`card${i}Img`]) ? `url(${block.data[`card${i}Img`]})` : 'none'}}>
-                    {!checkIsUrl(block.data?.[`card${i}Img`]) && !checkHasText(block.data?.[`card${i}Img`]) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={24} className="text-white/10"/></div>}
+                  <div className="p-4 text-center flex flex-col gap-1 items-center justify-center h-[35%] bg-gradient-to-b from-[#1a1c26] to-[#0a0812] z-10">
+                    <h4 className="text-white font-black text-sm truncate w-full">{block.data?.[`card${i}Title`] || `카드 ${i} 타이틀`}</h4>
+                    <p className="text-yellow-400 text-[10px] font-bold truncate w-full">{block.data?.[`card${i}Sub`] || '서브 텍스트 입력'}</p>
+                  </div>
+                  <div className="flex-1 bg-[#1a1c26] relative overflow-hidden">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
+                      style={{
+                        backgroundImage: checkIsUrl(block.data?.[`card${i}Img`]) ? `url(${block.data[`card${i}Img`]})` : 'none',
+                        ...getTransformStyle(block.data, `card${i}`)
+                      }}
+                    >
+                      {!checkIsUrl(block.data?.[`card${i}Img`]) && !checkHasText(block.data?.[`card${i}Img`]) && (
+                        <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={24} className="text-white/10"/></div>
+                      )}
+                    </div>
                     <FallbackText text={block.data?.[`card${i}Img`]} />
                   </div>
                 </div>
@@ -1184,102 +1400,204 @@
         );
       }
 
+      // 📺 3) 2단배너 (단일형): 상단 프리뷰 페더링 + 하단 카드 배경색(bgColor) 변경 + 이미지 크기/위치 조정
       if (block.type === 'GENERAL_BANNER') {
         const bannerImgSrc = checkIsUrl(block.data?.bannerImg) ? block.data.bannerImg : (checkIsUrl(block.data?.imageUrl) ? block.data.imageUrl : '');
         const bannerTextFallback = block.data?.bannerImg || block.data?.imageUrl || '';
+        const cardBgTone = block.data?.bgColor || '#1a1c26';
 
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
-              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-cover bg-right-top z-0" style={{backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none'}}>
-                {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
-                <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-10 pr-10" />
+              {/* 우측 상단 프리뷰 이미지 (경계선 페더링 + 크기/위치 조절) */}
+              <div className="absolute right-0 top-0 w-[72%] h-[68%] overflow-hidden z-0" style={heroMaskRight}>
+                <div className="w-full h-full relative overflow-hidden" style={heroMaskBottom}>
+                  <div
+                    className="absolute inset-0 bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
+                    style={{
+                      backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none',
+                      ...getTransformStyle(block.data, 'preview'),
+                      ...innerEdgeFeather
+                    }}
+                  >
+                    {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && (
+                      <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]" />
+                    )}
+                  </div>
+                  <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-10 pr-10" />
+                </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[20%] via-[#0a0a0f]/95 via-[40%] to-transparent to-[60%] z-10 pointer-events-none"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[35%] via-[#0a0a0f]/95 via-[50%] to-transparent to-[75%] z-10 pointer-events-none"></div>
-              <div className="absolute left-[80px] top-[12%] w-[35%] z-20 flex flex-col gap-2">
+              <div className="absolute left-[80px] top-[12%] w-[38%] z-20 flex flex-col gap-2 pointer-events-none">
                 <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-pre-wrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{block.data?.previewTitle || '프리뷰 좌상단 텍스트'}</h1>
-                <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2">{block.data?.previewSub || '서브 설명글 영역'}</p>
+                <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2 drop-shadow">{block.data?.previewSub || '서브 설명글 영역'}</p>
               </div>
             </div>
+
+            {/* 하단 배너 카드 영역 */}
             <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-4 z-30 overflow-hidden pr-8 h-[185px]">
-              <div className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-[#7387FF] flex bg-[#1a1c26] shrink-0 h-full ${block.data?.colType === '1단' ? 'aspect-[62/89] flex-col' : block.data?.colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'}`}>
+              <div
+                className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-[#7387FF] flex shrink-0 h-full ${block.data?.colType === '1단' ? 'aspect-[62/89] flex-col' : block.data?.colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'}`}
+                style={{ backgroundColor: cardBgTone }}
+              >
                 {block.data?.colType === '1단' ? (
                   <>
-                    {block.data?.bannerCopy && <div className="w-full h-[45%] p-5 pb-2 text-left z-20 flex items-start bg-gradient-to-b from-[#1a1c26] to-transparent"><p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p></div>}
-                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10" style={{ backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none' }}>
-                      {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 bg-[#0a0a0f] flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
+                    {block.data?.bannerCopy && (
+                      <div
+                        className="w-full h-[48%] p-5 pb-2 text-left z-20 flex items-start pointer-events-none"
+                        style={{ background: `linear-gradient(to bottom, ${cardBgTone} 15%, ${cardBgTone}bf 55%, transparent 100%)` }}
+                      >
+                        <p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 w-full h-full overflow-hidden z-10">
+                      <div
+                        className="w-full h-full bg-cover bg-center transition-transform duration-75"
+                        style={{
+                          backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none',
+                          ...getTransformStyle(block.data)
+                        }}
+                      >
+                        {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
+                      </div>
                       <FallbackText text={bannerTextFallback} />
                     </div>
                   </>
                 ) : (
                   <>
-                    {block.data?.bannerCopy && <div className="w-[70%] h-full flex flex-col justify-center items-start p-6 z-20 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/90 to-transparent"><p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p></div>}
-                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f]" style={{ backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none' }}>
-                      {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
+                    {block.data?.bannerCopy && (
+                      <div
+                        className="w-[72%] h-full flex flex-col justify-center items-start p-6 z-20 pointer-events-none"
+                        style={{ background: `linear-gradient(to right, ${cardBgTone} 15%, ${cardBgTone}d9 48%, transparent 100%)` }}
+                      >
+                        <p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{block.data.bannerCopy}</p>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 w-full h-full overflow-hidden z-10">
+                      <div
+                        className="w-full h-full bg-cover bg-center transition-transform duration-75"
+                        style={{
+                          backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none',
+                          ...getTransformStyle(block.data)
+                        }}
+                      >
+                        {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
+                      </div>
                       <FallbackText text={bannerTextFallback} />
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/60 to-transparent w-[60%] pointer-events-none z-10"></div>
                     </div>
                   </>
                 )}
               </div>
               {[1,2,3,4,5].map(i => (
-                <div key={i} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0"></div>
+                <div key={i} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0" />
               ))}
             </div>
           </div>
         );
       }
 
+      // 📺 4) 일반 배너 (세트형): 무음영 클린 카드 + 파노라마 1장 자동 분할 모드 + 상단 프리뷰 페더링
       if (block.type === 'GENERAL_SET_BANNER') {
         const colType = block.data?.colType || '2단';
         const numCards = Number(block.data?.cardCount) || (colType === '3단' ? 2 : 3);
         const activeIdx = block.data?.selectedCardIndex || 0;
         const activeCard = block.data?.cards?.[activeIdx] || block.data?.cards?.[0] || {};
+        const isPanorama = (block.data?.imageMode || 'PANORAMA') === 'PANORAMA';
+        const panoRaw = block.data?.panoramaImg || block.data?.cards?.[0]?.cardImg || block.data?.imageUrl || '';
+        const panoImgSrc = checkIsUrl(panoRaw) ? panoRaw : '';
 
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10 transition-all duration-300">
-              <div className="absolute right-0 top-0 w-[65%] h-[60%] bg-no-repeat bg-cover bg-right-top z-0" style={{backgroundImage: checkIsUrl(activeCard.heroImg) ? `url(${activeCard.heroImg})` : 'none'}}>
-                {!checkIsUrl(activeCard.heroImg) && !checkHasText(activeCard.heroImg) && <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]"></div>}
-                <FallbackText text={activeCard.heroImg} alignClass="justify-end items-start pt-10 pr-10" />
+              {/* 상단 우측 히어로 프리뷰 이미지 (경계선 페더링 + 카드별 크기/위치 조정) */}
+              <div className="absolute right-0 top-0 w-[72%] h-[68%] overflow-hidden z-0" style={heroMaskRight}>
+                <div className="w-full h-full relative overflow-hidden" style={heroMaskBottom}>
+                  <div
+                    className="absolute inset-0 bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
+                    style={{
+                      backgroundImage: checkIsUrl(activeCard.heroImg) ? `url(${activeCard.heroImg})` : 'none',
+                      ...getTransformStyle(activeCard, 'hero'),
+                      ...innerEdgeFeather
+                    }}
+                  >
+                    {!checkIsUrl(activeCard.heroImg) && !checkHasText(activeCard.heroImg) && (
+                      <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]" />
+                    )}
+                  </div>
+                  <FallbackText text={activeCard.heroImg} alignClass="justify-end items-start pt-10 pr-10" />
+                </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] from-[20%] via-[#0a0a0f]/95 via-[40%] to-transparent to-[60%] z-10 pointer-events-none"></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] from-[35%] via-[#0a0a0f]/95 via-[50%] to-transparent to-[75%] z-10 pointer-events-none"></div>
-              <div className="absolute left-[80px] top-[12%] w-[35%] z-20 flex flex-col gap-2">
+              <div className="absolute left-[80px] top-[12%] w-[38%] z-20 flex flex-col gap-2 pointer-events-none">
                 <h1 className="text-white text-[2.2rem] font-black leading-[1.15] whitespace-pre-wrap overflow-hidden text-ellipsis tracking-tighter drop-shadow-xl">{activeCard.heroTitle || '상단 타이틀'}</h1>
-                <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2">{activeCard.heroSub || '서브 설명글 영역'}</p>
+                <p className="text-slate-300 text-[16px] font-medium leading-[1.2] whitespace-pre-wrap mt-2 drop-shadow">{activeCard.heroSub || '서브 설명글 영역'}</p>
               </div>
             </div>
             
-            <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-4 z-30 overflow-hidden pr-8 h-[185px]">
+            {/* 하단 세트 배너 카드 (어두운 그라데이션 음영 완전 제거 + 파노라마 자동 연결) */}
+            <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-3.5 z-30 overflow-hidden pr-8 h-[185px]">
               {Array.from({length: numCards}).map((_, i) => {
                 const cardData = block.data?.cards?.[i] || {};
                 const isSelected = i === activeIdx;
-                const cardImgSrc = checkIsUrl(cardData.cardImg) ? cardData.cardImg : (checkIsUrl(block.data?.imageUrl) ? block.data.imageUrl : '');
-                const cardTextFallback = cardData.cardImg || block.data?.imageUrl || '';
+                const indivRaw = cardData.cardImg || block.data?.imageUrl || '';
+                const indivImgSrc = checkIsUrl(indivRaw) ? indivRaw : '';
 
                 return (
                   <div 
                     key={i} 
                     onClick={() => onUpdate && onUpdate(block.id, 'selectedCardIndex', i)}
-                    className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex bg-[#1a1c26] shrink-0 h-full cursor-pointer transition-all duration-200 ${colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'} ${isSelected ? 'border-[3px] border-[#7387FF]' : 'border border-white/20 hover:border-white/50 opacity-60 hover:opacity-100'}`}
+                    className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.85)] flex bg-[#14161f] shrink-0 h-full cursor-pointer transition-all duration-200 ${colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'} ${isSelected ? 'border-[3px] border-[#7387FF] ring-2 ring-[#7387FF]/30' : 'border border-white/25 hover:border-white/60 opacity-95 hover:opacity-100'}`}
                   >
-                    {cardData.cardCopy && <div className="w-[70%] h-full flex flex-col justify-center items-start p-6 z-20 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/90 to-transparent pointer-events-none"><p className="text-white font-extrabold text-xl leading-[1.2] tracking-tighter whitespace-pre-wrap drop-shadow-md">{cardData.cardCopy}</p></div>}
-                    <div className="absolute inset-0 w-full h-full bg-cover bg-center z-10 bg-[#0a0a0f] pointer-events-none" style={{ backgroundImage: cardImgSrc ? `url(${cardImgSrc})` : 'none' }}>
-                      {!cardImgSrc && !checkHasText(cardTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
-                      <FallbackText text={cardTextFallback} />
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/60 to-transparent w-[60%] pointer-events-none z-10"></div>
-                    </div>
+                    {isPanorama ? (
+                      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+                        {/* 🌟 파노라마 분할 레이어: 전체 가로폭(numCards * 100%)을 카드 순번만큼 좌측으로 이동시켜 한 장의 이미지처럼 연결 */}
+                        <div
+                          className="absolute top-0 h-full"
+                          style={{
+                            width: `${numCards * 100}%`,
+                            left: `-${i * 100}%`
+                          }}
+                        >
+                          <div
+                            className="w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-75"
+                            style={{
+                              backgroundImage: panoImgSrc ? `url(${panoImgSrc})` : 'none',
+                              ...getTransformStyle(block.data, 'pano')
+                            }}
+                          />
+                        </div>
+                        {!panoImgSrc && !checkHasText(panoRaw) && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20 gap-1">
+                            <ImageIcon size={26} />
+                            <span className="text-[10px] font-bold">파노라마 {i + 1}/{numCards}</span>
+                          </div>
+                        )}
+                        {i === 0 && <FallbackText text={panoRaw} />}
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+                        <div
+                          className="w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-75"
+                          style={{
+                            backgroundImage: indivImgSrc ? `url(${indivImgSrc})` : 'none',
+                            ...getTransformStyle(cardData, 'card')
+                          }}
+                        >
+                          {!indivImgSrc && !checkHasText(indivRaw) && (
+                            <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={28} className="text-white/15"/></div>
+                          )}
+                        </div>
+                        <FallbackText text={indivRaw} />
+                      </div>
+                    )}
                   </div>
                 );
               })}
-              {[1,2,3,4].map(i => (<div key={`dummy-${i}`} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0"></div>))}
+              {[1,2,3,4].map(i => (<div key={`dummy-${i}`} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0" />))}
             </div>
           </div>
         );
       }
       
+      // 📺 5) 빅배너 (기본형 & 월정액 가입하기형 모두 이미지 크기/위치 조정 및 페더링 적용)
       if (block.type === 'BIG_BANNER') {
         const isSubscription = block.data?.subType === '가입하기형';
         return (
@@ -1294,22 +1612,36 @@
                   </div>
                   <div className="flex-1 h-full py-4 pr-5 flex items-center justify-end relative z-0">
                     <div className="w-full max-w-[600px] aspect-[24.5/8.3] rounded-xl overflow-hidden bg-[#1a1c26] relative shadow-inner">
-                      <div className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-all" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                      <div
+                        className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-transform duration-75"
+                        style={{
+                          backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                          ...getTransformStyle(block.data)
+                        }}
+                      >
                         {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={64} className="text-white/10"/></div>}
-                        <FallbackText text={block.data?.imageUrl} />
                       </div>
+                      <FallbackText text={block.data?.imageUrl} />
                     </div>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="absolute inset-0 z-0">
-                    <div className="absolute right-0 top-0 w-[70%] h-full bg-no-repeat bg-cover bg-right-top transition-all duration-500" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                      {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 to-[#0a0a0f] flex items-center justify-end pr-32"><ImageIcon size={64} className="text-white/10"/></div>}
+                  <div className="absolute inset-0 z-0 overflow-hidden">
+                    <div className="absolute right-0 top-0 w-[72%] h-full overflow-hidden" style={heroMaskRight}>
+                      <div
+                        className="w-full h-full bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
+                        style={{
+                          backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                          ...getTransformStyle(block.data),
+                          ...innerEdgeFeather
+                        }}
+                      >
+                        {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 to-[#0a0a0f] flex items-center justify-end pr-32"><ImageIcon size={64} className="text-white/10"/></div>}
+                      </div>
                       <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-32" />
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0f111a] from-[35%] via-[#0f111a]/60 via-[50%] to-transparent to-[65%] pointer-events-none"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f111a] via-transparent to-transparent h-[35%] top-auto bottom-0 pointer-events-none"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f111a] via-transparent to-transparent h-[35%] top-auto bottom-0 pointer-events-none" />
                   </div>
                   <div className="relative z-10 flex flex-col justify-center h-full px-12 max-w-[60%]">
                     {checkIsUrl(block.data?.logoImg) ? <img src={block.data.logoImg} alt="logo" className="h-8 mb-3 object-contain object-left drop-shadow-lg" /> : <div className="text-white/50 text-[10px] mb-3 font-bold border border-white/20 px-2 py-1 rounded inline-block w-max bg-black/30">월정액 로고</div>}
@@ -1322,38 +1654,54 @@
               )}
             </div>
             <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-4 z-30 overflow-hidden pr-8 h-[185px]">
-              {[1,2,3,4,5,6,7].map(i => (<div key={i} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0"></div>))}
+              {[1,2,3,4,5,6,7].map(i => (<div key={i} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0" />))}
             </div>
           </div>
         );
       }
       
+      // 📺 6) 띠배너: 좌측 텍스트 배경 색상(bgColor) 변경 + 소프트 그라데이션 + 이미지 크기/위치 조정
       if (block.type === 'STRIP_BANNER') {
+        const stripBgTone = block.data?.bgColor || '#1a1c26';
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
-            <div className="absolute left-[80px] top-[18%] w-[85%] h-[140px] bg-[#1a1c26] rounded-[16px] overflow-hidden shadow-2xl border-[3px] border-[#7387FF] flex items-center z-10">
-              <div className="absolute right-0 top-0 bottom-0 w-[40%] bg-cover bg-right bg-no-repeat z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                  <div className="absolute inset-0 flex items-center justify-end pr-10 bg-[#12141c]">
-                    <ImageIcon size={32} className="text-white/10"/>
-                  </div>
-                )}
+            <div
+              className="absolute left-[80px] top-[18%] w-[85%] h-[140px] rounded-[16px] overflow-hidden shadow-2xl border-[3px] border-[#7387FF] flex items-center z-10"
+              style={{ backgroundColor: stripBgTone }}
+            >
+              <div className="absolute right-0 top-0 bottom-0 w-[48%] overflow-hidden z-0">
+                <div
+                  className="w-full h-full bg-cover bg-right bg-no-repeat transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
+                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
+                    <div className="absolute inset-0 flex items-center justify-end pr-10 bg-black/20">
+                      <ImageIcon size={32} className="text-white/15"/>
+                    </div>
+                  )}
+                </div>
                 <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#1a1c26] via-[#1a1c26]/85 via-[30%] to-transparent"></div>
+                <div
+                  className="absolute inset-y-0 left-0 w-[55%] pointer-events-none"
+                  style={{ background: `linear-gradient(to right, ${stripBgTone} 8%, ${stripBgTone}cc 40%, transparent 100%)` }}
+                />
               </div>
-              <div className="w-[60%] flex flex-col justify-center pl-10 pr-4 z-10 relative">
+              <div className="w-[62%] flex flex-col justify-center pl-10 pr-4 z-10 relative pointer-events-none">
                 <h2 className="text-white font-extrabold text-[1.6rem] tracking-tight mb-1 truncate drop-shadow-md">{block.data?.mainTitle || '메인 문구 입력'}</h2>
-                <p className="text-slate-400 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
+                <p className="text-white/80 font-medium text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis">{block.data?.subTitle || '서브 문구 입력'}</p>
               </div>
             </div>
             <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-4 z-30 overflow-hidden pr-8 h-[185px]">
-              {[1,2,3,4,5,6,7].map(i => (<div key={i} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0"></div>))}
+              {[1,2,3,4,5,6,7].map(i => (<div key={i} className="h-full aspect-[2/3] bg-[#222530] rounded-md border border-white/5 shadow-lg shrink-0" />))}
             </div>
           </div>
         );
       }
 
-      // 🌟 TV & 모바일 시놉시스 배너 공통 뱃지 렌더러 ('COUPON' | 'QR' | 'IMAGE')
+      // 🌟 TV & 모바일 시놉시스 배너 공통 뱃지 렌더러 ('COUPON' | 'QR' | 'IMAGE' + 이미지 크기/위치 조정)
       const renderSynopsisBadge = (data, allowEmptyText = false) => {
         const bType = data?.badgeType || (checkIsUrl(data?.imageUrl) ? 'IMAGE' : 'COUPON');
         if (bType === 'QR') {
@@ -1368,14 +1716,15 @@
         }
         if (bType === 'IMAGE') {
           return checkIsUrl(data?.imageUrl) ? (
-            <img src={data.imageUrl} alt="badge" className="w-[38px] h-[38px] object-contain drop-shadow-lg shrink-0" />
+            <div className="w-[38px] h-[38px] rounded overflow-hidden shrink-0 relative">
+              <img src={data.imageUrl} alt="badge" className="w-full h-full object-contain drop-shadow-lg transition-transform duration-75" style={getTransformStyle(data)} />
+            </div>
           ) : (
             <div className="w-[38px] h-[38px] bg-[#262833] border border-white/20 flex flex-col items-center justify-center text-white/50 shrink-0">
               <ImageIcon size={13} />
             </div>
           );
         }
-        // 기본: 'COUPON'
         const cText = allowEmptyText ? (data?.badgeText || '') : (data?.badgeText || '영화 쿠폰\n3,300원');
         return (
           <div className="bg-gradient-to-br from-[#d6a87c] to-[#b88655] rounded flex items-center justify-center text-center px-2 py-1 shadow-md border border-white/30 min-w-[52px] min-h-[34px] shrink-0">
@@ -1398,7 +1747,7 @@
                 <div className="h-full px-10 bg-[#222530] text-white rounded-xl font-bold text-lg shadow-xl flex items-center justify-center select-none shrink-0">구매하기</div>
                 <div className="h-full px-10 bg-[#222530] text-slate-300 border border-white/5 rounded-xl font-bold text-lg flex items-center justify-center select-none shrink-0">예고편 보기</div>
                 <div className="h-full w-[290px] bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] rounded-xl relative overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.5)] border-[3px] border-[#7387FF] flex items-center justify-between px-5 shrink-0 z-10">
-                  <div className="absolute -bottom-10 -right-10 w-[100px] h-[100px] bg-[#7387FF]/10 blur-2xl rounded-full pointer-events-none"></div>
+                  <div className="absolute -bottom-10 -right-10 w-[100px] h-[100px] bg-[#7387FF]/10 blur-2xl rounded-full pointer-events-none" />
                   <div className="flex flex-col justify-center z-10 pr-2 min-w-0">
                     <h2 className="text-white font-extrabold text-lg tracking-tight whitespace-pre-wrap leading-tight drop-shadow-md truncate">{block.data?.mainTitle || '메인 문구 입력'}</h2>
                     {block.data?.subTitle && <p className="text-slate-300 font-bold text-[11px] mt-1 tracking-tight truncate">{block.data.subTitle}</p>}
@@ -1418,10 +1767,16 @@
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0 flex items-center justify-center">
             <div className="bg-[#26272e] p-5 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex flex-col w-[680px] z-10">
               <div className="relative w-full aspect-[16/9] bg-[#0c0920] rounded-lg overflow-hidden mb-6 shadow-inner">
-                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
                   {!checkIsUrl(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1359] to-[#0a0812]"><ImageIcon size={64} className="text-white/10" /></div>}
-                  <FallbackText text={block.data?.imageUrl} />
                 </div>
+                <FallbackText text={block.data?.imageUrl} />
               </div>
               <div className="flex justify-center gap-3 w-full pb-2">
                 <div className="w-[240px] py-3.5 bg-[#401ce8] text-white rounded-lg font-extrabold text-xl flex items-center justify-center shadow-[0_4px_15px_rgba(64,28,232,0.4)] tracking-tight">{block.data?.buttonText || '바로가기'}</div>
@@ -1438,10 +1793,16 @@
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"><span className="text-white/[0.03] font-black text-[180px] tracking-[0.2em] select-none">LIVE</span></div>
             <div className="absolute bottom-[8%] left-[5%] right-[5%] h-[140px] bg-transparent rounded-lg shadow-2xl flex items-center p-4 backdrop-blur-md z-10 gap-6">
               <div className="h-full aspect-[1.48/1] bg-[#0a0a0f] rounded-md relative overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_20px_rgba(255,255,255,0.2)] shrink-0 flex items-center justify-center">
-                <div className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform z-0" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                <div
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-75 z-0"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
                   {!checkIsUrl(block.data?.imageUrl) && <ImageIcon size={32} className="text-white/20"/>}
                 </div>
-                <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/90 to-transparent pointer-events-none z-10"></div>
+                <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
                 <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 z-20">
                   <div className="bg-white text-[#111] font-black text-[11px] px-2.5 py-0.5 rounded-[12px] shadow-md tracking-tighter">OK</div><div className="text-white font-extrabold text-[15px] tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{block.data?.buttonText || '감상하기'}</div>
                 </div>
@@ -1452,7 +1813,7 @@
                 <h3 className="text-white font-black text-[1.9rem] drop-shadow-md mb-2 truncate leading-tight">벌거벗은 세계사 206회 <span className="text-[10px] bg-white/20 px-1 py-0.5 rounded ml-1 align-middle">ALL</span></h3>
                 <div className="flex items-center gap-3 w-full border-t border-white/20 pt-2">
                   <span className="text-slate-300 text-[13px] font-bold">14:00</span>
-                  <div className="w-[150px] h-[3px] bg-[#333] rounded-full overflow-hidden"><div className="w-[60%] h-full bg-[#5ea3ff]"></div></div>
+                  <div className="w-[150px] h-[3px] bg-[#333] rounded-full overflow-hidden"><div className="w-[60%] h-full bg-[#5ea3ff]" /></div>
                   <span className="text-slate-400 text-[12px] font-bold">16:00 | 현재 시각 15:32</span>
                 </div>
               </div>
@@ -1461,18 +1822,31 @@
         );
       }
 
+      // 📺 7) 롱배너: 하단 음영을 훨씬 부드럽게 완화(via-black/35) + 이미지 크기/위치 조정
       if (block.type === 'LONG_BANNER') {
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0 flex items-center justify-center">
             <div className="absolute inset-0 p-12 flex justify-center gap-4 z-0 bg-[#0a0a0f]">
               <div className="h-[90%] aspect-[129/181.5] bg-[#1a1c26] rounded-xl overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-[#7387FF] shrink-0">
-                <div className="absolute inset-0 bg-cover bg-top bg-no-repeat z-10" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                <div
+                  className="absolute inset-0 bg-cover bg-top bg-no-repeat z-10 transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]"><ImageIcon size={48} className="text-white/10"/></div>}
-                  <FallbackText text={block.data?.imageUrl} alignClass="justify-center items-center text-center px-4" />
                 </div>
-                <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent z-20 text-center flex flex-col justify-end h-[40%]">
-                  <p className="text-white font-extrabold text-xl leading-tight drop-shadow-md whitespace-pre-wrap">{block.data?.copy || '메인 카피 입력'}</p>
-                  {block.data?.subTitle && <p className="text-slate-300 font-medium text-xs mt-2 whitespace-pre-wrap">{block.data.subTitle}</p>}
+                <FallbackText text={block.data?.imageUrl} alignClass="justify-center items-center text-center px-4" />
+                {/* 🌟 완만하고 부드러운 하단 음영 적용 */}
+                <div
+                  className="absolute bottom-0 inset-x-0 p-6 z-20 text-center flex flex-col justify-end h-[44%] pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(to top, rgba(10,10,15,0.82) 0%, rgba(10,10,15,0.36) 52%, transparent 100%)'
+                  }}
+                >
+                  <p className="text-white font-extrabold text-xl leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] whitespace-pre-wrap">{block.data?.copy || '메인 카피 입력'}</p>
+                  {block.data?.subTitle && <p className="text-slate-100 font-medium text-xs mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] whitespace-pre-wrap">{block.data.subTitle}</p>}
                 </div>
               </div>
               {[1, 2].map(i => (
@@ -1485,11 +1859,10 @@
         );
       }
       
-      // 🌟 0) 모바일 B tv 공통 스마트폰 디바이스 프레임: 505 x 1125 비율 + 하단 4개 메뉴 플로팅 독(Dock) 형태
+      // 🌟 모바일 B tv 공통 스마트폰 디바이스 프레임
       const MobileDeviceShell = ({ children, activeBottomTab = '홈', showBottomNav = true, showStatusBar = true, customAspectClass = 'aspect-[505/1125]' }) => (
         <div className="relative w-full aspect-[16/9] bg-[#05060a] overflow-hidden shrink-0 flex items-center justify-center py-2">
           <div className={`relative h-full ${customAspectClass} bg-[#0b0c10] rounded-[18px] border-[2px] border-[#262833] shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col justify-between select-none`}>
-            {/* 스마트폰 상단 상태바 */}
             {showStatusBar && (
               <div className="px-3.5 pt-1.5 pb-1 flex items-center justify-between text-white text-[8px] font-bold shrink-0 z-20 bg-[#0b0c10]">
                 <span>3:53</span>
@@ -1499,12 +1872,8 @@
                 </div>
               </div>
             )}
-
-            {/* 중앙 앱 화면 영역 */}
             <div className="flex-1 overflow-hidden flex flex-col relative">
               {children}
-
-              {/* 🌟 신규 플로팅 독(Dock) 형태 하단 4개 메뉴 ('홈', 'B tv+', '쇼츠', '검색') */}
               {showBottomNav && (
                 <div className="absolute bottom-2 inset-x-3 z-30 pointer-events-none">
                   <div className="w-full bg-[#1c1e26]/90 backdrop-blur-md border border-white/15 rounded-full py-1.5 px-3 shadow-[0_8px_24px_rgba(0,0,0,0.75)] grid grid-cols-4 gap-1 text-center">
@@ -1518,19 +1887,9 @@
                       return (
                         <div key={tab.id} className="flex flex-col items-center justify-center gap-0.5">
                           <div className={`w-4 h-4 rounded-md flex items-center justify-center text-[7px] font-black ${
-                            tab.id === 'B tv+'
-                              ? 'bg-white text-black rotate-0 rounded-[4px]'
-                              : isAct ? 'text-white' : 'text-slate-400'
+                            tab.id === 'B tv+' ? 'bg-white text-black rotate-0 rounded-[4px]' : isAct ? 'text-white' : 'text-slate-400'
                           }`}>
-                            {tab.id === '홈' ? (
-                              <Home size={11} className={isAct ? 'text-white fill-white' : 'text-slate-300'} />
-                            ) : tab.id === '검색' ? (
-                              <Search size={11} className={isAct ? 'text-white' : 'text-slate-300'} />
-                            ) : tab.id === '쇼츠' ? (
-                              <div className="w-3.5 h-3.5 bg-white text-black rounded-[3px] flex items-center justify-center text-[6px] font-black">▶</div>
-                            ) : (
-                              <span className="text-[6px] font-black tracking-tighter">B+</span>
-                            )}
+                            {tab.id === '홈' ? <Home size={11} className={isAct ? 'text-white fill-white' : 'text-slate-300'} /> : tab.id === '검색' ? <Search size={11} className={isAct ? 'text-white' : 'text-slate-300'} /> : tab.id === '쇼츠' ? <div className="w-3.5 h-3.5 bg-white text-black rounded-[3px] flex items-center justify-center text-[6px] font-black">▶</div> : <span className="text-[6px] font-black tracking-tighter">B+</span>}
                           </div>
                           <span className={`text-[6.5px] font-bold leading-none ${isAct ? 'text-white' : 'text-slate-400'}`}>{tab.id}</span>
                         </div>
@@ -1544,11 +1903,10 @@
         </div>
       );
 
-      // 📱 ① [모바일] 1.5단 배너 (포스터 3.5개 기준 가로 1.5배 = 화면에 약 2.2개 노출, 비율 205:185)
+      // 📱 ① [모바일] 1.5단 배너
       if (block.type === 'MOBILE_1_5_BANNER') {
         return (
           <MobileDeviceShell activeBottomTab="홈">
-            {/* 상단 홈 헤더 */}
             <div className="px-3 py-1 flex items-center justify-between shrink-0">
               <span className="text-white font-black text-xs">홈</span>
               <div className="flex items-center gap-1.5">
@@ -1556,8 +1914,6 @@
                 <div className="w-3 h-3 rounded-full bg-white/10" />
               </div>
             </div>
-
-            {/* 상단 5개 퀵메뉴 아이콘 (심플 더미) */}
             <div className="grid grid-cols-5 gap-1 px-2.5 py-1 shrink-0">
               {['콘텐츠이용권', 'ZEM', 'B가입샵', 'B이용꿀팁', '모비소식'].map(m => (
                 <div key={m} className="bg-[#181920] rounded-lg py-1.5 flex flex-col items-center justify-center gap-0.5">
@@ -1566,26 +1922,29 @@
                 </div>
               ))}
             </div>
-
-            {/* 🌟 중단 1.5단 배너 영역: 포스터(26.5%)의 약 1.5배 가로폭(42.5%) -> 한 화면에 2.2개 노출 */}
             <div className="pl-2.5 py-1.5 flex items-center gap-1.5 overflow-hidden shrink-0">
-              {/* 1번째 슬롯: 편집 중인 1.5단 배너 (205:185 비율, 좌측 정렬 & 좁은 자간) */}
               <div className="relative w-[42.5%] aspect-[205/185] rounded-lg overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_15px_rgba(115,135,255,0.4)] bg-[#1a1c26] shrink-0">
-                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
                     <div className="absolute inset-0 bg-[#ffc40c] flex items-center justify-center text-center p-1">
                       <span className="text-black font-black text-[9px] leading-tight">모바일<br/>1.5단 배너</span>
                     </div>
                   )}
-                  <FallbackText text={block.data?.imageUrl} />
                 </div>
-                <div className="absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
+                <FallbackText text={block.data?.imageUrl} />
+                <div className="absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
                 {block.data?.badgeText && (
-                  <div className="absolute top-1.5 left-1.5 bg-[#463940]/95 text-white font-extrabold text-[7px] px-1.5 py-0.5 rounded shadow">
+                  <div className="absolute top-1.5 left-1.5 bg-[#463940]/95 text-white font-extrabold text-[7px] px-1.5 py-0.5 rounded shadow z-10">
                     {block.data.badgeText}
                   </div>
                 )}
-                <div className="absolute bottom-1.5 left-2 right-1.5 text-left pointer-events-none">
+                <div className="absolute bottom-1.5 left-2 right-1.5 text-left pointer-events-none z-10">
                   <div className="text-white font-black text-sm tracking-tight leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] truncate">
                     {block.data?.mainTitle || ''}
                   </div>
@@ -1594,21 +1953,15 @@
                   )}
                 </div>
               </div>
-
-              {/* 2번째 슬롯: 우측 전체 노출 더미 */}
               <div className="relative w-[42.5%] aspect-[205/185] rounded-lg overflow-hidden bg-[#262833] border border-white/10 shrink-0 flex flex-col justify-between p-1.5 opacity-65">
                 <span className="bg-[#463940] text-white text-[7px] font-bold px-1.5 py-0.5 rounded w-max">쿠폰</span>
                 <div className="text-white font-black text-sm tracking-tight text-left">HOPE</div>
               </div>
-
-              {/* 3번째 슬롯: 화면 우측 끝에 0.2개만큼 살짝 걸쳐 보이는 더미 */}
               <div className="relative w-[42.5%] aspect-[205/185] rounded-lg overflow-hidden bg-[#1e2029] border border-white/10 shrink-0 flex flex-col justify-between p-1.5 opacity-45">
                 <span className="bg-[#3b82f6] text-white text-[7px] font-bold px-1.5 py-0.5 rounded w-max">쿠폰</span>
                 <div className="text-white font-black text-xs tracking-tight text-left">럭키</div>
               </div>
             </div>
-
-            {/* 하단 포스터 리스트 2줄: 한 화면에 정확히 포스터 3.5개가 보이도록 w-[26.5%] 세팅 */}
             <div className="pl-2.5 pt-1 flex-1 flex flex-col justify-start gap-2 overflow-hidden pb-12">
               {['새로 들어온 무료 영화', '새로 들어온 영화'].map((secTitle, sIdx) => (
                 <div key={sIdx} className="space-y-1">
@@ -1630,7 +1983,7 @@
         );
       }
 
-      // 📱 ② [모바일] 이벤트 배너 (505 x 1125 비율 내 이벤트 리스트 화면)
+      // 📱 ② [모바일] 이벤트 배너
       if (block.type === 'MOBILE_EVENT_BANNER') {
         const bgTone = block.data?.bgColor || '#7a8a8e';
         return (
@@ -1640,16 +1993,22 @@
               <span className="text-white font-bold text-[9px]">이벤트</span>
               <span className="w-2" />
             </div>
-
             <div className="p-2.5 space-y-2 flex-1 overflow-hidden flex flex-col pb-12">
-              {/* 메인 편집 대상 이벤트 배너 */}
               <div className="relative w-full aspect-[2.15/1] rounded-lg overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_15px_rgba(115,135,255,0.35)] flex items-center shrink-0" style={{ backgroundColor: bgTone }}>
-                <div className="absolute right-0 top-0 bottom-0 w-[58%] bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-5"><ImageIcon size={22} className="text-white/20"/></div>}
+                <div className="absolute right-0 top-0 bottom-0 w-[58%] overflow-hidden">
+                  <div
+                    className="w-full h-full bg-cover bg-center transition-transform duration-75"
+                    style={{
+                      backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                      ...getTransformStyle(block.data)
+                    }}
+                  >
+                    {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-5"><ImageIcon size={22} className="text-white/20"/></div>}
+                  </div>
                   <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-2" />
                   <div className="absolute inset-y-0 left-0 w-[45%] pointer-events-none" style={{ background: `linear-gradient(to right, ${bgTone} 10%, transparent 100%)` }} />
                 </div>
-                <div className="relative z-10 w-[64%] pl-3 pr-1 flex flex-col justify-center items-start text-left">
+                <div className="relative z-10 w-[64%] pl-3 pr-1 flex flex-col justify-center items-start text-left pointer-events-none">
                   {block.data?.statusBadge && (
                     <span className="bg-[#e0533c] text-white font-extrabold text-[6.5px] px-1.5 py-0.5 rounded-full mb-1">
                       {block.data.statusBadge}
@@ -1660,8 +2019,6 @@
                   <p className="text-white/90 font-medium text-[7px] mt-1 tracking-tight truncate w-full">{block.data?.periodText || '2026.10.21(수) ~ 2026.11.3(화)'}</p>
                 </div>
               </div>
-
-              {/* 하단 다른 이벤트 리스트 더미 */}
               {[
                 { tag: '호프', title: '런칭 이벤트', bg: '#697679' },
                 { tag: '럭키 스트라이크', title: '런칭 이벤트', bg: '#4b4d41' },
@@ -1679,11 +2036,10 @@
         );
       }
 
-      // 📱 ③ [모바일] 빅배너 (신규 UI: 상단 B 로고 헤더 + 81x108 비율 라운드 카드 + 가운데 정렬 + 하단 원형 카테고리 칩 & 플로팅 독)
+      // 📱 ③ [모바일] 빅배너
       if (block.type === 'MOBILE_BIG_BANNER') {
         return (
           <MobileDeviceShell activeBottomTab="홈" showStatusBar={true}>
-            {/* 상단 B 로고 & 우측 아이콘 바 */}
             <div className="px-3.5 py-1 flex items-center justify-between shrink-0">
               <span className="text-white font-black text-sm tracking-tighter">B</span>
               <div className="flex items-center gap-2">
@@ -1692,22 +2048,24 @@
                 <div className="w-4 h-4 rounded-full bg-indigo-500" />
               </div>
             </div>
-
-            {/* 🌟 중앙 81 x 108 비율 빅배너 카드 (좌우 여백 + 라운드 + 가운데 정렬) */}
             <div className="px-2.5 pt-0.5 shrink-0">
               <div className="relative w-full aspect-[81/108] rounded-[14px] border-[2px] border-[#7387FF] shadow-[0_8px_25px_rgba(0,0,0,0.8)] overflow-hidden bg-[#1a1c26] flex flex-col justify-end">
-                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
                   {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
                     <div className="absolute inset-0 bg-gradient-to-b from-[#334155] via-[#1e293b] to-[#0f172a] flex items-center justify-center">
                       <span className="text-white/40 font-black text-[10px]">모바일 빅배너 (81x108)</span>
                     </div>
                   )}
-                  <FallbackText text={block.data?.imageUrl} />
                 </div>
-
-                {/* 하단 그라데이션 & 가운데 정렬 텍스트 영역 */}
-                <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
-                <div className="relative z-10 px-3 pb-2.5 flex flex-col items-center text-center">
+                <FallbackText text={block.data?.imageUrl} />
+                <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black/85 via-black/45 to-transparent pointer-events-none" />
+                <div className="relative z-10 px-3 pb-2.5 flex flex-col items-center text-center pointer-events-none">
                   <div className="text-white font-black text-lg tracking-tight leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]">
                     {block.data?.mainTitle || ''}
                   </div>
@@ -1721,7 +2079,6 @@
                       {block.data.copy}
                     </p>
                   )}
-                  {/* 캐러셀 인디케이터 점 */}
                   <div className="flex items-center justify-center gap-1 mt-2">
                     <span className="w-1 h-1 rounded-full bg-white/40" />
                     <span className="w-2.5 h-1 rounded-full bg-white" />
@@ -1732,27 +2089,16 @@
                 </div>
               </div>
             </div>
-
-            {/* 중단 원형 카테고리 필터 칩 ('NOW', '랭킹', '영화', '시리즈', '키즈') */}
             <div className="px-2 py-2 flex items-center justify-center gap-1.5 overflow-hidden shrink-0">
               {['NOW', '랭킹', '영화', '시리즈', '키즈'].map(cat => {
                 const isMovie = cat === '영화';
                 return (
-                  <div
-                    key={cat}
-                    className={`px-2.5 py-1 rounded-full text-[7px] font-bold shrink-0 border ${
-                      isMovie
-                        ? 'bg-[#4f3df6] border-[#7387ff] text-white shadow'
-                        : 'bg-[#181920] border-white/10 text-slate-300'
-                    }`}
-                  >
+                  <div key={cat} className={`px-2.5 py-1 rounded-full text-[7px] font-bold shrink-0 border ${isMovie ? 'bg-[#4f3df6] border-[#7387ff] text-white shadow' : 'bg-[#181920] border-white/10 text-slate-300'}`}>
                     {cat}
                   </div>
                 );
               })}
             </div>
-
-            {/* 하단 포스터 카드 일부 노출 (플로팅 독 뒤편 배경) */}
             <div className="px-2.5 flex-1 overflow-hidden">
               <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-900/50 to-slate-900 border border-white/10 p-2.5 flex items-start justify-between">
                 <span className="text-[#f5c542] font-black text-2xl leading-none drop-shadow">3</span>
@@ -1763,17 +2109,14 @@
         );
       }
 
-      // 📱 ④ [모바일] 시놉시스 배너 (라운드 둥근 모서리 적용 + 좌측 뱃지 & 우측 좌정렬 텍스트)
+      // 📱 ④ [모바일] 시놉시스 배너
       if (block.type === 'MOBILE_SYNOPSIS_BANNER') {
         return (
           <MobileDeviceShell activeBottomTab="홈">
-            {/* 상단 예고편 비디오 플레이어 더미 */}
             <div className="w-full h-[95px] bg-black relative flex items-center justify-center shrink-0">
               <span className="absolute top-2 left-2.5 text-white/80 text-[10px]">〈</span>
               <Loader2 size={18} className="text-white/30" />
             </div>
-
-            {/* 작품 메타 & 액션 아이콘 바 */}
             <div className="px-3 py-2 space-y-1.5 border-b border-white/5 shrink-0 text-left">
               <div>
                 <div className="text-white font-black text-xs">인턴</div>
@@ -1795,15 +2138,11 @@
                 B tv 해지 전 무제한 시청 가능
               </div>
             </div>
-
-            {/* 🌟 모바일 시놉시스 배너: 1.5단 배너처럼 둥근 모서리(rounded-lg) 적용 */}
             <div className="px-3 py-2 shrink-0">
               <div className="w-full h-[54px] bg-[#1e2330] rounded-lg border-[2px] border-[#7387FF] shadow-[0_0_15px_rgba(115,135,255,0.3)] px-3.5 flex items-center justify-start gap-3.5 relative overflow-hidden">
-                {/* 가장 좌측: 뱃지 영역 */}
                 <div className="z-10 shrink-0">
                   {renderSynopsisBadge(block.data, true)}
                 </div>
-                {/* 우측: 텍스트 좌측 정렬 */}
                 <div className="flex flex-col justify-center items-start text-left min-w-0 z-10 flex-1">
                   {block.data?.mainTitle && (
                     <h3 className="text-white font-extrabold text-[11px] tracking-tight leading-tight truncate w-full">
@@ -1818,8 +2157,6 @@
                 </div>
               </div>
             </div>
-
-            {/* 하단 댓글 영역 더미 */}
             <div className="px-3 pt-1 flex-1 text-left overflow-hidden">
               <div className="flex justify-between items-center text-[8px] font-bold mb-1">
                 <span className="text-white">댓글 <span className="text-[#7387ff]">9</span></span>
@@ -1833,47 +2170,45 @@
         );
       }
 
-      // 📱 ⑤ [모바일] 이벤트 페이지 (더 길쭉한 비율 + [최상단 텍스트 2줄 / 중앙 이미지 / 하단 텍스트 2줄 / 메모 여백 / 최하단 감상하러 가기])
+      // 📱 ⑤ [모바일] 이벤트 페이지
       if (block.type === 'MOBILE_EVENT_PAGE') {
         const topCopy = block.data?.topText ?? block.data?.mainTitle ?? '';
         const bottomCopy = block.data?.bottomText ?? block.data?.subTitle ?? '';
         return (
           <MobileDeviceShell activeBottomTab="홈" showBottomNav={false} showStatusBar={false} customAspectClass="aspect-[360/1125]">
-            {/* 상단 메인 이벤트 페이지 프레임 (파란 포커스 테두리, 직각) */}
             <div className="flex-1 border-[2px] border-[#7387FF] bg-[#12141c] overflow-hidden flex flex-col">
-              {/* 1) 최상단 텍스트 두줄 인입 영역 */}
               <div className="px-2.5 py-2.5 bg-[#181b26] border-b border-white/10 text-center shrink-0 min-h-[42px] flex items-center justify-center">
                 <p className="text-white font-extrabold text-[9.5px] leading-snug whitespace-pre-wrap tracking-tight">
                   {topCopy || '최상단 텍스트\n두줄 인입'}
                 </p>
               </div>
-
-              {/* 2) 중앙 이미지 영역 */}
-              <div className="w-full aspect-[1/1.05] relative bg-[#2b579a] bg-cover bg-center flex items-center justify-center overflow-hidden shrink-0 border-b border-white/10" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                  <div className="flex flex-col items-center justify-center text-white/50 gap-1">
-                    <ImageIcon size={24} />
-                    <span className="text-[8px] font-bold">이벤트 이미지 영역</span>
-                  </div>
-                )}
+              <div className="w-full aspect-[1/1.05] relative bg-[#2b579a] flex items-center justify-center overflow-hidden shrink-0 border-b border-white/10">
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
+                  style={{
+                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                    ...getTransformStyle(block.data)
+                  }}
+                >
+                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
+                    <div className="flex flex-col items-center justify-center h-full text-white/50 gap-1">
+                      <ImageIcon size={24} />
+                      <span className="text-[8px] font-bold">이벤트 이미지 영역</span>
+                    </div>
+                  )}
+                </div>
                 <FallbackText text={block.data?.imageUrl} />
               </div>
-
-              {/* 3) 하단 텍스트 두줄(경품 안내) 인입 영역 */}
               <div className="px-2.5 py-2.5 bg-[#181b26] border-b border-white/10 text-center shrink-0 min-h-[42px] flex items-center justify-center">
                 <p className="text-amber-300 font-extrabold text-[9px] leading-snug whitespace-pre-wrap tracking-tight">
                   {bottomCopy || '하단 텍스트\n두줄(경품 안내) 인입'}
                 </p>
               </div>
-
-              {/* 4) 두번째 텍스트와 최하단 버튼 사이: 담당자가 직접 메모 스티커 등으로 채우는 자유 여백 영역 */}
               <div className="flex-1 bg-[#0f111a] flex flex-col items-center justify-center p-2 text-center select-none">
                 <span className="text-white/20 font-black text-[10px] leading-tight">모바일<br/>이벤트 페이지</span>
                 <span className="text-slate-600 font-bold text-[7px] mt-1">(상단 [메모 추가]로 내용 구성)</span>
               </div>
             </div>
-
-            {/* 5) 최하단 고정 '감상하러 가기' 버튼 영역 */}
             <div className="p-2.5 bg-[#0b0c10] shrink-0">
               <div className="w-full py-2 bg-[#d5d962] text-[#111] font-black text-[9.5px] rounded-md text-center shadow-lg tracking-tight">
                 {block.data?.buttonText || '감상하러 가기'}
@@ -1906,10 +2241,18 @@
                 </div>
               )}
             </div>
-            <div className="w-[42%] self-stretch bg-[#1a1c26] relative bg-cover bg-center shrink-0 min-h-[210px]" style={{ backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none' }}>
-              {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={40} className="text-white/10"/></div>
-              )}
+            <div className="w-[42%] self-stretch bg-[#1a1c26] relative overflow-hidden shrink-0 min-h-[210px]">
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
+                style={{
+                  backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
+                  ...getTransformStyle(block.data)
+                }}
+              >
+                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
+                  <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={40} className="text-white/10"/></div>
+                )}
+              </div>
               <FallbackText text={block.data?.imageUrl} />
               <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#12141c] to-transparent pointer-events-none" />
             </div>
@@ -6444,7 +6787,18 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="서브 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subText || ''} onChange={e => handleAssetChange(activeAsset.id, 'subText', e.target.value)} />
                                     </div>
+                                    <BgColorPickerControl
+                                      label="전체 배경 분위기 색상 (다크/웜톤 블렌딩)"
+                                      value={activeAsset.data?.bgColor || '#0a0a0f'}
+                                      onChange={val => handleAssetChange(activeAsset.id, 'bgColor', val)}
+                                      presets={['#0a0a0f', '#2b1d16', '#1e1b2e', '#132421', '#2a161d', '#1c2536', '#332414', '#18181b']}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="배경 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="우측 상단 배경 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
@@ -6454,6 +6808,8 @@
                                 const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 20, subMax: 20, cardMax: 8 });
                                 const activeIdx = activeAsset.data?.selectedCardIndex || 0;
                                 const cardData = activeAsset.data?.cards?.[activeIdx] || {};
+                                const isPanorama = (activeAsset.data?.imageMode || 'PANORAMA') === 'PANORAMA';
+                                const numCards = Number(activeAsset.data?.cardCount) || (activeAsset.data?.colType === '3단' ? 2 : 3);
                                 return (
                                   <>
                                     <div>
@@ -6465,7 +6821,7 @@
                                     </div>
                                     <div>
                                       <label className="block text-[9px] font-bold text-slate-400 mb-1">세트 카드 개수 (2~3개)</label>
-                                      <select value={Number(activeAsset.data?.cardCount) || (activeAsset.data?.colType === '3단' ? 2 : 3)} onChange={e => {
+                                      <select value={numCards} onChange={e => {
                                         const cnt = Number(e.target.value);
                                         handleAssetChange(activeAsset.id, 'cardCount', cnt);
                                         if (cnt === 2 && activeAsset.data?.selectedCardIndex === 2) {
@@ -6476,22 +6832,83 @@
                                         <option value={3}>3개 카드 구성</option>
                                       </select>
                                     </div>
+
+                                    {/* 🌟 파노라마(1장 자동 분할) vs 개별 이미지 선택 토글 */}
+                                    <div className="col-span-2 bg-[#0a0812] border border-[#262833] rounded-xl p-2.5 space-y-2">
+                                      <label className="block text-[10px] font-bold text-cyan-400">하단 세트 카드 이미지 연결 방식 (무음영 클린)</label>
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAssetChange(activeAsset.id, 'imageMode', 'PANORAMA')}
+                                          className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all ${isPanorama ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow' : 'bg-[#12141c] border-[#262833] text-slate-500 hover:text-white'}`}
+                                        >
+                                          🖼️ 파노라마 (1장 자동 분할)
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAssetChange(activeAsset.id, 'imageMode', 'INDIVIDUAL')}
+                                          className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all ${!isPanorama ? 'bg-[#4f3df6]/20 border-[#7387ff] text-white shadow' : 'bg-[#12141c] border-[#262833] text-slate-500 hover:text-white'}`}
+                                        >
+                                          📑 카드별 개별 이미지
+                                        </button>
+                                      </div>
+                                      <p className="text-[9.5px] text-slate-500 leading-snug">
+                                        * 세트형 배너는 카드 음영이 제거되어 이미지가 선명하게 이어집니다. 배너 위 텍스트가 필요하면 상단 <b>[메모]</b> 스티커를 활용해 주세요.
+                                      </p>
+                                    </div>
+
+                                    {isPanorama && (
+                                      <>
+                                        <div className="col-span-2">
+                                          <label className="block text-[10px] font-bold text-cyan-300 mb-1">파노라마 통합 이미지 URL ({numCards}개 카드에 자동 분할 연결)</label>
+                                          <input
+                                            type="text"
+                                            placeholder="가로형 와이드 이미지 URL (또는 요청 이미지명)"
+                                            value={activeAsset.data?.panoramaImg ?? activeAsset.data?.cards?.[0]?.cardImg ?? ''}
+                                            onChange={e => handleAssetChange(activeAsset.id, 'panoramaImg', e.target.value)}
+                                            className="w-full bg-[#0a0812] border border-cyan-500/40 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-cyan-400"
+                                          />
+                                        </div>
+                                        <ImageTransformControl
+                                          label="파노라마 통합 이미지 크기 · 위치 조정"
+                                          data={activeAsset.data}
+                                          prefix="pano"
+                                          onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                        />
+                                      </>
+                                    )}
+
                                     <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 flex items-center justify-between">
-                                      <span className="text-[10px] font-bold text-pink-400">포커스: 카드 {activeIdx + 1} 설정</span>
-                                      <span className="text-[9px] text-slate-500 bg-[#262833] px-2 py-0.5 rounded">* 미리보기 클릭 전환</span>
+                                      <span className="text-[10px] font-bold text-pink-400">포커스: 카드 {activeIdx + 1} 상단 프리뷰 & 랜딩 설정</span>
+                                      <span className="text-[9px] text-slate-500 bg-[#262833] px-2 py-0.5 rounded">* 미리보기 카드 클릭 전환</span>
                                     </div>
                                     <div className="col-span-2">
-                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌 프리뷰 메인`} maxChars={lim.mainMax} maxLines={4} multiline={true} textColorClass="text-white font-bold" value={cardData.heroTitle || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroTitle', e.target.value)} />
+                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌상단 프리뷰 메인`} maxChars={lim.mainMax} maxLines={4} multiline={true} textColorClass="text-white font-bold" value={cardData.heroTitle || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroTitle', e.target.value)} />
                                     </div>
                                     <div className="col-span-2">
-                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌 프리뷰 서브`} maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={cardData.heroSub || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroSub', e.target.value)} />
+                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌상단 프리뷰 서브`} maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={cardData.heroSub || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroSub', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 우 프리뷰 이미지 URL`} value={cardData.heroImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400" /></div>
-                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">카드 {activeIdx + 1} 배너 내부 설정</div>
-                                    <div className="col-span-2">
-                                      <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 배너 내 텍스트`} maxChars={lim.cardMax} maxLines={3} multiline={true} value={cardData.cardCopy || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardCopy', e.target.value)} />
-                                    </div>
-                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 배경 이미지 URL`} value={cardData.cardImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#7387ff]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 우상단 프리뷰 이미지 URL`} value={cardData.heroImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400" /></div>
+                                    <ImageTransformControl
+                                      label={`[카드 ${activeIdx + 1}] 상단 프리뷰 이미지 크기 · 위치`}
+                                      data={cardData}
+                                      prefix="hero"
+                                      onUpdate={(f, v) => handleCardChange(activeAsset.id, activeIdx, f, v)}
+                                    />
+
+                                    {!isPanorama && (
+                                      <>
+                                        <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">카드 {activeIdx + 1} 개별 배너 이미지 설정</div>
+                                        <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 개별 카드 이미지 URL`} value={cardData.cardImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#7387ff]" /></div>
+                                        <ImageTransformControl
+                                          label={`[카드 ${activeIdx + 1}] 개별 배너 이미지 크기 · 위치`}
+                                          data={cardData}
+                                          prefix="card"
+                                          onUpdate={(f, v) => handleCardChange(activeAsset.id, activeIdx, f, v)}
+                                        />
+                                      </>
+                                    )}
+
                                     <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 랜딩 URL`} value={cardData.landingValue || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#7387ff]" /></div>
                                   </>
                                 );
@@ -6511,6 +6928,11 @@
                                       <CopyInputWithSpec label="서브 텍스트 (최대 3줄)" maxChars={lim.subMax} maxLines={3} multiline={true} textColorClass="text-purple-300" value={activeAsset.data?.subCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'subCopy', e.target.value)} />
                                     </div>
                                     <div className="col-span-2"><input type="text" placeholder="전체 배경 이미지 URL" value={activeAsset.data?.bgImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bgImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="전체 배경 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     {[1, 2, 3].map(i => (
                                       <React.Fragment key={i}>
                                         <div className="col-span-2 border-t border-[#1a1c26] mt-2 pt-2 text-[10px] font-bold text-slate-400">하단 배너 {i} 설정</div>
@@ -6521,6 +6943,12 @@
                                           <CopyInputWithSpec label={`배너 ${i} 2줄`} maxChars={lim.cardMax} maxLines={1} textColorClass="text-yellow-400" value={activeAsset.data?.[`card${i}Sub`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Sub`, e.target.value)} />
                                         </div>
                                         <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.[`card${i}Img`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Img`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                        <ImageTransformControl
+                                          label={`하단 배너 ${i} 이미지 크기 · 위치`}
+                                          data={activeAsset.data}
+                                          prefix={`card${i}`}
+                                          onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                        />
                                         <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.[`card${i}Landing`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Landing`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                       </React.Fragment>
                                     ))}
@@ -6551,6 +6979,11 @@
                                       <div className="col-span-2"><input type="text" placeholder="월정액 로고 이미지 URL" value={activeAsset.data?.logoImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'logoImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     )}
                                     <div className="col-span-2"><input type="text" placeholder="배경/우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="빅배너 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
@@ -6567,19 +7000,35 @@
                                         <option value="3단">3단 배너 (와이드형)</option>
                                       </select>
                                     </div>
-                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-pink-400">1. 좌 프리뷰 영역</div>
+                                    <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-pink-400">1. 상단 프리뷰 영역</div>
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="프리뷰 메인 텍스트" maxChars={lim.mainMax} maxLines={4} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.previewTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewTitle', e.target.value)} />
                                     </div>
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="프리뷰 서브 텍스트" maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.previewSub || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewSub', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="우 프리뷰 이미지 URL" value={activeAsset.data?.previewImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="우상단 프리뷰 이미지 URL" value={activeAsset.data?.previewImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="우상단 프리뷰 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      prefix="preview"
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">2. 하단 배너 카드 영역</div>
+                                    <BgColorPickerControl
+                                      label="배너 카드 텍스트 영역 배경 톤 색상"
+                                      value={activeAsset.data?.bgColor || '#1a1c26'}
+                                      onChange={val => handleAssetChange(activeAsset.id, 'bgColor', val)}
+                                    />
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="배너 내 텍스트" maxChars={lim.cardMax} maxLines={3} multiline={true} value={activeAsset.data?.bannerCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerCopy', e.target.value)} />
                                     </div>
                                     <div className="col-span-2"><input type="text" placeholder="배너 배경 이미지 URL" value={activeAsset.data?.bannerImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="하단 배너 카드 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
@@ -6596,6 +7045,11 @@
                                       <CopyInputWithSpec label="하단 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
                                     </div>
                                     <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="롱배너 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
@@ -6605,13 +7059,23 @@
                                 const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 25, subMax: 25 });
                                 return (
                                   <>
+                                    <BgColorPickerControl
+                                      label="띠배너 좌측 텍스트 배경 톤 색상"
+                                      value={activeAsset.data?.bgColor || '#1a1c26'}
+                                      onChange={val => handleAssetChange(activeAsset.id, 'bgColor', val)}
+                                    />
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="1줄 메인 텍스트" maxChars={lim.mainMax} maxLines={1} multiline={true} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} />
                                     </div>
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="2줄 서브 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><input type="text" placeholder="우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="띠배너 우측 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
@@ -6650,7 +7114,14 @@
                                         <textarea placeholder="쿠폰 뱃지 문구 (예: 영화 쿠폰\n3,300원)" rows={2} value={activeAsset.data?.badgeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'badgeText', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-amber-300 font-bold outline-none focus:border-[#4f3df6] resize-none" />
                                       )}
                                       {bType === 'IMAGE' && (
-                                        <input type="text" placeholder="우측 뱃지 이미지 URL 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                                        <>
+                                          <input type="text" placeholder="우측 뱃지 이미지 URL 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                                          <ImageTransformControl
+                                            label="뱃지 이미지 크기 · 위치 조정"
+                                            data={activeAsset.data}
+                                            onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                          />
+                                        </>
                                       )}
                                     </div>
                                     <div className="col-span-2"><input type="text" placeholder="랜딩 URL" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
@@ -6663,6 +7134,11 @@
                                 return (
                                   <>
                                     <div className="col-span-2"><input type="text" placeholder="중앙 팝업 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="팝업 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="좌측 액션 버튼 문구" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
                                     </div>
@@ -6679,6 +7155,11 @@
                                 return (
                                   <>
                                     <div className="col-span-2"><input type="text" placeholder="썸네일 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="미니 EPG 썸네일 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="CTA 버튼 텍스트" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
                                     </div>
@@ -6686,66 +7167,44 @@
                                   </>
                                 );
                               })()}
+
                               {activeAsset.type === 'MOBILE_1_5_BANNER' && (
                                 <>
                                   <div className="col-span-2"><CopyInputWithSpec label="좌상단 뱃지 문구" maxChars={6} value={activeAsset.data?.badgeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'badgeText', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="메인 로고/타이틀 (좌측 정렬)" maxChars={15} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="하단 보조 텍스트 (선택)" maxChars={12} value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} /></div>
                                   <div className="col-span-2"><input type="text" placeholder="1.5단 배너 이미지 URL (또는 요청 이미지명)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                  <ImageTransformControl
+                                    label="1.5단 배너 이미지 크기 · 위치 조정"
+                                    data={activeAsset.data}
+                                    onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                  />
                                   <div className="col-span-2"><input type="text" placeholder="모바일 랜딩 경로" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                 </>
                               )}
 
                               {activeAsset.type === 'MOBILE_EVENT_BANNER' && (() => {
                                 const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { mainMax: 18, subMax: 15 });
-                                const curColor = activeAsset.data?.bgColor || '#7a8a8e';
-                                const palettePresets = ['#7a8a8e', '#4b4d41', '#2f4b43', '#3b4254', '#5c3d46', '#4a3b5c', '#594a38', '#262833'];
                                 return (
                                   <>
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="상단 상태 뱃지 (예: 종료 임박)" maxChars={8} textColorClass="text-orange-400 font-bold" value={activeAsset.data?.statusBadge || ''} onChange={e => handleAssetChange(activeAsset.id, 'statusBadge', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2 bg-[#0a0812] border border-[#262833] rounded-xl p-3 space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-bold text-slate-400">좌측 배경 톤 색상 (컬러 피커 & 팔레트)</label>
-                                        <span className="text-[10px] font-mono font-bold text-slate-300">{curColor}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        {/* 컬러 피커 & 현재 색상 미리보기 스와치 */}
-                                        <label className="relative w-9 h-9 rounded-lg border-2 border-white/20 cursor-pointer shrink-0 overflow-hidden shadow-md flex items-center justify-center" style={{ backgroundColor: curColor }} title="클릭하여 색상 직접 선택">
-                                          <input
-                                            type="color"
-                                            value={/^#[0-9A-Fa-f]{6}$/.test(curColor) ? curColor : '#7a8a8e'}
-                                            onChange={e => handleAssetChange(activeAsset.id, 'bgColor', e.target.value)}
-                                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                                          />
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={curColor}
-                                          onChange={e => handleAssetChange(activeAsset.id, 'bgColor', e.target.value)}
-                                          placeholder="#7a8a8e"
-                                          className="w-24 bg-[#12141c] border border-[#303340] rounded-lg px-2.5 py-2 text-xs font-mono text-white outline-none focus:border-[#4f3df6]"
-                                        />
-                                        {/* 추천 팔레트 칩 */}
-                                        <div className="flex items-center gap-1 flex-wrap flex-1 justify-end">
-                                          {palettePresets.map(hex => (
-                                            <button
-                                              key={hex}
-                                              type="button"
-                                              onClick={() => handleAssetChange(activeAsset.id, 'bgColor', hex)}
-                                              title={hex}
-                                              className={`w-5 h-5 rounded-md border transition-transform ${curColor.toLowerCase() === hex ? 'border-white scale-110 ring-2 ring-[#7387ff]' : 'border-white/15 hover:scale-105'}`}
-                                              style={{ backgroundColor: hex }}
-                                            />
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
+                                    <BgColorPickerControl
+                                      label="좌측 배경 톤 색상 (컬러 피커 & 팔레트)"
+                                      value={activeAsset.data?.bgColor || '#7a8a8e'}
+                                      onChange={val => handleAssetChange(activeAsset.id, 'bgColor', val)}
+                                      presets={['#7a8a8e', '#4b4d41', '#2f4b43', '#3b4254', '#5c3d46', '#4a3b5c', '#594a38', '#262833']}
+                                    />
                                     <div className="col-span-2"><CopyInputWithSpec label="작품명 (하늘색 상단 타이틀)" maxChars={lim.subMax} textColorClass="text-sky-300 font-bold" value={activeAsset.data?.topTag || ''} onChange={e => handleAssetChange(activeAsset.id, 'topTag', e.target.value)} /></div>
                                     <div className="col-span-2"><CopyInputWithSpec label="메인 이벤트 타이틀" maxChars={lim.mainMax} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
                                     <div className="col-span-2"><CopyInputWithSpec label="이벤트 기간 표기" maxChars={30} value={activeAsset.data?.periodText || ''} onChange={e => handleAssetChange(activeAsset.id, 'periodText', e.target.value)} /></div>
                                     <div className="col-span-2"><input type="text" placeholder="우측 인물/장면 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="이벤트 배너 우측 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder="모바일 랜딩 경로" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
@@ -6757,6 +7216,11 @@
                                   <div className="col-span-2"><CopyInputWithSpec label="서브 타이틀 / 부제 (선택)" maxChars={18} textColorClass="text-slate-200 font-bold" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="하단 메인 카피 (2줄 권장 · 가운데 정렬)" maxChars={24} maxLines={2} multiline={true} value={activeAsset.data?.copy || ''} onChange={e => handleAssetChange(activeAsset.id, 'copy', e.target.value)} /></div>
                                   <div className="col-span-2"><input type="text" placeholder="빅배너 이미지 URL (81x108 비율 권장)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                  <ImageTransformControl
+                                    label="모바일 빅배너 이미지 크기 · 위치 조정"
+                                    data={activeAsset.data}
+                                    onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                  />
                                   <div className="col-span-2"><input type="text" placeholder="모바일 랜딩 경로" value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                 </>
                               )}
@@ -6787,7 +7251,14 @@
                                         <textarea placeholder="좌측 쿠폰 뱃지 문구 입력 (비워두면 공란)" rows={2} value={activeAsset.data?.badgeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'badgeText', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-amber-300 font-bold outline-none focus:border-[#4f3df6] resize-none" />
                                       )}
                                       {bType === 'IMAGE' && (
-                                        <input type="text" placeholder="좌측 뱃지 이미지 URL 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                                        <>
+                                          <input type="text" placeholder="좌측 뱃지 이미지 URL 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                                          <ImageTransformControl
+                                            label="좌측 뱃지 이미지 크기 · 위치 조정"
+                                            data={activeAsset.data}
+                                            onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                          />
+                                        </>
                                       )}
                                     </div>
                                     <div className="col-span-2">
@@ -6810,11 +7281,16 @@
                                     <label className="block text-[10px] font-bold text-slate-400 mb-1">2. 중단 메인 이미지 (URL 또는 요청 이미지 설명)</label>
                                     <input type="text" placeholder="이미지 URL 또는 디자이너 요청 문구 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                                   </div>
+                                  <ImageTransformControl
+                                    label="이벤트 페이지 이미지 크기 · 위치 조정"
+                                    data={activeAsset.data}
+                                    onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                  />
                                   <div className="col-span-2">
                                     <CopyInputWithSpec label="3. 하단 텍스트 (경품 안내 등 2줄 권장)" maxChars={28} maxLines={2} multiline={true} textColorClass="text-amber-300 font-bold" value={activeAsset.data?.bottomText ?? activeAsset.data?.subTitle ?? ''} onChange={e => handleAssetChange(activeAsset.id, 'bottomText', e.target.value)} />
                                   </div>
                                   <div className="col-span-2 bg-[#0a0812] border border-[#262833] rounded-lg p-2.5 text-[10px] text-slate-400">
-                                    💡 <b>하단 텍스트와 최하단 버튼 사이의 빈 영역</b>은 상단 헤더의 <b>[메모 추가]</b> 버튼을 눌러 자유롭게 기획 메모를 배치하실 수 있습니다.
+                                    💡 <b>하단 텍스트와 최하단 버튼 사이의 빈 영역</b>은 상단 헤더의 <b>[메모]</b> 버튼을 눌러 자유롭게 기획 메모를 배치하실 수 있습니다.
                                   </div>
                                   <div className="col-span-2">
                                     <CopyInputWithSpec label="4. 최하단 고정 버튼 문구" maxChars={12} maxLines={1} textColorClass="text-yellow-300 font-bold" value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
@@ -6837,6 +7313,11 @@
                                       <CopyInputWithSpec label="CTA 버튼 문구 (선택)" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
                                     </div>
                                     <div className="col-span-2"><input type="text" placeholder="배너 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <ImageTransformControl
+                                      label="배너 이미지 크기 · 위치 조정"
+                                      data={activeAsset.data}
+                                      onUpdate={(f, v) => handleAssetChange(activeAsset.id, f, v)}
+                                    />
                                     <div className="col-span-2"><input type="text" placeholder={`랜딩 URL (${matchedSpec?.landing || '시놉시스, 메뉴 등'})`} value={activeAsset.data?.landingValue || ''} onChange={e => handleAssetChange(activeAsset.id, 'landingValue', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-[#7387ff] outline-none focus:border-[#4f3df6]" /></div>
                                   </>
                                 );
