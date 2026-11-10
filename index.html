@@ -117,239 +117,241 @@
       box-sizing: border-box !important;
     }
 
-    /* 🌟 Notion Dark Mode 스타일 FullCalendar 커스텀 테마 */
+    /* 🌟 가독성 & 여백 중심의 Notion 스타일 FullCalendar 테마 */
     #schedule-calendar {
-      background: #191919;
-      padding: 22px 24px;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #18191d;
+      padding: 20px 22px;
+      border-radius: 16px;
+      border: 1px solid #2a2d37;
     }
     #schedule-calendar .fc {
-      color: #d4d4d4 !important;
+      color: #e2e8f0 !important;
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    /* 외곽 및 셀 그리드: 노션 특유의 얇고 은은한 1px 헤어라인 */
+    /* 그리드 테두리 */
     #schedule-calendar .fc-theme-standard .fc-scrollgrid {
-      border: 1px solid rgba(255, 255, 255, 0.07) !important;
-      border-radius: 10px;
+      border: 1px solid #282b36 !important;
+      border-radius: 12px;
       overflow: hidden;
     }
     #schedule-calendar .fc th {
-      border-color: rgba(255, 255, 255, 0.07) !important;
-      background: #191919 !important;
-      color: #787774 !important;
-      padding: 8px 0 !important;
-      font-size: 11px !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.02em;
+      border-color: #282b36 !important;
+      background: #20232d !important;
+      padding: 10px 0 !important;
     }
+    /* 🌟 요일 텍스트(.fc-col-header-cell-cushion) 고대비 가독성 확보 */
+    #schedule-calendar .fc-col-header-cell-cushion {
+      color: #e2e8f0 !important;
+      font-size: 12px !important;
+      font-weight: 800 !important;
+      text-decoration: none !important;
+      letter-spacing: 0.03em;
+    }
+    #schedule-calendar .fc-day-sun .fc-col-header-cell-cushion { color: #f87171 !important; }
+    #schedule-calendar .fc-day-sat .fc-col-header-cell-cushion { color: #60a5fa !important; }
+
     #schedule-calendar .fc td {
-      border-color: rgba(255, 255, 255, 0.06) !important;
-      background: #191919;
+      border-color: #232630 !important;
+      background: #18191d;
     }
-    /* 상단 툴바: 미니멀한 노션 헤더 & 고스트 버튼 */
+    /* 상단 년/월 타이틀 & 버튼 */
     #schedule-calendar .fc .fc-toolbar {
-      margin-bottom: 14px !important;
+      margin-bottom: 16px !important;
     }
     #schedule-calendar .fc .fc-toolbar-title {
-      font-size: 16px !important;
-      font-weight: 700 !important;
-      color: #f1f1ef !important;
-      letter-spacing: -0.01em;
+      font-size: 18px !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+      letter-spacing: -0.02em;
     }
     #schedule-calendar .fc .fc-button-group {
-      gap: 2px;
+      gap: 4px;
     }
     #schedule-calendar .fc .fc-button-primary {
-      background-color: transparent !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
-      color: #9b9a97 !important;
-      font-weight: 600 !important;
-      font-size: 11.5px !important;
-      border-radius: 6px !important;
-      padding: 4px 10px !important;
+      background-color: #222530 !important;
+      border: 1px solid #323646 !important;
+      color: #e2e8f0 !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      border-radius: 8px !important;
+      padding: 5px 12px !important;
       box-shadow: none !important;
-      transition: background-color 0.12s ease, color 0.12s ease;
     }
     #schedule-calendar .fc .fc-button-primary:hover {
-      background-color: rgba(255, 255, 255, 0.06) !important;
-      border-color: rgba(255, 255, 255, 0.14) !important;
+      background-color: #2e3240 !important;
       color: #ffffff !important;
     }
-    #schedule-calendar .fc .fc-button-primary:disabled {
-      opacity: 0.35;
-    }
-    /* 날짜 셀 프레임 & 호버 */
+    /* 날짜 셀 프레임 */
     #schedule-calendar .fc .fc-daygrid-day-frame {
-      min-height: 124px;
-      padding: 6px 6px 20px 6px !important;
+      min-height: 118px;
+      padding: 6px !important;
       position: relative;
       transition: background-color 0.12s ease;
     }
     #schedule-calendar .fc .fc-daygrid-day-frame:hover {
-      background: #202020;
+      background: #1f222b;
     }
     #schedule-calendar .fc .fc-day-other .fc-daygrid-day-frame {
-      background: #151515;
-      opacity: 0.55;
+      background: #131418;
+      opacity: 0.45;
     }
-    /* 오늘(Today) 표시: 셀 전체 배경 대신 노션처럼 날짜 숫자에 빨간 원형 배지 적용 */
     #schedule-calendar .fc .fc-day-today {
-      background: rgba(255, 255, 255, 0.015) !important;
+      background: rgba(79, 61, 246, 0.05) !important;
     }
+
+    /* 🌟 [핵심] 날짜 헤더를 좌(날짜+점) ↔ 우(잔여Capa) Flex 가로 배치로 고정하여 겹침 원천 차단! */
     #schedule-calendar .fc .fc-daygrid-day-top {
-      justify-content: flex-start !important;
+      display: flex !important;
+      flex-direction: row !important;
       align-items: center !important;
-      position: relative;
+      justify-content: flex-start !important;
+      gap: 4px;
       min-height: 24px;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
       padding: 0 2px;
     }
     #schedule-calendar .fc .fc-daygrid-day-number {
-      font-size: 12px !important;
-      font-weight: 500 !important;
-      color: #9b9a97 !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+      color: #cbd5e1 !important;
       padding: 2px 5px !important;
-      margin-right: 0 !important;
+      margin: 0 !important;
       line-height: 1.2;
-      border-radius: 5px;
+      text-decoration: none !important;
+      flex-shrink: 0;
     }
     #schedule-calendar .fc .fc-day-today .fc-daygrid-day-number {
       background: #eb5757 !important;
       color: #ffffff !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
       border-radius: 9999px !important;
-      min-width: 21px;
-      height: 21px;
+      min-width: 22px;
+      height: 22px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0 5px !important;
+      padding: 0 6px !important;
     }
-    #schedule-calendar .fc-day-sat:not(.fc-day-today) .fc-daygrid-day-number { color: #787774 !important; }
-    #schedule-calendar .fc-day-sun:not(.fc-day-today) .fc-daygrid-day-number { color: #a36a6a !important; }
+    #schedule-calendar .fc-day-sat:not(.fc-day-today) .fc-daygrid-day-number { color: #60a5fa !important; }
+    #schedule-calendar .fc-day-sun:not(.fc-day-today) .fc-daygrid-day-number { color: #f87171 !important; }
 
-    /* 노션 스타일 이벤트 칩 (플랫 매트 컬러, 좌측 굵은 보더 제거) */
-    #schedule-calendar .fc-daygrid-day-events {
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 3px !important;
-      margin-top: 2px !important;
-    }
-    #schedule-calendar .fc-event {
-      cursor: pointer;
-      padding: 3px 7px !important;
-      border-radius: 5px !important;
-      font-size: 11px !important;
-      font-weight: 500 !important;
-      line-height: 1.35 !important;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      box-shadow: none !important;
-      transition: filter 0.12s ease, background-color 0.12s ease;
-    }
-    #schedule-calendar .fc-event:hover {
-      filter: brightness(1.15);
-      transform: none;
-    }
-    /* 유형별 노션 다크모드 태그 컬러 매핑 */
-    #schedule-calendar .event-start {
-      background: rgba(51, 126, 169, 0.24) !important;
-      border: 1px solid rgba(82, 156, 202, 0.22) !important;
-      color: #b1d8f5 !important;
-    }
-    #schedule-calendar .event-start .fc-event-title { color: #b1d8f5 !important; }
-
-    #schedule-calendar .event-pending {
-      background: rgba(203, 145, 47, 0.22) !important;
-      border: 1px solid rgba(203, 145, 47, 0.25) !important;
-      color: #f6d896 !important;
-    }
-    #schedule-calendar .event-pending .fc-event-title { color: #f6d896 !important; }
-
-    #schedule-calendar .event-banner-only {
-      background: rgba(68, 131, 97, 0.24) !important;
-      border: 1px solid rgba(68, 131, 97, 0.26) !important;
-      color: #b4dfcb !important;
-    }
-    #schedule-calendar .event-banner-only .fc-event-title { color: #b4dfcb !important; }
-
-    #schedule-calendar .event-unassigned {
-      background: rgba(212, 76, 71, 0.24) !important;
-      border: 1px solid rgba(212, 76, 71, 0.30) !important;
-      color: #f9b4b2 !important;
-    }
-    #schedule-calendar .event-unassigned .fc-event-title { color: #f9b4b2 !important; }
-
-    #schedule-calendar .event-end {
-      background: rgba(255, 255, 255, 0.055) !important;
-      border: 1px solid rgba(255, 255, 255, 0.07) !important;
-      color: #8a8a86 !important;
-    }
-    #schedule-calendar .event-end .fc-event-title { color: #8a8a86 !important; }
-
-    /* '+N개 더보기' 버튼 및 팝오버 다크모드 지원 */
-    #schedule-calendar .fc-daygrid-more-link {
-      font-size: 11px !important;
-      font-weight: 600 !important;
-      color: #8b8b87 !important;
-      padding: 1px 6px !important;
-      border-radius: 4px;
-    }
-    #schedule-calendar .fc-daygrid-more-link:hover {
-      background: rgba(255, 255, 255, 0.06);
-      color: #e5e5e5 !important;
-    }
-    #schedule-calendar .fc-theme-standard .fc-popover {
-      background: #202020 !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      border-radius: 10px !important;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6) !important;
-    }
-    #schedule-calendar .fc-theme-standard .fc-popover-header {
-      background: #262626 !important;
-      color: #e5e5e5 !important;
-      font-size: 11px !important;
-      font-weight: 600 !important;
-      padding: 6px 10px !important;
-    }
-
-    /* 셀 내부 메타데이터 (모수 합계 · 혼잡도 점 · 하단 잔여 Capa) 노션 스타일 정돈 */
+    /* 우측 상단 Capa 요약 배지 (겹치지 않고 우측 끝으로 자동 정렬) */
     .calendar-day-target-sum {
-      position: absolute;
-      top: 3px;
-      right: 4px;
-      color: #787774;
+      margin-left: auto !important;
       font-size: 10px;
-      font-weight: 500;
-      font-variant-numeric: tabular-nums;
-      pointer-events: none;
-    }
-    .calendar-day-capa-remain {
-      position: absolute;
-      left: 7px;
-      bottom: 5px;
-      z-index: 1;
-      font-size: 9.5px;
-      line-height: 1;
-      font-weight: 500;
-      color: #6b6b68;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1.5px 5px;
+      border-radius: 4px;
       font-variant-numeric: tabular-nums;
       pointer-events: none;
       white-space: nowrap;
+      transition: opacity 0.15s ease;
     }
+    /* 타겟 사용량이 0인 빈 날짜는 평소엔 숨기고 마우스 오버 시에만 표시하여 혼잡도 대폭 감소 */
+    .calendar-day-target-sum.is-empty-day {
+      opacity: 0;
+    }
+    #schedule-calendar .fc .fc-daygrid-day-frame:hover .calendar-day-target-sum.is-empty-day {
+      opacity: 0.75;
+    }
+
+    /* 신호등 점 */
     .calendar-congestion-badge {
       display: inline-block;
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      margin-left: 5px;
-      vertical-align: middle;
+      flex-shrink: 0;
     }
-    .calendar-congestion-badge.green { background: #448361; }
-    .calendar-congestion-badge.yellow { background: #cb912f; }
-    .calendar-congestion-badge.red { background: #d44c47; }
+    .calendar-congestion-badge.green { background: #32d782; }
+    .calendar-congestion-badge.yellow { background: #f59e0b; }
+    .calendar-congestion-badge.red { background: #ef4444; }
+
+    /* 이벤트 막대 (깔끔한 Notion 칩 스타일 + 선명한 텍스트 대비) */
+    #schedule-calendar .fc-daygrid-day-events {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 3px !important;
+      margin-top: 2px !important;
+      padding-bottom: 2px !important;
+    }
+    #schedule-calendar .fc-event {
+      cursor: pointer;
+      padding: 3.5px 7px !important;
+      border-radius: 5px !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      line-height: 1.3 !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-shadow: none !important;
+      transition: filter 0.12s ease;
+    }
+    #schedule-calendar .fc-event:hover {
+      filter: brightness(1.18);
+    }
+    #schedule-calendar .event-start {
+      background: #23384e !important;
+      border: 1px solid #335475 !important;
+      color: #d8ecff !important;
+    }
+    #schedule-calendar .event-start .fc-event-title { color: #d8ecff !important; }
+
+    #schedule-calendar .event-pending {
+      background: #42331b !important;
+      border: 1px solid #664e27 !important;
+      color: #fde68a !important;
+    }
+    #schedule-calendar .event-pending .fc-event-title { color: #fde68a !important; }
+
+    #schedule-calendar .event-banner-only {
+      background: #1c3b2f !important;
+      border: 1px solid #2b5c49 !important;
+      color: #bbf7d0 !important;
+    }
+    #schedule-calendar .event-banner-only .fc-event-title { color: #bbf7d0 !important; }
+
+    #schedule-calendar .event-unassigned {
+      background: #472123 !important;
+      border: 1px solid #733337 !important;
+      color: #fecaca !important;
+    }
+    #schedule-calendar .event-unassigned .fc-event-title { color: #fecaca !important; }
+
+    #schedule-calendar .event-end {
+      background: #252730 !important;
+      border: 1px solid #333642 !important;
+      color: #94a3b8 !important;
+    }
+    #schedule-calendar .event-end .fc-event-title { color: #94a3b8 !important; }
+
+    #schedule-calendar .fc-daygrid-more-link {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #94a3b8 !important;
+      padding: 2px 6px !important;
+      border-radius: 4px;
+    }
+    #schedule-calendar .fc-daygrid-more-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff !important;
+    }
+    #schedule-calendar .fc-theme-standard .fc-popover {
+      background: #1e2028 !important;
+      border: 1px solid #323646 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65) !important;
+    }
+    #schedule-calendar .fc-theme-standard .fc-popover-header {
+      background: #262934 !important;
+      color: #ffffff !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      padding: 6px 10px !important;
+    }
   </style>
 </head>
 <body>
@@ -4591,6 +4593,7 @@
       };
 
       // 🌟 FullCalendar 이벤트 빌드 ('span' 기간 연속 막대 옵션 지원 + GNB 태그 표시)
+      // 🌟 FullCalendar 이벤트 빌드 (캠페인명이 잘리지 않도록 간결한 타이틀 구성)
       const buildCalendarEvents = () => {
         const evs = [];
         filteredUnifiedItems.forEach((u, idx) => {
@@ -4600,34 +4603,33 @@
           const isUnassigned = status === '미반영' || execTime.includes('배정 불가');
           const isPending = status === '대기 중';
 
-          let badgePrefix = '';
+          let iconPrefix = '';
           let clsName = 'event-start';
           let sortOrd = 2;
 
           if (isUnassigned) {
-            badgePrefix = '[⚠️미반영] ';
+            iconPrefix = '⚠️ ';
             clsName = 'event-unassigned';
             sortOrd = 0;
           } else if (isPending && u.hasSchedule) {
-            badgePrefix = '[⏳대기] ';
+            iconPrefix = '⏳ ';
             clsName = 'event-pending';
             sortOrd = 1;
           } else if (u.category === 'BANNER_ONLY') {
-            badgePrefix = '[🖼️배너] ';
+            iconPrefix = '';
             clsName = 'event-banner-only';
             sortOrd = 3;
           } else if (execTime && execTime !== '상시(MASS)') {
-            badgePrefix = `[${execTime}] `;
+            iconPrefix = `${execTime} `;
           }
 
-          const gnbTag = (u.gnbs && u.gnbs.length > 0) ? `[${u.gnbs.slice(0, 2).join('/')}${u.gnbs.length > 2 ? '+' : ''}] ` : '';
+          const gnbSuffix = (u.gnbs && u.gnbs.length > 0) ? ` · ${u.gnbs[0]}${u.gnbs.length > 1 ? `+${u.gnbs.length - 1}` : ''}` : '';
 
-          // 1) '기간 연속 막대(span)' 옵션이 켜져 있을 때: 시작일 ~ 종료일(+1일 보정)까지 긴 가로 막대로 표시
           if (dateFilters.includes('span') && u.startDate) {
             const endExclusive = calcDateOffset(u.dueDate || u.startDate, 1, todayLocalStr);
             evs.push({
               id: `uni-span-${idx}`,
-              title: `${badgePrefix}${gnbTag}${u.campaignName} (${u.startDate.slice(5)}~${(u.dueDate || u.startDate).slice(5)})`,
+              title: `${iconPrefix}${u.campaignName}${gnbSuffix}`,
               start: u.startDate,
               end: endExclusive,
               allDay: true,
@@ -4635,11 +4637,10 @@
               extendedProps: { uItem: u, type: 'span', sortOrder: sortOrd }
             });
           } else {
-            // 2) 기존 시작일 / 종료일 개별 배지 모드
             if (u.startDate && dateFilters.includes('start')) {
               evs.push({
                 id: `uni-start-${idx}`,
-                title: `${badgePrefix}${gnbTag}${u.campaignName}`,
+                title: `${iconPrefix}${u.campaignName}${gnbSuffix}`,
                 start: u.startDate,
                 allDay: true,
                 className: clsName,
@@ -4649,7 +4650,7 @@
             if (u.dueDate && u.dueDate !== u.startDate && dateFilters.includes('end')) {
               evs.push({
                 id: `uni-end-${idx}`,
-                title: `[종료] ${gnbTag}${u.campaignName}`,
+                title: `[종료] ${u.campaignName}`,
                 start: u.dueDate,
                 allDay: true,
                 className: 'event-end',
@@ -4661,39 +4662,42 @@
         return evs;
       };
 
+      // 🌟 날짜 셀 상단 정리: [날짜 숫자] [신호등 점] <--- 양끝 분리 ---> [잔여 Capa 요약]
       const refreshCalendarCellBadges = () => {
         if (!calendarNodeRef.current) return;
         const rawArr = scheduleRef.current;
+
+        // 기존에 하단에 붙어 있던 중복 잔여 텍스트(.calendar-day-capa-remain) 제거
+        calendarNodeRef.current.querySelectorAll('.calendar-day-capa-remain').forEach(el => el.remove());
 
         calendarNodeRef.current.querySelectorAll('.calendar-day-target-sum').forEach(el => {
           const dateStr = el.getAttribute('data-date');
           if (!dateStr) return;
           const bUsed = calcDailyUsed('banner', dateStr, rawArr, excludeWired);
           const cUsed = calcDailyUsed('coupon', dateStr, rawArr, excludeWired);
-          const totalTarget = Math.max(bUsed, cUsed);
-          el.innerText = totalTarget > 0 ? `(${formatTargetKor(totalTarget)})` : '';
+          const bannerRemain = Math.max(calcDailyLimit('banner', dateStr, todayLocalStr) - bUsed, 0);
+          const couponRemain = Math.max(calcDailyLimit('coupon', dateStr, todayLocalStr) - cUsed, 0);
+          const hasUsage = bUsed > 0 || cUsed > 0;
 
-          const cellEl = el.closest('.fc-daygrid-day');
-          if (cellEl) {
-            let capaEl = cellEl.querySelector('.calendar-day-capa-remain');
-            if (!capaEl) {
-              capaEl = document.createElement('div');
-              capaEl.className = 'calendar-day-capa-remain';
-              cellEl.appendChild(capaEl);
-            }
-            const bannerRemain = Math.max(calcDailyLimit('banner', dateStr, todayLocalStr) - bUsed, 0);
-            const couponRemain = Math.max(calcDailyLimit('coupon', dateStr, todayLocalStr) - cUsed, 0);
-            capaEl.innerText = `B ${formatTargetKor(bannerRemain)} · C ${formatTargetKor(couponRemain)}`;
+          // 우측 상단에 잔여 한도 1줄만 깔끔하게 표기 (사용량이 없는 날은 평소엔 숨기고 마우스 오버 시에만 표시)
+          el.innerText = `B ${formatTargetKor(bannerRemain)} · C ${formatTargetKor(couponRemain)}`;
+          if (hasUsage) {
+            el.classList.remove('is-empty-day');
+          } else {
+            el.classList.add('is-empty-day');
           }
 
+          // 신호등 점은 날짜 숫자 바로 오른쪽에 배치 (우측 Capa 텍스트보다 앞에 위치하도록 insertBefore 사용)
           const topEl = el.parentElement;
           if (topEl) {
             const oldBadge = topEl.querySelector('.calendar-congestion-badge');
             if (oldBadge) oldBadge.remove();
-            const congestionClass = bUsed < 1000000 ? 'green' : (bUsed < 2000000 ? 'yellow' : 'red');
-            const badge = document.createElement('span');
-            badge.className = `calendar-congestion-badge ${congestionClass}`;
-            topEl.appendChild(badge);
+            if (hasUsage) {
+              const congestionClass = bUsed < 1000000 ? 'green' : (bUsed < 2000000 ? 'yellow' : 'red');
+              const badge = document.createElement('span');
+              badge.className = `calendar-congestion-badge ${congestionClass}`;
+              topEl.insertBefore(badge, el);
+            }
           }
         });
       };
@@ -4718,7 +4722,7 @@
             dayMaxEvents: 5,
             height: 'auto',
             eventOrder: 'sortOrder,title',
-            dayCellContent: (arg) => arg.date.getDate() === 1 ? `${arg.date.getMonth() + 1}월 1일` : String(arg.date.getDate()),
+            dayCellContent: (arg) => String(arg.date.getDate()),
             eventClick: (info) => {
               info.jsEvent.stopPropagation();
               const uItem = info.event.extendedProps?.uItem;
