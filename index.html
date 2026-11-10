@@ -994,21 +994,61 @@
       );
     };
 
-    // 🌟 [공통 헬퍼] 이미지 크기(Scale 50~200%) 및 위치(X/Y 0~100%) 변환 스타일 생성
-    const getTransformStyle = (data, prefix = '') => {
+    // 🌟 [핵심 엔진] 원본 이미지를 미리 자르지 않고(Uncropped) 배너 프레임 뒤에서 전체 영역을 이동·확대/축소하는 이미지 레이어
+    const BannerImageLayer = ({ src, data = {}, prefix = '', className = '', imgStyle = {} }) => {
+      const wrapRef = useRef(null);
+      const imgRef = useRef(null);
+      const [isWider, setIsWider] = useState(true);
+
+      const updateFitDirection = () => {
+        const wrap = wrapRef.current;
+        const img = imgRef.current;
+        if (!wrap || !img || !img.naturalWidth || !img.naturalHeight) return;
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        const boxRatio = (wrap.clientWidth || 1) / (wrap.clientHeight || 1);
+        setIsWider(imgRatio >= boxRatio);
+      };
+
+      useEffect(() => {
+        updateFitDirection();
+      }, [src]);
+
+      if (!src || typeof src !== 'string' || !src.startsWith('http')) return null;
+
       const scaleKey = prefix ? `${prefix}Scale` : 'scale';
       const posXKey = prefix ? `${prefix}PosX` : 'posX';
       const posYKey = prefix ? `${prefix}PosY` : 'posY';
       const scale = Number(data?.[scaleKey] ?? 100);
       const posX = Number(data?.[posXKey] ?? 50);
       const posY = Number(data?.[posYKey] ?? 50);
-      const tx = posX - 50;
-      const ty = posY - 50;
+
+      // 50%(중앙) 기준 -60% ~ +60%까지 원본 이미지의 숨겨진 좌우/상하 끝단까지 모두 탐색 가능
+      const tx = (posX - 50) * 1.2;
+      const ty = (posY - 50) * 1.2;
       const s = scale / 100;
-      return {
-        transform: `translate(${tx}%, ${ty}%) scale(${s})`,
-        transformOrigin: 'center center'
-      };
+
+      return (
+        <div ref={wrapRef} className={`absolute inset-0 overflow-hidden flex items-center justify-center pointer-events-none ${className}`}>
+          <img
+            ref={imgRef}
+            src={src}
+            alt=""
+            onLoad={updateFitDirection}
+            style={{
+              ...(isWider
+                ? { height: '100%', width: 'auto' }
+                : { width: '100%', height: 'auto' }),
+              maxWidth: 'none',
+              maxHeight: 'none',
+              flexShrink: 0,
+              transform: `translate(${tx}%, ${ty}%) scale(${s})`,
+              transformOrigin: 'center center',
+              transition: 'transform 0.05s ease-out',
+              ...imgStyle
+            }}
+          />
+        </div>
+      );
     };
 
     // 🌟 [공통 컴포넌트 1] 배경 톤 색상 선택기 (컬러 피커 + HEX 입력 + 추천 팔레트)
@@ -1058,7 +1098,7 @@
       );
     };
 
-    // 🌟 [공통 컴포넌트 2] 모든 배너 공용 이미지 크기(Zoom) · 위치(X/Y) 조정 슬라이더
+    // 🌟 [공통 컴포넌트 2] 모든 배너 공용 이미지 크기(Zoom 25~250%) · 위치(X/Y) 조정 슬라이더
     const ImageTransformControl = ({ label = '이미지 크기 · 위치 조정', data = {}, prefix = '', onUpdate }) => {
       const scaleKey = prefix ? `${prefix}Scale` : 'scale';
       const posXKey = prefix ? `${prefix}PosX` : 'posX';
@@ -1103,8 +1143,8 @@
               </div>
               <input
                 type="range"
-                min="50"
-                max="200"
+                min="25"
+                max="250"
                 step="2"
                 value={scale}
                 onChange={e => onUpdate(scaleKey, Number(e.target.value))}
@@ -1280,7 +1320,7 @@
         );
       };
 
-      // 🌟 상단 히어로/프리뷰 이미지의 좌측·하단 직선 경계선(Seam)을 부드럽게 녹이는 이중 CSS 마스크 스타일
+      // 🌟 상단 히어로/프리뷰 영역의 좌측·하단 직선 경계선(Seam)을 부드럽게 녹이는 CSS 마스크
       const heroMaskRight = {
         WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.25) 14%, rgba(0,0,0,0.75) 30%, black 48%)',
         maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.25) 14%, rgba(0,0,0,0.75) 30%, black 48%)'
@@ -1290,46 +1330,33 @@
         maskImage: 'linear-gradient(to top, transparent 0%, rgba(0,0,0,0.3) 14%, rgba(0,0,0,0.85) 30%, black 46%)'
       };
       const innerEdgeFeather = {
-        WebkitMaskImage: 'radial-gradient(ellipse 96% 96% at 55% 45%, black 72%, transparent 100%)',
-        maskImage: 'radial-gradient(ellipse 96% 96% at 55% 45%, black 72%, transparent 100%)'
+        WebkitMaskImage: 'radial-gradient(ellipse 96% 96% at 55% 45%, black 70%, transparent 100%)',
+        maskImage: 'radial-gradient(ellipse 96% 96% at 55% 45%, black 70%, transparent 100%)'
       };
 
-      // 📺 1) Today B tv: 소프트 그라데이션 + 이미지 영역 확장(86%) + 배경 톤 색상 연동 + 경계선 페더링
+      // 📺 1) Today B tv
       if (block.type === 'TODAY_BTV') {
         const bgTone = block.data?.bgColor || '#0a0a0f';
         return (
           <div className="relative w-full aspect-[16/9] overflow-hidden shrink-0" style={{ backgroundColor: bgTone }}>
-            {/* 우측 상단 확장 아트워크 영역 (직선 경계선 원천 제거 마스크 적용) */}
             <div className="absolute right-0 top-0 w-[86%] h-[86%] z-0 overflow-hidden" style={heroMaskRight}>
               <div className="w-full h-full relative overflow-hidden" style={heroMaskBottom}>
-                <div
-                  className="absolute inset-0 bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data),
-                    ...innerEdgeFeather
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                    <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b]/60 to-transparent" />
-                  )}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} imgStyle={innerEdgeFeather} />
+                ) : !checkHasText(block.data?.imageUrl) ? (
+                  <div className="absolute inset-0 bg-gradient-to-bl from-[#1e1b4b]/60 to-transparent" />
+                ) : null}
                 <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-start pt-12 pr-12" />
               </div>
             </div>
 
-            {/* 실제 B tv 스타일의 은은하고 부드러운 좌측·하단 소프트 음영 */}
             <div
               className="absolute inset-0 z-10 pointer-events-none"
-              style={{
-                background: `linear-gradient(90deg, ${bgTone} 0%, ${bgTone}cc 24%, ${bgTone}55 46%, transparent 72%)`
-              }}
+              style={{ background: `linear-gradient(90deg, ${bgTone} 0%, ${bgTone}cc 24%, ${bgTone}55 46%, transparent 72%)` }}
             />
             <div
               className="absolute inset-x-0 bottom-0 h-[46%] z-10 pointer-events-none"
-              style={{
-                background: `linear-gradient(0deg, ${bgTone} 0%, ${bgTone}bf 28%, transparent 100%)`
-              }}
+              style={{ background: `linear-gradient(0deg, ${bgTone} 0%, ${bgTone}bf 28%, transparent 100%)` }}
             />
 
             <div className="absolute inset-0 z-20 flex flex-col pointer-events-none text-white px-10">
@@ -1349,20 +1376,16 @@
         );
       }
       
-      // 📺 2) 풀프로모션 배너 (전체 배경 + 카드 1~3 개별 크기/위치 조정 지원)
+      // 📺 2) 풀프로모션 배너
       if (block.type === 'FULL_PROMO_BANNER') {
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 overflow-hidden z-0">
-              <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-75"
-                style={{
-                  backgroundImage: checkIsUrl(block.data?.bgImg) ? `url(${block.data.bgImg})` : 'none',
-                  ...getTransformStyle(block.data)
-                }}
-              >
-                {!checkIsUrl(block.data?.bgImg) && !checkHasText(block.data?.bgImg) && <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]" />}
-              </div>
+              {checkIsUrl(block.data?.bgImg) ? (
+                <BannerImageLayer src={block.data.bgImg} data={block.data} />
+              ) : !checkHasText(block.data?.bgImg) ? (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1e1b4b] to-[#0a0a0f]" />
+              ) : null}
               <FallbackText text={block.data?.bgImg} />
             </div>
             <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none" />
@@ -1380,17 +1403,11 @@
                     <p className="text-yellow-400 text-[10px] font-bold truncate w-full">{block.data?.[`card${i}Sub`] || '서브 텍스트 입력'}</p>
                   </div>
                   <div className="flex-1 bg-[#1a1c26] relative overflow-hidden">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
-                      style={{
-                        backgroundImage: checkIsUrl(block.data?.[`card${i}Img`]) ? `url(${block.data[`card${i}Img`]})` : 'none',
-                        ...getTransformStyle(block.data, `card${i}`)
-                      }}
-                    >
-                      {!checkIsUrl(block.data?.[`card${i}Img`]) && !checkHasText(block.data?.[`card${i}Img`]) && (
-                        <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={24} className="text-white/10"/></div>
-                      )}
-                    </div>
+                    {checkIsUrl(block.data?.[`card${i}Img`]) ? (
+                      <BannerImageLayer src={block.data[`card${i}Img`]} data={block.data} prefix={`card${i}`} />
+                    ) : !checkHasText(block.data?.[`card${i}Img`]) ? (
+                      <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={24} className="text-white/10"/></div>
+                    ) : null}
                     <FallbackText text={block.data?.[`card${i}Img`]} />
                   </div>
                 </div>
@@ -1400,7 +1417,7 @@
         );
       }
 
-      // 📺 3) 2단배너 (단일형): 상단 프리뷰 페더링 + 하단 카드 배경색(bgColor) 변경 + 이미지 크기/위치 조정
+      // 📺 3) 2단배너 (단일형)
       if (block.type === 'GENERAL_BANNER') {
         const bannerImgSrc = checkIsUrl(block.data?.bannerImg) ? block.data.bannerImg : (checkIsUrl(block.data?.imageUrl) ? block.data.imageUrl : '');
         const bannerTextFallback = block.data?.bannerImg || block.data?.imageUrl || '';
@@ -1409,21 +1426,13 @@
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10">
-              {/* 우측 상단 프리뷰 이미지 (경계선 페더링 + 크기/위치 조절) */}
               <div className="absolute right-0 top-0 w-[72%] h-[68%] overflow-hidden z-0" style={heroMaskRight}>
                 <div className="w-full h-full relative overflow-hidden" style={heroMaskBottom}>
-                  <div
-                    className="absolute inset-0 bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
-                    style={{
-                      backgroundImage: checkIsUrl(block.data?.previewImg) ? `url(${block.data.previewImg})` : 'none',
-                      ...getTransformStyle(block.data, 'preview'),
-                      ...innerEdgeFeather
-                    }}
-                  >
-                    {!checkIsUrl(block.data?.previewImg) && !checkHasText(block.data?.previewImg) && (
-                      <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]" />
-                    )}
-                  </div>
+                  {checkIsUrl(block.data?.previewImg) ? (
+                    <BannerImageLayer src={block.data.previewImg} data={block.data} prefix="preview" imgStyle={innerEdgeFeather} />
+                  ) : !checkHasText(block.data?.previewImg) ? (
+                    <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]" />
+                  ) : null}
                   <FallbackText text={block.data?.previewImg} alignClass="justify-end items-start pt-10 pr-10" />
                 </div>
               </div>
@@ -1433,7 +1442,6 @@
               </div>
             </div>
 
-            {/* 하단 배너 카드 영역 */}
             <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-4 z-30 overflow-hidden pr-8 h-[185px]">
               <div
                 className={`relative rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-[#7387FF] flex shrink-0 h-full ${block.data?.colType === '1단' ? 'aspect-[62/89] flex-col' : block.data?.colType === '3단' ? 'aspect-[196/89]' : 'aspect-[129/89]'}`}
@@ -1450,15 +1458,11 @@
                       </div>
                     )}
                     <div className="absolute inset-0 w-full h-full overflow-hidden z-10">
-                      <div
-                        className="w-full h-full bg-cover bg-center transition-transform duration-75"
-                        style={{
-                          backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none',
-                          ...getTransformStyle(block.data)
-                        }}
-                      >
-                        {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>}
-                      </div>
+                      {bannerImgSrc ? (
+                        <BannerImageLayer src={bannerImgSrc} data={block.data} />
+                      ) : !checkHasText(bannerTextFallback) ? (
+                        <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={20} className="text-white/10"/></div>
+                      ) : null}
                       <FallbackText text={bannerTextFallback} />
                     </div>
                   </>
@@ -1473,15 +1477,11 @@
                       </div>
                     )}
                     <div className="absolute inset-0 w-full h-full overflow-hidden z-10">
-                      <div
-                        className="w-full h-full bg-cover bg-center transition-transform duration-75"
-                        style={{
-                          backgroundImage: bannerImgSrc ? `url(${bannerImgSrc})` : 'none',
-                          ...getTransformStyle(block.data)
-                        }}
-                      >
-                        {!bannerImgSrc && !checkHasText(bannerTextFallback) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>}
-                      </div>
+                      {bannerImgSrc ? (
+                        <BannerImageLayer src={bannerImgSrc} data={block.data} />
+                      ) : !checkHasText(bannerTextFallback) ? (
+                        <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={32} className="text-white/10"/></div>
+                      ) : null}
                       <FallbackText text={bannerTextFallback} />
                     </div>
                   </>
@@ -1495,7 +1495,7 @@
         );
       }
 
-      // 📺 4) 일반 배너 (세트형): 무음영 클린 카드 + 파노라마 1장 자동 분할 모드 + 상단 프리뷰 페더링
+      // 📺 4) 일반 배너 (세트형): 무음영 클린 + 파노라마 1장 자동 분할 + 원본 무손실 조정
       if (block.type === 'GENERAL_SET_BANNER') {
         const colType = block.data?.colType || '2단';
         const numCards = Number(block.data?.cardCount) || (colType === '3단' ? 2 : 3);
@@ -1508,21 +1508,13 @@
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0">
             <div className="absolute inset-0 h-full bg-[#0a0a0f] z-0 px-10 transition-all duration-300">
-              {/* 상단 우측 히어로 프리뷰 이미지 (경계선 페더링 + 카드별 크기/위치 조정) */}
               <div className="absolute right-0 top-0 w-[72%] h-[68%] overflow-hidden z-0" style={heroMaskRight}>
                 <div className="w-full h-full relative overflow-hidden" style={heroMaskBottom}>
-                  <div
-                    className="absolute inset-0 bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
-                    style={{
-                      backgroundImage: checkIsUrl(activeCard.heroImg) ? `url(${activeCard.heroImg})` : 'none',
-                      ...getTransformStyle(activeCard, 'hero'),
-                      ...innerEdgeFeather
-                    }}
-                  >
-                    {!checkIsUrl(activeCard.heroImg) && !checkHasText(activeCard.heroImg) && (
-                      <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]" />
-                    )}
-                  </div>
+                  {checkIsUrl(activeCard.heroImg) ? (
+                    <BannerImageLayer src={activeCard.heroImg} data={activeCard} prefix="hero" imgStyle={innerEdgeFeather} />
+                  ) : !checkHasText(activeCard.heroImg) ? (
+                    <div className="absolute inset-0 bg-gradient-to-bl from-indigo-900/30 to-[#0a0a0f]" />
+                  ) : null}
                   <FallbackText text={activeCard.heroImg} alignClass="justify-end items-start pt-10 pr-10" />
                 </div>
               </div>
@@ -1532,7 +1524,6 @@
               </div>
             </div>
             
-            {/* 하단 세트 배너 카드 (어두운 그라데이션 음영 완전 제거 + 파노라마 자동 연결) */}
             <div className="absolute bottom-[12%] left-[80px] right-0 flex items-center gap-3.5 z-30 overflow-hidden pr-8 h-[185px]">
               {Array.from({length: numCards}).map((_, i) => {
                 const cardData = block.data?.cards?.[i] || {};
@@ -1548,7 +1539,6 @@
                   >
                     {isPanorama ? (
                       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-                        {/* 🌟 파노라마 분할 레이어: 전체 가로폭(numCards * 100%)을 카드 순번만큼 좌측으로 이동시켜 한 장의 이미지처럼 연결 */}
                         <div
                           className="absolute top-0 h-full"
                           style={{
@@ -1556,13 +1546,7 @@
                             left: `-${i * 100}%`
                           }}
                         >
-                          <div
-                            className="w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-75"
-                            style={{
-                              backgroundImage: panoImgSrc ? `url(${panoImgSrc})` : 'none',
-                              ...getTransformStyle(block.data, 'pano')
-                            }}
-                          />
+                          {panoImgSrc && <BannerImageLayer src={panoImgSrc} data={block.data} prefix="pano" />}
                         </div>
                         {!panoImgSrc && !checkHasText(panoRaw) && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20 gap-1">
@@ -1574,17 +1558,11 @@
                       </div>
                     ) : (
                       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-                        <div
-                          className="w-full h-full bg-cover bg-center bg-no-repeat transition-transform duration-75"
-                          style={{
-                            backgroundImage: indivImgSrc ? `url(${indivImgSrc})` : 'none',
-                            ...getTransformStyle(cardData, 'card')
-                          }}
-                        >
-                          {!indivImgSrc && !checkHasText(indivRaw) && (
-                            <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={28} className="text-white/15"/></div>
-                          )}
-                        </div>
+                        {indivImgSrc ? (
+                          <BannerImageLayer src={indivImgSrc} data={cardData} prefix="card" />
+                        ) : !checkHasText(indivRaw) ? (
+                          <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={28} className="text-white/15"/></div>
+                        ) : null}
                         <FallbackText text={indivRaw} />
                       </div>
                     )}
@@ -1597,7 +1575,7 @@
         );
       }
       
-      // 📺 5) 빅배너 (기본형 & 월정액 가입하기형 모두 이미지 크기/위치 조정 및 페더링 적용)
+      // 📺 5) 빅배너
       if (block.type === 'BIG_BANNER') {
         const isSubscription = block.data?.subType === '가입하기형';
         return (
@@ -1612,15 +1590,11 @@
                   </div>
                   <div className="flex-1 h-full py-4 pr-5 flex items-center justify-end relative z-0">
                     <div className="w-full max-w-[600px] aspect-[24.5/8.3] rounded-xl overflow-hidden bg-[#1a1c26] relative shadow-inner">
-                      <div
-                        className="absolute inset-0 bg-no-repeat bg-cover bg-center transition-transform duration-75"
-                        style={{
-                          backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                          ...getTransformStyle(block.data)
-                        }}
-                      >
-                        {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={64} className="text-white/10"/></div>}
-                      </div>
+                      {checkIsUrl(block.data?.imageUrl) ? (
+                        <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                      ) : !checkHasText(block.data?.imageUrl) ? (
+                        <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={64} className="text-white/10"/></div>
+                      ) : null}
                       <FallbackText text={block.data?.imageUrl} />
                     </div>
                   </div>
@@ -1629,16 +1603,11 @@
                 <>
                   <div className="absolute inset-0 z-0 overflow-hidden">
                     <div className="absolute right-0 top-0 w-[72%] h-full overflow-hidden" style={heroMaskRight}>
-                      <div
-                        className="w-full h-full bg-no-repeat bg-cover bg-right-top transition-transform duration-75"
-                        style={{
-                          backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                          ...getTransformStyle(block.data),
-                          ...innerEdgeFeather
-                        }}
-                      >
-                        {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 to-[#0a0a0f] flex items-center justify-end pr-32"><ImageIcon size={64} className="text-white/10"/></div>}
-                      </div>
+                      {checkIsUrl(block.data?.imageUrl) ? (
+                        <BannerImageLayer src={block.data.imageUrl} data={block.data} imgStyle={innerEdgeFeather} />
+                      ) : !checkHasText(block.data?.imageUrl) ? (
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 to-[#0a0a0f] flex items-center justify-end pr-32"><ImageIcon size={64} className="text-white/10"/></div>
+                      ) : null}
                       <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-32" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f111a] via-transparent to-transparent h-[35%] top-auto bottom-0 pointer-events-none" />
@@ -1660,7 +1629,7 @@
         );
       }
       
-      // 📺 6) 띠배너: 좌측 텍스트 배경 색상(bgColor) 변경 + 소프트 그라데이션 + 이미지 크기/위치 조정
+      // 📺 6) 띠배너
       if (block.type === 'STRIP_BANNER') {
         const stripBgTone = block.data?.bgColor || '#1a1c26';
         return (
@@ -1670,19 +1639,13 @@
               style={{ backgroundColor: stripBgTone }}
             >
               <div className="absolute right-0 top-0 bottom-0 w-[48%] overflow-hidden z-0">
-                <div
-                  className="w-full h-full bg-cover bg-right bg-no-repeat transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                    <div className="absolute inset-0 flex items-center justify-end pr-10 bg-black/20">
-                      <ImageIcon size={32} className="text-white/15"/>
-                    </div>
-                  )}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                ) : !checkHasText(block.data?.imageUrl) ? (
+                  <div className="absolute inset-0 flex items-center justify-end pr-10 bg-black/20">
+                    <ImageIcon size={32} className="text-white/15"/>
+                  </div>
+                ) : null}
                 <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-10" />
                 <div
                   className="absolute inset-y-0 left-0 w-[55%] pointer-events-none"
@@ -1701,7 +1664,7 @@
         );
       }
 
-      // 🌟 TV & 모바일 시놉시스 배너 공통 뱃지 렌더러 ('COUPON' | 'QR' | 'IMAGE' + 이미지 크기/위치 조정)
+      // 🌟 TV & 모바일 시놉시스 배너 공통 뱃지 렌더러
       const renderSynopsisBadge = (data, allowEmptyText = false) => {
         const bType = data?.badgeType || (checkIsUrl(data?.imageUrl) ? 'IMAGE' : 'COUPON');
         if (bType === 'QR') {
@@ -1717,7 +1680,7 @@
         if (bType === 'IMAGE') {
           return checkIsUrl(data?.imageUrl) ? (
             <div className="w-[38px] h-[38px] rounded overflow-hidden shrink-0 relative">
-              <img src={data.imageUrl} alt="badge" className="w-full h-full object-contain drop-shadow-lg transition-transform duration-75" style={getTransformStyle(data)} />
+              <BannerImageLayer src={data.imageUrl} data={data} />
             </div>
           ) : (
             <div className="w-[38px] h-[38px] bg-[#262833] border border-white/20 flex flex-col items-center justify-center text-white/50 shrink-0">
@@ -1767,15 +1730,11 @@
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0 flex items-center justify-center">
             <div className="bg-[#26272e] p-5 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex flex-col w-[680px] z-10">
               <div className="relative w-full aspect-[16/9] bg-[#0c0920] rounded-lg overflow-hidden mb-6 shadow-inner">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1359] to-[#0a0812]"><ImageIcon size={64} className="text-white/10" /></div>}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1359] to-[#0a0812]"><ImageIcon size={64} className="text-white/10" /></div>
+                )}
                 <FallbackText text={block.data?.imageUrl} />
               </div>
               <div className="flex justify-center gap-3 w-full pb-2">
@@ -1793,15 +1752,11 @@
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"><span className="text-white/[0.03] font-black text-[180px] tracking-[0.2em] select-none">LIVE</span></div>
             <div className="absolute bottom-[8%] left-[5%] right-[5%] h-[140px] bg-transparent rounded-lg shadow-2xl flex items-center p-4 backdrop-blur-md z-10 gap-6">
               <div className="h-full aspect-[1.48/1] bg-[#0a0a0f] rounded-md relative overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_20px_rgba(255,255,255,0.2)] shrink-0 flex items-center justify-center">
-                <div
-                  className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-75 z-0"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && <ImageIcon size={32} className="text-white/20"/>}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                ) : (
+                  <ImageIcon size={32} className="text-white/20"/>
+                )}
                 <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
                 <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 z-20">
                   <div className="bg-white text-[#111] font-black text-[11px] px-2.5 py-0.5 rounded-[12px] shadow-md tracking-tighter">OK</div><div className="text-white font-extrabold text-[15px] tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{block.data?.buttonText || '감상하기'}</div>
@@ -1822,28 +1777,21 @@
         );
       }
 
-      // 📺 7) 롱배너: 하단 음영을 훨씬 부드럽게 완화(via-black/35) + 이미지 크기/위치 조정
+      // 📺 7) 롱배너: 원본 무손실 이미지 레이어 + 부드러운 하단 음영
       if (block.type === 'LONG_BANNER') {
         return (
           <div className="relative w-full aspect-[16/9] bg-[#0a0a0f] overflow-hidden shrink-0 flex items-center justify-center">
             <div className="absolute inset-0 p-12 flex justify-center gap-4 z-0 bg-[#0a0a0f]">
               <div className="h-[90%] aspect-[129/181.5] bg-[#1a1c26] rounded-xl overflow-hidden relative shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-[3px] border-[#7387FF] shrink-0">
-                <div
-                  className="absolute inset-0 bg-cover bg-top bg-no-repeat z-10 transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]"><ImageIcon size={48} className="text-white/10"/></div>}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} className="z-10" />
+                ) : !checkHasText(block.data?.imageUrl) ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]"><ImageIcon size={48} className="text-white/10"/></div>
+                ) : null}
                 <FallbackText text={block.data?.imageUrl} alignClass="justify-center items-center text-center px-4" />
-                {/* 🌟 완만하고 부드러운 하단 음영 적용 */}
                 <div
                   className="absolute bottom-0 inset-x-0 p-6 z-20 text-center flex flex-col justify-end h-[44%] pointer-events-none"
-                  style={{
-                    background: 'linear-gradient(to top, rgba(10,10,15,0.82) 0%, rgba(10,10,15,0.36) 52%, transparent 100%)'
-                  }}
+                  style={{ background: 'linear-gradient(to top, rgba(10,10,15,0.82) 0%, rgba(10,10,15,0.36) 52%, transparent 100%)' }}
                 >
                   <p className="text-white font-extrabold text-xl leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] whitespace-pre-wrap">{block.data?.copy || '메인 카피 입력'}</p>
                   {block.data?.subTitle && <p className="text-slate-100 font-medium text-xs mt-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] whitespace-pre-wrap">{block.data.subTitle}</p>}
@@ -1924,19 +1872,13 @@
             </div>
             <div className="pl-2.5 py-1.5 flex items-center gap-1.5 overflow-hidden shrink-0">
               <div className="relative w-[42.5%] aspect-[205/185] rounded-lg overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_15px_rgba(115,135,255,0.4)] bg-[#1a1c26] shrink-0">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                    <div className="absolute inset-0 bg-[#ffc40c] flex items-center justify-center text-center p-1">
-                      <span className="text-black font-black text-[9px] leading-tight">모바일<br/>1.5단 배너</span>
-                    </div>
-                  )}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                ) : !checkHasText(block.data?.imageUrl) ? (
+                  <div className="absolute inset-0 bg-[#ffc40c] flex items-center justify-center text-center p-1">
+                    <span className="text-black font-black text-[9px] leading-tight">모바일<br/>1.5단 배너</span>
+                  </div>
+                ) : null}
                 <FallbackText text={block.data?.imageUrl} />
                 <div className="absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
                 {block.data?.badgeText && (
@@ -1996,15 +1938,11 @@
             <div className="p-2.5 space-y-2 flex-1 overflow-hidden flex flex-col pb-12">
               <div className="relative w-full aspect-[2.15/1] rounded-lg overflow-hidden border-[2px] border-[#7387FF] shadow-[0_0_15px_rgba(115,135,255,0.35)] flex items-center shrink-0" style={{ backgroundColor: bgTone }}>
                 <div className="absolute right-0 top-0 bottom-0 w-[58%] overflow-hidden">
-                  <div
-                    className="w-full h-full bg-cover bg-center transition-transform duration-75"
-                    style={{
-                      backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                      ...getTransformStyle(block.data)
-                    }}
-                  >
-                    {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && <div className="absolute inset-0 flex items-center justify-end pr-5"><ImageIcon size={22} className="text-white/20"/></div>}
-                  </div>
+                  {checkIsUrl(block.data?.imageUrl) ? (
+                    <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                  ) : !checkHasText(block.data?.imageUrl) ? (
+                    <div className="absolute inset-0 flex items-center justify-end pr-5"><ImageIcon size={22} className="text-white/20"/></div>
+                  ) : null}
                   <FallbackText text={block.data?.imageUrl} alignClass="justify-end items-center pr-2" />
                   <div className="absolute inset-y-0 left-0 w-[45%] pointer-events-none" style={{ background: `linear-gradient(to right, ${bgTone} 10%, transparent 100%)` }} />
                 </div>
@@ -2050,19 +1988,13 @@
             </div>
             <div className="px-2.5 pt-0.5 shrink-0">
               <div className="relative w-full aspect-[81/108] rounded-[14px] border-[2px] border-[#7387FF] shadow-[0_8px_25px_rgba(0,0,0,0.8)] overflow-hidden bg-[#1a1c26] flex flex-col justify-end">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#334155] via-[#1e293b] to-[#0f172a] flex items-center justify-center">
-                      <span className="text-white/40 font-black text-[10px]">모바일 빅배너 (81x108)</span>
-                    </div>
-                  )}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                ) : !checkHasText(block.data?.imageUrl) ? (
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#334155] via-[#1e293b] to-[#0f172a] flex items-center justify-center">
+                    <span className="text-white/40 font-black text-[10px]">모바일 빅배너 (81x108)</span>
+                  </div>
+                ) : null}
                 <FallbackText text={block.data?.imageUrl} />
                 <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black/85 via-black/45 to-transparent pointer-events-none" />
                 <div className="relative z-10 px-3 pb-2.5 flex flex-col items-center text-center pointer-events-none">
@@ -2183,20 +2115,14 @@
                 </p>
               </div>
               <div className="w-full aspect-[1/1.05] relative bg-[#2b579a] flex items-center justify-center overflow-hidden shrink-0 border-b border-white/10">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
-                  style={{
-                    backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                    ...getTransformStyle(block.data)
-                  }}
-                >
-                  {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                    <div className="flex flex-col items-center justify-center h-full text-white/50 gap-1">
-                      <ImageIcon size={24} />
-                      <span className="text-[8px] font-bold">이벤트 이미지 영역</span>
-                    </div>
-                  )}
-                </div>
+                {checkIsUrl(block.data?.imageUrl) ? (
+                  <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+                ) : !checkHasText(block.data?.imageUrl) ? (
+                  <div className="flex flex-col items-center justify-center h-full text-white/50 gap-1">
+                    <ImageIcon size={24} />
+                    <span className="text-[8px] font-bold">이벤트 이미지 영역</span>
+                  </div>
+                ) : null}
                 <FallbackText text={block.data?.imageUrl} />
               </div>
               <div className="px-2.5 py-2.5 bg-[#181b26] border-b border-white/10 text-center shrink-0 min-h-[42px] flex items-center justify-center">
@@ -2242,17 +2168,11 @@
               )}
             </div>
             <div className="w-[42%] self-stretch bg-[#1a1c26] relative overflow-hidden shrink-0 min-h-[210px]">
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-75"
-                style={{
-                  backgroundImage: checkIsUrl(block.data?.imageUrl) ? `url(${block.data.imageUrl})` : 'none',
-                  ...getTransformStyle(block.data)
-                }}
-              >
-                {!checkIsUrl(block.data?.imageUrl) && !checkHasText(block.data?.imageUrl) && (
-                  <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={40} className="text-white/10"/></div>
-                )}
-              </div>
+              {checkIsUrl(block.data?.imageUrl) ? (
+                <BannerImageLayer src={block.data.imageUrl} data={block.data} />
+              ) : !checkHasText(block.data?.imageUrl) ? (
+                <div className="absolute inset-0 flex items-center justify-center"><ImageIcon size={40} className="text-white/10"/></div>
+              ) : null}
               <FallbackText text={block.data?.imageUrl} />
               <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#12141c] to-transparent pointer-events-none" />
             </div>
