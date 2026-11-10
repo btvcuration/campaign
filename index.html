@@ -117,49 +117,239 @@
       box-sizing: border-box !important;
     }
 
-    /* 다크 모드 FullCalendar 커스텀 테마 */
+    /* 🌟 Notion Dark Mode 스타일 FullCalendar 커스텀 테마 */
     #schedule-calendar {
-      background: #0f111a;
-      padding: 18px;
-      border-radius: 16px;
-      border: 1px solid #262833;
+      background: #191919;
+      padding: 22px 24px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
-    #schedule-calendar .fc { color: #cbd5e1 !important; }
-    #schedule-calendar .fc-theme-standard .fc-scrollgrid { border-color: #262833 !important; border-radius: 12px; overflow: hidden; }
-    #schedule-calendar .fc th { border-color: #262833 !important; background: #12141c !important; color: #94a3b8 !important; padding: 10px 0 !important; font-size: 12px !important; font-weight: 800 !important; }
-    #schedule-calendar .fc td { border-color: #1e202b !important; background: #0a0812; }
-    #schedule-calendar .fc .fc-toolbar-title { font-size: 18px !important; font-weight: 900 !important; color: #ffffff !important; letter-spacing: -0.02em; }
-    #schedule-calendar .fc .fc-button-primary { background-color: #1a1c26 !important; border-color: #303340 !important; color: #e2e8f0 !important; font-weight: 700 !important; font-size: 12px !important; border-radius: 8px !important; padding: 6px 12px !important; }
-    #schedule-calendar .fc .fc-button-primary:hover { background-color: #4f3df6 !important; border-color: #4f3df6 !important; color: #ffffff !important; }
-    #schedule-calendar .fc .fc-button-primary:disabled { opacity: 0.4; }
-    #schedule-calendar .fc .fc-daygrid-day-frame { min-height: 120px; padding: 6px !important; position: relative; transition: background-color 0.15s ease; }
-    #schedule-calendar .fc .fc-daygrid-day-frame:hover { background: #12141c; }
-    #schedule-calendar .fc .fc-day-today { background: rgba(79, 61, 246, 0.08) !important; }
-    #schedule-calendar .fc .fc-daygrid-day-top { justify-content: flex-start !important; align-items: center !important; position: relative; min-height: 24px; }
-    #schedule-calendar .fc .fc-daygrid-day-number { font-size: 12px !important; font-weight: 800 !important; color: #94a3b8 !important; padding: 2px 4px !important; margin-right: auto !important; }
-    #schedule-calendar .fc-day-sat .fc-daygrid-day-number { color: #38bdf8 !important; }
-    #schedule-calendar .fc-day-sun .fc-daygrid-day-number { color: #f87171 !important; }
-    #schedule-calendar .fc-daygrid-day-events { display: flex !important; flex-direction: column !important; gap: 3px !important; padding-bottom: 18px !important; margin-top: 4px !important; }
-    #schedule-calendar .fc-event { cursor: pointer; padding: 4px 6px !important; border-radius: 6px !important; border: none !important; font-size: 11px !important; font-weight: 700 !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: transform 0.12s ease, opacity 0.12s ease; }
-    #schedule-calendar .fc-event:hover { opacity: 0.92; transform: translateY(-1px); }
-    #schedule-calendar .event-start { background: linear-gradient(90deg, rgba(79, 61, 246, 0.28) 0%, rgba(79, 61, 246, 0.14) 100%) !important; border-left: 3px solid #7387ff !important; color: #e0e7ff !important; }
-    #schedule-calendar .event-start .fc-event-title { color: #e0e7ff !important; }
-    #schedule-calendar .event-pending { background: linear-gradient(90deg, rgba(234, 179, 8, 0.25) 0%, rgba(234, 179, 8, 0.12) 100%) !important; border-left: 3px solid #eab308 !important; color: #fef08a !important; }
-    #schedule-calendar .event-pending .fc-event-title { color: #fef08a !important; }
-    #schedule-calendar .event-banner-only { background: linear-gradient(90deg, rgba(50, 215, 130, 0.24) 0%, rgba(50, 215, 130, 0.10) 100%) !important; border-left: 3px solid #32d782 !important; color: #bbf7d0 !important; }
-    #schedule-calendar .event-banner-only .fc-event-title { color: #bbf7d0 !important; }
-    #schedule-calendar .event-unassigned { background: linear-gradient(90deg, rgba(239, 68, 68, 0.28) 0%, rgba(239, 68, 68, 0.14) 100%) !important; border-left: 3px solid #ef4444 !important; color: #fecaca !important; }
-    #schedule-calendar .event-unassigned .fc-event-title { color: #fecaca !important; }
-    #schedule-calendar .event-end { background: rgba(30, 41, 59, 0.65) !important; border-left: 3px solid #64748b !important; color: #94a3b8 !important; }
-    #schedule-calendar .event-end .fc-event-title { color: #94a3b8 !important; }
-    #schedule-calendar .fc-daygrid-more-link { font-size: 11px !important; font-weight: 800 !important; color: #7387ff !important; }
+    #schedule-calendar .fc {
+      color: #d4d4d4 !important;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    /* 외곽 및 셀 그리드: 노션 특유의 얇고 은은한 1px 헤어라인 */
+    #schedule-calendar .fc-theme-standard .fc-scrollgrid {
+      border: 1px solid rgba(255, 255, 255, 0.07) !important;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #schedule-calendar .fc th {
+      border-color: rgba(255, 255, 255, 0.07) !important;
+      background: #191919 !important;
+      color: #787774 !important;
+      padding: 8px 0 !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.02em;
+    }
+    #schedule-calendar .fc td {
+      border-color: rgba(255, 255, 255, 0.06) !important;
+      background: #191919;
+    }
+    /* 상단 툴바: 미니멀한 노션 헤더 & 고스트 버튼 */
+    #schedule-calendar .fc .fc-toolbar {
+      margin-bottom: 14px !important;
+    }
+    #schedule-calendar .fc .fc-toolbar-title {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      color: #f1f1ef !important;
+      letter-spacing: -0.01em;
+    }
+    #schedule-calendar .fc .fc-button-group {
+      gap: 2px;
+    }
+    #schedule-calendar .fc .fc-button-primary {
+      background-color: transparent !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #9b9a97 !important;
+      font-weight: 600 !important;
+      font-size: 11.5px !important;
+      border-radius: 6px !important;
+      padding: 4px 10px !important;
+      box-shadow: none !important;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+    #schedule-calendar .fc .fc-button-primary:hover {
+      background-color: rgba(255, 255, 255, 0.06) !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
+      color: #ffffff !important;
+    }
+    #schedule-calendar .fc .fc-button-primary:disabled {
+      opacity: 0.35;
+    }
+    /* 날짜 셀 프레임 & 호버 */
+    #schedule-calendar .fc .fc-daygrid-day-frame {
+      min-height: 124px;
+      padding: 6px 6px 20px 6px !important;
+      position: relative;
+      transition: background-color 0.12s ease;
+    }
+    #schedule-calendar .fc .fc-daygrid-day-frame:hover {
+      background: #202020;
+    }
+    #schedule-calendar .fc .fc-day-other .fc-daygrid-day-frame {
+      background: #151515;
+      opacity: 0.55;
+    }
+    /* 오늘(Today) 표시: 셀 전체 배경 대신 노션처럼 날짜 숫자에 빨간 원형 배지 적용 */
+    #schedule-calendar .fc .fc-day-today {
+      background: rgba(255, 255, 255, 0.015) !important;
+    }
+    #schedule-calendar .fc .fc-daygrid-day-top {
+      justify-content: flex-start !important;
+      align-items: center !important;
+      position: relative;
+      min-height: 24px;
+      margin-bottom: 2px;
+      padding: 0 2px;
+    }
+    #schedule-calendar .fc .fc-daygrid-day-number {
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      color: #9b9a97 !important;
+      padding: 2px 5px !important;
+      margin-right: 0 !important;
+      line-height: 1.2;
+      border-radius: 5px;
+    }
+    #schedule-calendar .fc .fc-day-today .fc-daygrid-day-number {
+      background: #eb5757 !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      border-radius: 9999px !important;
+      min-width: 21px;
+      height: 21px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px !important;
+    }
+    #schedule-calendar .fc-day-sat:not(.fc-day-today) .fc-daygrid-day-number { color: #787774 !important; }
+    #schedule-calendar .fc-day-sun:not(.fc-day-today) .fc-daygrid-day-number { color: #a36a6a !important; }
 
-    .calendar-day-target-sum { position: absolute; top: 4px; right: 6px; color: #94a3b8; font-size: 10px; font-weight: 700; pointer-events: none; }
-    .calendar-day-capa-remain { position: absolute; left: 6px; bottom: 4px; z-index: 1; font-size: 9.5px; line-height: 1; font-weight: 800; color: #64748b; pointer-events: none; white-space: nowrap; }
-    .calendar-congestion-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; vertical-align: middle; }
-    .calendar-congestion-badge.green { background: #32d782; box-shadow: 0 0 6px rgba(50, 215, 130, 0.6); }
-    .calendar-congestion-badge.yellow { background: #eab308; box-shadow: 0 0 6px rgba(234, 179, 8, 0.6); }
-    .calendar-congestion-badge.red { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+    /* 노션 스타일 이벤트 칩 (플랫 매트 컬러, 좌측 굵은 보더 제거) */
+    #schedule-calendar .fc-daygrid-day-events {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 3px !important;
+      margin-top: 2px !important;
+    }
+    #schedule-calendar .fc-event {
+      cursor: pointer;
+      padding: 3px 7px !important;
+      border-radius: 5px !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      line-height: 1.35 !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      box-shadow: none !important;
+      transition: filter 0.12s ease, background-color 0.12s ease;
+    }
+    #schedule-calendar .fc-event:hover {
+      filter: brightness(1.15);
+      transform: none;
+    }
+    /* 유형별 노션 다크모드 태그 컬러 매핑 */
+    #schedule-calendar .event-start {
+      background: rgba(51, 126, 169, 0.24) !important;
+      border: 1px solid rgba(82, 156, 202, 0.22) !important;
+      color: #b1d8f5 !important;
+    }
+    #schedule-calendar .event-start .fc-event-title { color: #b1d8f5 !important; }
+
+    #schedule-calendar .event-pending {
+      background: rgba(203, 145, 47, 0.22) !important;
+      border: 1px solid rgba(203, 145, 47, 0.25) !important;
+      color: #f6d896 !important;
+    }
+    #schedule-calendar .event-pending .fc-event-title { color: #f6d896 !important; }
+
+    #schedule-calendar .event-banner-only {
+      background: rgba(68, 131, 97, 0.24) !important;
+      border: 1px solid rgba(68, 131, 97, 0.26) !important;
+      color: #b4dfcb !important;
+    }
+    #schedule-calendar .event-banner-only .fc-event-title { color: #b4dfcb !important; }
+
+    #schedule-calendar .event-unassigned {
+      background: rgba(212, 76, 71, 0.24) !important;
+      border: 1px solid rgba(212, 76, 71, 0.30) !important;
+      color: #f9b4b2 !important;
+    }
+    #schedule-calendar .event-unassigned .fc-event-title { color: #f9b4b2 !important; }
+
+    #schedule-calendar .event-end {
+      background: rgba(255, 255, 255, 0.055) !important;
+      border: 1px solid rgba(255, 255, 255, 0.07) !important;
+      color: #8a8a86 !important;
+    }
+    #schedule-calendar .event-end .fc-event-title { color: #8a8a86 !important; }
+
+    /* '+N개 더보기' 버튼 및 팝오버 다크모드 지원 */
+    #schedule-calendar .fc-daygrid-more-link {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      color: #8b8b87 !important;
+      padding: 1px 6px !important;
+      border-radius: 4px;
+    }
+    #schedule-calendar .fc-daygrid-more-link:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: #e5e5e5 !important;
+    }
+    #schedule-calendar .fc-theme-standard .fc-popover {
+      background: #202020 !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 10px !important;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6) !important;
+    }
+    #schedule-calendar .fc-theme-standard .fc-popover-header {
+      background: #262626 !important;
+      color: #e5e5e5 !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      padding: 6px 10px !important;
+    }
+
+    /* 셀 내부 메타데이터 (모수 합계 · 혼잡도 점 · 하단 잔여 Capa) 노션 스타일 정돈 */
+    .calendar-day-target-sum {
+      position: absolute;
+      top: 3px;
+      right: 4px;
+      color: #787774;
+      font-size: 10px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+    }
+    .calendar-day-capa-remain {
+      position: absolute;
+      left: 7px;
+      bottom: 5px;
+      z-index: 1;
+      font-size: 9.5px;
+      line-height: 1;
+      font-weight: 500;
+      color: #6b6b68;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .calendar-congestion-badge {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+    .calendar-congestion-badge.green { background: #448361; }
+    .calendar-congestion-badge.yellow { background: #cb912f; }
+    .calendar-congestion-badge.red { background: #d44c47; }
   </style>
 </head>
 <body>
@@ -4528,6 +4718,7 @@
             dayMaxEvents: 5,
             height: 'auto',
             eventOrder: 'sortOrder,title',
+            dayCellContent: (arg) => arg.date.getDate() === 1 ? `${arg.date.getMonth() + 1}월 1일` : String(arg.date.getDate()),
             eventClick: (info) => {
               info.jsEvent.stopPropagation();
               const uItem = info.event.extendedProps?.uItem;
