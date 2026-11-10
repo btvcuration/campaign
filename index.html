@@ -1094,19 +1094,8 @@
         window.addEventListener('mouseup', onUp);
       };
 
-      const handleReset = (e) => {
-        e.stopPropagation();
-        onTransformChange?.({
-          [scaleKey]: 100,
-          [posXKey]: 50,
-          [posYKey]: 50
-        });
-      };
-
       const tx = (posX - 50) * 1.2;
       const ty = (posY - 50) * 1.2;
-      const isModified = scale !== 100 || posX !== 50 || posY !== 50;
-
       return (
         <div
           ref={wrapRef}
@@ -1138,28 +1127,6 @@
               ...imgStyle
             }}
           />
-
-          {/* 편집 모드일 때 마우스 오버 시 나타나는 미니 상태/초기화 배지 */}
-          {editable && (
-            <div
-              onMouseDown={e => e.stopPropagation()}
-              className={`absolute top-2 left-2 z-40 flex items-center gap-1.5 bg-[#0a0812]/90 backdrop-blur-md border border-cyan-400/50 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-xl transition-opacity ${
-                isDragging ? 'opacity-100' : 'opacity-0 group-hover/imglayer:opacity-100'
-              }`}
-            >
-              <span className="text-cyan-300">✋ {label}</span>
-              <span className="font-mono text-slate-300">{scale}%</span>
-              {isModified && (
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="ml-1 px-1.5 py-0.5 bg-pink-500/20 hover:bg-pink-500/40 text-pink-300 rounded text-[9px] font-black"
-                >
-                  초기화
-                </button>
-              )}
-            </div>
-          )}
         </div>
       );
     };
