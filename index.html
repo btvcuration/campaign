@@ -124,17 +124,17 @@
       border-radius: 16px;
       border: 1px solid #2a2d37;
     }
-    #schedule-calendar .fc {
+    #schedule-calendar.fc {
       color: #e2e8f0 !important;
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     /* 그리드 테두리 */
-    #schedule-calendar .fc-theme-standard .fc-scrollgrid {
+    #schedule-calendar.fc-theme-standard .fc-scrollgrid {
       border: 1px solid #282b36 !important;
       border-radius: 12px;
       overflow: hidden;
     }
-    #schedule-calendar .fc th {
+    #schedule-calendar.fc th {
       border-color: #282b36 !important;
       background: #20232d !important;
       padding: 10px 0 !important;
@@ -150,24 +150,24 @@
     #schedule-calendar .fc-day-sun .fc-col-header-cell-cushion { color: #f87171 !important; }
     #schedule-calendar .fc-day-sat .fc-col-header-cell-cushion { color: #60a5fa !important; }
 
-    #schedule-calendar .fc td {
+    #schedule-calendar.fc td {
       border-color: #232630 !important;
       background: #18191d;
     }
     /* 상단 년/월 타이틀 & 버튼 */
-    #schedule-calendar .fc .fc-toolbar {
+    #schedule-calendar.fc .fc-toolbar {
       margin-bottom: 16px !important;
     }
-    #schedule-calendar .fc .fc-toolbar-title {
+    #schedule-calendar.fc .fc-toolbar-title {
       font-size: 18px !important;
       font-weight: 800 !important;
       color: #ffffff !important;
       letter-spacing: -0.02em;
     }
-    #schedule-calendar .fc .fc-button-group {
+    #schedule-calendar.fc .fc-button-group {
       gap: 4px;
     }
-    #schedule-calendar .fc .fc-button-primary {
+    #schedule-calendar.fc .fc-button-primary {
       background-color: #222530 !important;
       border: 1px solid #323646 !important;
       color: #e2e8f0 !important;
@@ -177,30 +177,30 @@
       padding: 5px 12px !important;
       box-shadow: none !important;
     }
-    #schedule-calendar .fc .fc-button-primary:hover {
+    #schedule-calendar.fc .fc-button-primary:hover {
       background-color: #2e3240 !important;
       color: #ffffff !important;
     }
     /* 날짜 셀 프레임 */
-    #schedule-calendar .fc .fc-daygrid-day-frame {
+    #schedule-calendar.fc .fc-daygrid-day-frame {
       min-height: 118px;
       padding: 6px !important;
       position: relative;
       transition: background-color 0.12s ease;
     }
-    #schedule-calendar .fc .fc-daygrid-day-frame:hover {
+    #schedule-calendar.fc .fc-daygrid-day-frame:hover {
       background: #1f222b;
     }
-    #schedule-calendar .fc .fc-day-other .fc-daygrid-day-frame {
+    #schedule-calendar.fc .fc-day-other .fc-daygrid-day-frame {
       background: #131418;
       opacity: 0.45;
     }
-    #schedule-calendar .fc .fc-day-today {
+    #schedule-calendar.fc .fc-day-today {
       background: rgba(79, 61, 246, 0.05) !important;
     }
 
     /* 🌟 [핵심] 날짜 헤더를 좌(날짜+점) ↔ 우(잔여Capa) Flex 가로 배치로 고정하여 겹침 원천 차단! */
-    #schedule-calendar .fc .fc-daygrid-day-top {
+    #schedule-calendar.fc .fc-daygrid-day-top {
       display: flex !important;
       flex-direction: row !important;
       align-items: center !important;
@@ -210,7 +210,7 @@
       margin-bottom: 4px;
       padding: 0 2px;
     }
-    #schedule-calendar .fc .fc-daygrid-day-number {
+    #schedule-calendar.fc .fc-daygrid-day-number {
       font-size: 12.5px !important;
       font-weight: 700 !important;
       color: #cbd5e1 !important;
@@ -220,7 +220,7 @@
       text-decoration: none !important;
       flex-shrink: 0;
     }
-    #schedule-calendar .fc .fc-day-today .fc-daygrid-day-number {
+    #schedule-calendar.fc .fc-day-today .fc-daygrid-day-number {
       background: #eb5757 !important;
       color: #ffffff !important;
       font-weight: 800 !important;
@@ -253,7 +253,7 @@
     .calendar-day-target-sum.is-empty-day {
       opacity: 0;
     }
-    #schedule-calendar .fc .fc-daygrid-day-frame:hover .calendar-day-target-sum.is-empty-day {
+    #schedule-calendar.fc .fc-daygrid-day-frame:hover .calendar-day-target-sum.is-empty-day {
       opacity: 0.75;
     }
 
@@ -339,19 +339,40 @@
       background: rgba(255, 255, 255, 0.08);
       color: #ffffff !important;
     }
-    #schedule-calendar .fc-theme-standard .fc-popover {
+    #schedule-calendar .fc-popover {
       background: #1e2028 !important;
       border: 1px solid #323646 !important;
       border-radius: 10px !important;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65) !important;
     }
-    #schedule-calendar .fc-theme-standard .fc-popover-header {
+    #schedule-calendar .fc-popover-header {
       background: #262934 !important;
       color: #ffffff !important;
       font-size: 11px !important;
       font-weight: 700 !important;
       padding: 6px 10px !important;
     }
+
+    /* 🌟 FullCalendar 기본 색상 변수 자체를 다크 톤으로 재정의 (흰 헤더·회색 격자·노란 오늘 배경 제거) */
+    #schedule-calendar.fc {
+      --fc-page-bg-color: #18191d;
+      --fc-neutral-bg-color: #20232d;
+      --fc-border-color: #282b36;
+      --fc-today-bg-color: rgba(79, 61, 246, 0.06);
+      --fc-button-text-color: #e2e8f0;
+      --fc-button-bg-color: #222530;
+      --fc-button-border-color: #323646;
+      --fc-button-hover-bg-color: #2e3240;
+      --fc-button-hover-border-color: #3d4254;
+      --fc-button-active-bg-color: #4f3df6;
+      --fc-button-active-border-color: #4f3df6;
+      --fc-event-border-color: transparent;
+      --fc-more-link-bg-color: transparent;
+      --fc-more-link-text-color: #94a3b8;
+    }
+    /* 요일 헤더 행(스티키 영역)이 흰색으로 칠해지던 문제 해결 */
+    #schedule-calendar .fc-scrollgrid-section-sticky > * { background: #20232d !important; }
+    #schedule-calendar .fc-col-header-cell { background: #20232d !important; }
   </style>
 </head>
 <body>
