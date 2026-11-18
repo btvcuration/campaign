@@ -514,6 +514,133 @@
       return `N${nodes.length + 1}`;
     };
 
+    // 🌟 배너 추가 시 유저플로우 자동 노드 추가
+    const FLOW_THUMB_BASE = 'https://raw.githubusercontent.com/btvcuration/campaign/main/assets/images/ui-templates/';
+    const BANNER_FLOW_THUMBS = {
+      TODAY_BTV: 'today_btv.png',
+      GENERAL_BANNER: 'general_banner_2col.png',
+      GENERAL_SET_BANNER: 'general_banner_2col.png',
+      FULL_PROMO_BANNER: 'full_promo.png',
+      BIG_BANNER: 'big_banner.png',
+      LONG_BANNER: 'long_banner.png',
+      STRIP_BANNER: 'strip_banner.png',
+      SYNOPSIS_BANNER: 'synopsis_banner.png',
+      PROMO_POPUP: 'promo_popup.png',
+      MINI_EPG_BANNER: 'mini_epg.png',
+      CUSTOM_BANNER: 'mini_epg.png', // 편성표/WING 등 기타 TV 배너 (GAS 프롬프트 규칙과 동일)
+      MOBILE_1_5_BANNER: 'mobile_1_5_banner.png',
+      MOBILE_EVENT_BANNER: 'mobile_event_banner.png',
+      MOBILE_BIG_BANNER: 'mobile_big_banner.png',
+      MOBILE_SYNOPSIS_BANNER: 'mobile_synopsis_banner.png',
+      MOBILE_EVENT_PAGE: 'mobile_event_page.png'
+    };
+    const FLOW_BANNER_THUMB_URLS = new Set(FLOW_THUMB_OPTIONS.map(o => o.url).filter(Boolean));
+
+    // ---------------------------------------------------------------------------------
+    // 🔗 시안 배너 ↔ 유저플로우 노드 양방향 동기화
+    //   - 배너 노드 ID = 'BN_' + 배너(asset) ID → 배너와 노드가 1:1로 연결됨
+    //   - AI가 만든 기존 배너 노드(썸네일 있는 노드)는 같은 배너 유형 썸네일 + 이름으로 처음 한 번 매칭해 연결
+    //   - 배너 추가 → 노드 추가 / 배너 삭제 → 연결된 노드 삭제 / 배너명·GNB 변경 → 노드 제목 갱신
+    //   - 썸네일 없는 일반 단계(랜딩·구매 등)와, 배너와 매칭되지 않은 기존 노드는 건드리지 않음
+    // ---------------------------------------------------------------------------------
+    const flowNodeIdForAsset = (asset) => 'BN_' + String(asset?.id || '').replace(/[^A-Za-z0-9_]/g, '_');
+    const bannerFlowThumb = (type) => FLOW_THUMB_BASE + (BANNER_FLOW_THUMBS[type] || BANNER_FLOW_THUMBS.CUSTOM_BANNER);
+    const bannerFlowTitle = (asset) => {
+      const name = String(asset?.name || '배너');
+      const gnbLabel = resolveTargetGnbs(asset?.type, asset?.data?.gnb).filter(Boolean).join('·');
+      const prefix = gnbLabel && !name.includes(`[${gnbLabel}]`) ? `[${gnbLabel}] ` : ''; // '[모바일] 빅배너'처럼 이미 붙은 경우 중복 방지
+      return `${prefix}${name}`.replace(/"/g, "'");
+    };
+    const findAssetForFlowNode = (assets, nodeId) => (assets || []).find(a => flowNodeIdForAsset(a) === nodeId) || null;
+    const normalizeFlowText = (s) => String(s || '').replace(/\[[^\]]*\]/g, '').replace(/\s+/g, '').toLowerCase();
+
+    const syncFlowWithAssets = (code, assets) => {
+      if (!code || !code.trim()) return code; // 유저플로우가 아직 없으면 아무것도 하지 않음
+      const parsed = parseMermaidGraph(code);
+      if (parsed.nodes.length === 0) return code;
+
+      const list = Array.isArray(assets) ? assets : [];
+      const wanted = new Map(list.map(a => [flowNodeIdForAsset(a), a]));
+      let nodes = parsed.nodes.map(n => ({ ...n }));
+      let edges = parsed.edges.map(e => ({ ...e }));
+      let changed = false;
+
+      // 1) 아직 연결되지 않은 배너 ↔ 기존 썸네일 노드 매칭 (같은 유형 + 이름 포함 → 같은 유형 순)
+      const renames = {};
+      const legacy = nodes.filter(n => !n.id.startsWith('BN_') && n.imgUrl && FLOW_BANNER_THUMB_URLS.has(n.imgUrl));
+      const unlinked = list.filter(a => !nodes.some(n => n.id === flowNodeIdForAsset(a)));
+      const matchPass = (pred) => unlinked.forEach(a => {
+        const targetId = flowNodeIdForAsset(a);
+        if (Object.values(renames).includes(targetId)) return;
+        const cand = legacy.find(n => !renames[n.id] && pred(n, a));
+        if (cand) renames[cand.id] = targetId;
+      });
+      matchPass((n, a) => n.imgUrl === bannerFlowThumb(a.type) && normalizeFlowText(a.name) && normalizeFlowText(n.title).includes(normalizeFlowText(a.name)));
+      matchPass((n, a) => n.imgUrl === bannerFlowThumb(a.type));
+      if (Object.keys(renames).length > 0) {
+        const rn = (id) => renames[id] || id;
+        nodes = nodes.map(n => ({ ...n, id: rn(n.id) }));
+        edges = edges.map(e => ({ ...e, from: rn(e.from), to: rn(e.to), id: `e-${rn(e.from)}-${rn(e.to)}` }));
+        changed = true;
+      }
+
+      // 2) 삭제된 배너의 노드 제거 (연결선의 앞뒤 단계는 새 배너 연결 시 참고용으로 기억)
+      const removed = nodes.filter(n => n.id.startsWith('BN_') && !wanted.has(n.id)).map(n => n.id);
+      const removedSources = [], removedTargets = [];
+      if (removed.length > 0) {
+        edges.forEach(e => {
+          if (removed.includes(e.to) && !removed.includes(e.from)) removedSources.push(e.from);
+          if (removed.includes(e.from) && !removed.includes(e.to)) removedTargets.push(e.to);
+        });
+        nodes = nodes.filter(n => !removed.includes(n.id));
+        edges = edges.filter(e => !removed.includes(e.from) && !removed.includes(e.to));
+        changed = true;
+      }
+
+      // 3) 연결된 노드의 제목·썸네일을 배너 기준으로 맞춤 (서브 문구는 유지)
+      nodes = nodes.map(n => {
+        const a = wanted.get(n.id);
+        if (!a) return n;
+        const title = bannerFlowTitle(a);
+        const imgUrl = bannerFlowThumb(a.type);
+        if (n.title === title && n.imgUrl === imgUrl) return n;
+        changed = true;
+        return { ...n, title, imgUrl };
+      });
+
+      // 4) 노드가 없는 배너 추가: 기존 배너 노드가 이어지던 이전/다음 단계에 똑같이 연결
+      list.forEach(a => {
+        const id = flowNodeIdForAsset(a);
+        if (nodes.some(n => n.id === id)) return;
+        const peers = nodes.filter(n => n.id.startsWith('BN_') || (n.imgUrl && FLOW_BANNER_THUMB_URLS.has(n.imgUrl)));
+        const firstWith = (pick) => {
+          for (const p of peers) {
+            const ids = pick(p.id);
+            if (ids.length > 0) return ids;
+          }
+          return [];
+        };
+        let targets = firstWith(pid => edges.filter(e => e.from === pid).map(e => e.to));
+        let sources = firstWith(pid => edges.filter(e => e.to === pid).map(e => e.from));
+        if (targets.length === 0) targets = [...new Set(removedTargets)];
+        if (sources.length === 0) sources = [...new Set(removedSources)];
+        nodes.push({ id, title: bannerFlowTitle(a), subText: '', imgUrl: bannerFlowThumb(a.type) });
+        sources.forEach(s => edges.push({ id: `e-${s}-${id}`, from: s, to: id, label: '' }));
+        targets.forEach(t => edges.push({ id: `e-${id}-${t}`, from: id, to: t, label: '' }));
+        changed = true;
+      });
+
+      if (!changed) return code; // 변경 없으면 원본 그대로 (불필요한 재작성 방지)
+
+      // style/classDef/class 줄은 살려서 뒤에 붙임 (삭제된 노드 관련 줄은 제외, 이름 바뀐 노드는 반영)
+      const keptExtras = code.split('\n')
+        .filter(l => /^\s*(style|classDef|class)\b/.test(l))
+        .map(l => l.replace(/\b([A-Za-z0-9_]+)\b/g, (m) => renames[m] || m))
+        .filter(l => !removed.some(id => new RegExp(`\\b${id}\\b`).test(l)));
+      const body = serializeMermaidGraph(nodes, edges);
+      return keptExtras.length > 0 ? `${body}\n${keptExtras.join('\n')}` : body;
+    };
+
     // 🌟 [수정 변경 시나리오용] 배너 데이터 변경 감지 헬퍼
     const VOLATILE_ASSET_KEYS = ['selectedCardIndex', 'startDate', 'dueDate']; // 캡처용 UI 상태값·캠페인 공통 일정은 배너별 변경 감지에서 제외 (일정 변경은 '공통 정보 변경'으로 안내)
     const hashAssetData = (asset) => {
@@ -540,10 +667,27 @@
       { key: 'target', label: '타겟 유형' },
       { key: 'targetSize', label: '타겟 모수' },
       { key: 'hasCoupon', label: 'B tv 쿠폰' },
+      { key: 'couponType', label: '쿠폰 유형' },
       { key: 'couponBenefit', label: '쿠폰 혜택' },
       { key: 'externalGift', label: '외부 사은품' }
     ];
     const snapshotMeta = (meta) => META_CHANGE_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: meta?.[f.key] ?? '' }), {});
+
+    // 🎫 쿠폰 유형: Capa(쿠폰 일 한도·시간 슬롯) 차감은 '선발급 발송'만
+    const COUPON_TYPES = [
+      { value: 'NONE', label: '쿠폰 없음', capa: false },
+      { value: 'PRE_ISSUE', label: '선발급 발송', capa: true, hint: '고객에게 쿠폰을 먼저 발송 (Capa 차감)' },
+      { value: 'BANNER_DOWNLOAD', label: '배너 다운로드', capa: false, hint: '배너에서 고객이 직접 다운로드 (Capa 미차감)' },
+      { value: 'POST_PURCHASE', label: '구매 후 발송', capa: false, hint: '구매 고객 대상 쿠폰 발송은 Step 1에서 별도 쿠폰 캠페인으로 등록 (이 캠페인은 Capa 미차감)' }
+    ];
+    // couponType이 없는 예전 데이터는 hasCoupon=Y를 선발급으로 간주 (기존 동작 유지)
+    const resolveCouponType = (rec) => {
+      const t = String(rec?.couponType || rec?.meta?.couponType || '').trim().toUpperCase();
+      if (t) return t;
+      return String(rec?.hasCoupon || '').trim().toUpperCase() === 'Y' ? 'PRE_ISSUE' : 'NONE';
+    };
+    const isCapaCouponMeta = (rec) => resolveCouponType(rec) === 'PRE_ISSUE';
+    const couponTypeLabel = (rec) => (COUPON_TYPES.find(c => c.value === resolveCouponType(rec)) || COUPON_TYPES[0]).label;
 
     // 🌟 마우스 클릭 조작 및 클린 캡처(cleanCaptureMode)를 지원하는 인터랙티브 MermaidViewer
     const MermaidViewer = ({ code, onChange, selectedNodeId: externalSelectedId, onSelectNode, cleanCaptureMode = false }) => {
@@ -791,7 +935,7 @@
     };
 
     // 🌟 Step 3 [유저플로우] 버튼 클릭 시 열리는 노코드(No-Code) 병렬 플로우 에디터 모달
-    const InteractiveFlowEditorModal = ({ mermaidCode, setMermaidCode, onClose }) => {
+    const InteractiveFlowEditorModal = ({ mermaidCode, setMermaidCode, onClose, assets = [], onRequestAddBanner, onDeleteBannerAsset }) => {
       const [selectedNodeId, setSelectedNodeId] = useState(null);
       const [showRawCode, setShowRawCode] = useState(false);
 
@@ -814,6 +958,14 @@
       };
 
       const handleDeleteNode = (id) => {
+        // 시안 배너와 연결된 노드는 배너와 함께 삭제 (노드만 지우면 시안과 불일치)
+        const linkedAsset = findAssetForFlowNode(assets, id);
+        if (linkedAsset && onDeleteBannerAsset) {
+          if (!window.confirm(`이 박스는 시안의 '${linkedAsset.name}' 배너와 연결되어 있습니다.\n배너도 함께 삭제할까요?`)) return;
+          if (selectedNodeId === id) setSelectedNodeId(null);
+          onDeleteBannerAsset(linkedAsset.id); // 노드는 동기화로 함께 삭제됨
+          return;
+        }
         const nextNodes = nodes.filter(n => n.id !== id);
         const nextEdges = edges.filter(e => e.from !== id && e.to !== id);
         if (selectedNodeId === id) setSelectedNodeId(nextNodes[0]?.id || null);
@@ -822,6 +974,11 @@
 
       // 병렬 진입 배너 추가 (현재 선택된 배너와 동일한 목적지로 연결)
       const handleAddParallelNode = () => {
+        // 시안 편집 화면에서는 시안에 배너를 추가하면 노드가 자동 생성되므로 배너 추가 창으로 연결
+        if (onRequestAddBanner && mermaidCode) {
+          onRequestAddBanner();
+          return;
+        }
         const newId = getNextNodeId(nodes);
         const newNode = {
           id: newId,
@@ -951,12 +1108,19 @@
                       </button>
                     </div>
 
+                    {findAssetForFlowNode(assets, activeNode.id) && (
+                      <div className="text-[10px] text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-2.5 py-1.5 leading-snug">
+                        🔗 시안의 '{findAssetForFlowNode(assets, activeNode.id).name}' 배너와 연결된 박스입니다. 썸네일·타이틀은 배너 유형·이름·GNB를 따라 자동 변경되며, 삭제하면 배너도 함께 삭제됩니다.
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 mb-1">배너 썸네일 아이콘 선택</label>
                       <select
                         value={activeNode.imgUrl || ''}
+                        disabled={!!findAssetForFlowNode(assets, activeNode.id)}
                         onChange={e => handleNodeFieldChange(activeNode.id, 'imgUrl', e.target.value)}
-                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400"
+                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {FLOW_THUMB_OPTIONS.map(opt => (
                           <option key={opt.label} value={opt.url}>{opt.label}</option>
@@ -969,8 +1133,9 @@
                       <input
                         type="text"
                         value={activeNode.title}
+                        disabled={!!findAssetForFlowNode(assets, activeNode.id)}
                         onChange={e => handleNodeFieldChange(activeNode.id, 'title', e.target.value)}
-                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs font-bold text-white outline-none focus:border-pink-400"
+                        className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs font-bold text-white outline-none focus:border-pink-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 
@@ -2590,6 +2755,7 @@
           startDate: prev.startDate || '',
           dueDate: prev.dueDate || '',
           hasCoupon: prev.hasCoupon || 'N',
+          couponType: prev.couponType || resolveCouponType(prev),
           couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
           bannerTypes: '', gnbLocations: '', bannerPlan: [],
           isCapaChecked: prev.isCapaChecked ?? true,
@@ -2732,6 +2898,7 @@
             delete safeUpdate.target;
             delete safeUpdate.targetSize;
             delete safeUpdate.hasCoupon;
+            delete safeUpdate.couponType;
             setCampaignMeta(prev => ({
               ...prev,
               ...safeUpdate,
@@ -2759,6 +2926,7 @@
                 target: prev.target || 'MASS',
                 targetSize: prev.target === 'TARGET' ? (prev.targetSize || metaData.targetSize || '') : '',
                 hasCoupon: prev.hasCoupon || 'N',
+                couponType: prev.couponType || resolveCouponType(prev),
                 mainImageUrl: prev.mainImageUrl || metaData.mainImageUrl || '',
                 department: prev.department || metaData.department || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
                 marketer: prev.marketer || metaData.marketer || localStorage.getItem('myMarketerName') || '',
@@ -3023,23 +3191,42 @@
 
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
-                      <Lock size={10} /> B tv 쿠폰 (Step 1 고정)
-                    </label>
-                    <div className="w-full bg-[#12141c] border border-[#262833] rounded-lg px-2.5 py-2 flex items-center justify-between">
-                      <span className={`text-xs font-black ${campaignMeta.hasCoupon === 'Y' ? 'text-pink-400' : 'text-slate-400'}`}>
-                        {campaignMeta.hasCoupon === 'Y' ? '🎫 쿠폰 포함' : '미포함'}
-                      </span>
-                      {onBackToStep1 && (
-                        <button
-                          type="button"
-                          onClick={onBackToStep1}
-                          className="px-2 py-0.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 border border-[#303340] rounded text-[9px] font-bold shrink-0"
+                    {isCapaCouponMeta(campaignMeta) ? (
+                      <>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1 ml-1 flex items-center gap-1">
+                          <Lock size={10} /> B tv 쿠폰 (Step 1 고정)
+                        </label>
+                        <div className="w-full bg-[#12141c] border border-[#262833] rounded-lg px-2.5 py-2 flex items-center justify-between" title="선발급 쿠폰은 Capa를 차감하므로 Step 1에서만 변경할 수 있습니다.">
+                          <span className="text-xs font-black text-pink-400">🎫 선발급 발송 (Capa 차감)</span>
+                          {onBackToStep1 && (
+                            <button
+                              type="button"
+                              onClick={onBackToStep1}
+                              className="px-2 py-0.5 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 border border-[#303340] rounded text-[9px] font-bold shrink-0"
+                            >
+                              변경 〉
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">B tv 쿠폰 (Capa 미차감)</label>
+                        <select
+                          value={resolveCouponType(campaignMeta)}
+                          onChange={(e) => {
+                            const t = e.target.value;
+                            setCampaignMeta(prev => ({ ...prev, couponType: t, hasCoupon: t === 'NONE' ? 'N' : 'Y', couponBenefit: t === 'NONE' ? '' : prev.couponBenefit }));
+                          }}
+                          className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-pink-500"
                         >
-                          변경 〉
-                        </button>
-                      )}
-                    </div>
+                          {COUPON_TYPES.filter(c => !c.capa).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                        </select>
+                        {COUPON_TYPES.find(c => c.value === resolveCouponType(campaignMeta))?.hint && (
+                          <p className="text-[9px] text-slate-500 mt-1 ml-1 leading-snug">{COUPON_TYPES.find(c => c.value === resolveCouponType(campaignMeta)).hint}</p>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">쿠폰 혜택 명</label>
@@ -3235,7 +3422,10 @@
       if (!item) return false;
       const ch = String(item['채널'] || item['필터'] || '').toUpperCase();
       const cpnCol = String(item['쿠폰 여부'] || item['오퍼분류'] || item['쿠폰'] || item.hasCoupon || '').toUpperCase();
-      return ch.includes('쿠폰') || cpnCol.includes('쿠폰') || cpnCol === 'Y' || cpnCol.includes('포함') || (parseInt(String(item['쿠폰'] || '0').replace(/[^0-9]/g, ''), 10) > 0);
+      // '미포함'에도 '포함'이 들어 있으므로 부정 값을 먼저 걸러야 함
+      const cpnIsNo = !cpnCol || cpnCol === 'N' || cpnCol.includes('미포함') || cpnCol.includes('없음') || cpnCol === '콘텐츠';
+      const cpnIsYes = !cpnIsNo && (cpnCol.includes('쿠폰') || cpnCol === 'Y' || cpnCol.includes('포함'));
+      return ch.includes('쿠폰') || cpnIsYes || (parseInt(String(item['쿠폰'] || '0').replace(/[^0-9]/g, ''), 10) > 0);
     };
 
     const extractCampaignTitle = (item) => {
@@ -3272,11 +3462,37 @@
       return `${clean.slice(5).replace('-', '/')}(${days[d.getDay()]})`;
     };
 
+    // ⚙️ Capa 한도: 앱 시작 시 서버('Capa 설정' 시트)에서 받아 덮어씀. 아래는 서버 응답 전·실패 시 기본값
+    const CAPA_SETTINGS = {
+      bannerDaily: 2800000,
+      bannerByWeekday: { 4: 2700000 },
+      couponDaily: 2700000,
+      couponHourly: 120000,
+      blockedHours: [17, 18, 19]
+    };
+    const applyCapaSettings = (s) => {
+      if (!s) return;
+      ['bannerDaily', 'couponDaily', 'couponHourly'].forEach(k => { if (Number(s[k]) > 0) CAPA_SETTINGS[k] = Number(s[k]); });
+      if (s.bannerByWeekday && typeof s.bannerByWeekday === 'object') CAPA_SETTINGS.bannerByWeekday = s.bannerByWeekday;
+      if (Array.isArray(s.blockedHours)) CAPA_SETTINGS.blockedHours = s.blockedHours;
+    };
+
+    const CAPA_SETTING_FIELDS = [
+      { key: 'BANNER_DAILY_LIMIT', label: '배너 일 한도 (명)', placeholder: '2800000' },
+      { key: 'BANNER_WEEKDAY_LIMITS', label: '요일별 배너 한도 예외', placeholder: '목=2700000' },
+      { key: 'COUPON_DAILY_LIMIT', label: '쿠폰 선발급 일 한도 (명)', placeholder: '2700000' },
+      { key: 'COUPON_HOURLY_LIMIT', label: '쿠폰 선발급 시간당 한도 (명)', placeholder: '120000' },
+      { key: 'BLOCKED_HOURS', label: '배정 제외 시간', placeholder: '17,18,19' }
+    ];
+
     const calcDailyLimit = (type, dateStr, fallbackStr) => {
       const clean = cleanScheduleDateStr(dateStr) || fallbackStr;
       const d = new Date(`${clean}T00:00:00`);
-      if (type === 'banner') return (!isNaN(d.getTime()) && d.getDay() === 4) ? 2700000 : 2800000;
-      if (type === 'coupon') return 2700000;
+      if (type === 'banner') {
+        const override = !isNaN(d.getTime()) ? Number(CAPA_SETTINGS.bannerByWeekday?.[d.getDay()]) : 0;
+        return override > 0 ? override : CAPA_SETTINGS.bannerDaily;
+      }
+      if (type === 'coupon') return CAPA_SETTINGS.couponDaily;
       return 0;
     };
 
@@ -3368,7 +3584,7 @@
       const [capaBanner, setCapaBanner] = useState(true);
       const [capaTvPopup, setCapaTvPopup] = useState(false);
       const [capaToast, setCapaToast] = useState(false);
-      const [capaCoupon, setCapaCoupon] = useState(true);
+      const [capaCoupon, setCapaCoupon] = useState(false); // 쿠폰 선발급(Capa 차감)만 체크. 배너 다운로드·구매 후 발송 쿠폰은 Step 2에서 선택
 
       // 단순 Capa 신청서 모달 상태
       const [isReqModalOpen, setIsReqModalOpen] = useState(false);
@@ -3594,7 +3810,7 @@
           dueDate: capaEndDate >= capaDate ? capaEndDate : (capaDate || todayLocalStr),
           target: 'MASS',
           targetSize: '',
-          hasCoupon: 'N',
+          hasCoupon: 'N', couponType: 'NONE',
           couponBenefit: '',
           channels: 'MASS 배너',
           isCapaChecked: true,
@@ -3652,7 +3868,7 @@
           dueDate: eDate,
           target: 'TARGET', // 🌟 3번 요구사항: 타겟 배너/채널 선택 시 무조건 TARGET으로 설정
           targetSize: targetNumVal.toLocaleString(),
-          hasCoupon: capaCoupon ? 'Y' : 'N',
+          hasCoupon: capaCoupon ? 'Y' : 'N', couponType: capaCoupon ? 'PRE_ISSUE' : 'NONE',
           channels: selectedChs.join(', '),
           bannerTypes: capaTvPopup && capaBanner ? 'GENERAL_BANNER, PROMO_POPUP' : (capaTvPopup ? 'PROMO_POPUP' : 'GENERAL_BANNER'),
           isCapaChecked: true, // 🌟 3번 요구사항: Capa 검증 완료 상태로 전달
@@ -3854,7 +4070,7 @@
                       <input type="checkbox" checked={capaToast} onChange={e => setCapaToast(e.target.checked)} className="accent-amber-400" /> 토스트팝업
                     </label>
                     <label className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${capaCoupon ? 'bg-pink-500/20 border-pink-500 text-white' : 'bg-[#12141c] border-[#262833] text-slate-500'}`}>
-                      <input type="checkbox" checked={capaCoupon} onChange={e => setCapaCoupon(e.target.checked)} className="accent-pink-500" /> 쿠폰발급
+                      <input type="checkbox" checked={capaCoupon} onChange={e => setCapaCoupon(e.target.checked)} className="accent-pink-500" /> 쿠폰 선발급
                     </label>
                   </div>
                 </div>
@@ -4193,7 +4409,7 @@
                     <div>
                       <label className="block text-[11px] font-bold text-slate-400 mb-1">쿠폰 여부</label>
                       <select value={reqForm.couponYn} onChange={e => setReqForm({...reqForm, couponYn: e.target.value})} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
-                        <option value="쿠폰">쿠폰 (포함)</option>
+                        <option value="쿠폰">쿠폰 선발급 (Capa 차감)</option>
                         <option value="미포함">미포함</option>
                       </select>
                     </div>
@@ -4444,7 +4660,7 @@
           channel: s['채널'] || s['필터'] || (uItem.hasBannerAssets ? 'MASS 배너' : '쿠폰'),
           gnb: (uItem.gnbs || []).join(', ') || s['GNB'] || b.gnbLocations || '홈',
           cycle: extractCycleName(s),
-          couponYn: checkItemHasCoupon(s) || b.hasCoupon === 'Y' ? '쿠폰' : '미포함',
+          couponYn: checkItemHasCoupon(s) || (b && b.hasCoupon === 'Y' && isCapaCouponMeta(b)) ? '쿠폰' : '미포함',
           targetSize: String(extractTargetNum(s) || b.targetSize || 0),
           department: uItem.department || 'Btv큐레이션팀',
           marketer: uItem.marketer || ''
@@ -4463,7 +4679,7 @@
         if (!bRecord) return;
         const meta = bRecord.meta || {
           campaignName: bRecord.campaignName, target: bRecord.target, targetSize: bRecord.targetSize,
-          startDate: bRecord.startDate, dueDate: bRecord.dueDate, hasCoupon: bRecord.hasCoupon,
+          startDate: bRecord.startDate, dueDate: bRecord.dueDate, hasCoupon: bRecord.hasCoupon, couponType: resolveCouponType(bRecord),
           couponBenefit: bRecord.couponBenefit, conceptCopy: bRecord.conceptCopy, mainImageUrl: bRecord.mainImageUrl,
           product: bRecord.product, bannerTypes: bRecord.bannerTypes, gnbLocations: bRecord.gnbLocations,
           department: bRecord.department || extractDeptName(sRecord) || localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
@@ -4485,7 +4701,7 @@
             targetSize: item.targetSize,
             startDate: item.startDate,
             dueDate: item.dueDate,
-            hasCoupon: item.hasCoupon,
+            hasCoupon: item.hasCoupon, couponType: resolveCouponType(item),
             couponBenefit: item.couponBenefit,
             conceptCopy: item.conceptCopy,
             mainImageUrl: item.mainImageUrl,
@@ -4509,7 +4725,7 @@
             dueDate: uItem.dueDate,
             target: tNum > 0 ? 'TARGET' : 'MASS',
             targetSize: tNum > 0 ? tNum.toLocaleString() : '',
-            hasCoupon: checkItemHasCoupon(s) ? 'Y' : 'N',
+            hasCoupon: checkItemHasCoupon(s) ? 'Y' : 'N', couponType: checkItemHasCoupon(s) ? 'PRE_ISSUE' : 'NONE',
             channels: s['채널'] || s['필터'] || '쿠폰',
             isCapaChecked: true,
             department: uItem.department || 'Btv큐레이션팀',
@@ -5206,7 +5422,7 @@
                           <div>
                             <label className="block text-[10px] font-bold text-slate-400 mb-1">쿠폰 여부</label>
                             <select value={editEventForm.couponYn} onChange={e => setEditEventForm({...editEventForm, couponYn: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]">
-                              <option value="쿠폰">쿠폰 (포함)</option>
+                              <option value="쿠폰">쿠폰 선발급 (Capa 차감)</option>
                               <option value="미포함">미포함</option>
                             </select>
                           </div>
@@ -5359,7 +5575,7 @@
       const evaluateDraftCapa = (draft) => {
         const meta = draft.campaignMeta || {};
         const isTarget = meta.target === 'TARGET';
-        const hasCoupon = meta.hasCoupon === 'Y';
+        const hasCoupon = isCapaCouponMeta(meta); // Capa 검증은 선발급 쿠폰만
         const sDate = cleanScheduleDateStr(meta.startDate);
         const tNum = Number(String(meta.targetSize || '0').replace(/[^0-9]/g, '')) || 0;
 
@@ -5557,6 +5773,7 @@
         checkJiraSessionNow();
         setTimeout(checkJiraSessionNow, 1000);
         fetchBannerSpecsFromSheet();
+        fetchCapaSettings();
       }, []);
 
       // 🌟 시트 규격 매칭 (타겟 가능 여부 등은 100% 구글 시트 값 기준 → 시트에서 바꾸면 해당 배너에 즉시 반영)
@@ -5588,7 +5805,7 @@
 
       const [campaignMeta, setCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
-        hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
+        hasCoupon: 'N', couponType: 'NONE', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
         department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
         marketer: localStorage.getItem('myMarketerName') || '',
         cycle: '단발성', uiVersion: '5.0'
@@ -5610,7 +5827,7 @@
       
       const [aiCampaignMeta, setAiCampaignMeta] = useState({ 
         campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
-        hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
+        hasCoupon: 'N', couponType: 'NONE', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '', bannerTypes: '', gnbLocations: '', isCapaChecked: false,
         department: localStorage.getItem('myDepartment') || 'Btv큐레이션팀',
         marketer: localStorage.getItem('myMarketerName') || '',
         cycle: '단발성', uiVersion: '5.0'
@@ -5662,6 +5879,52 @@
       const [showPwdChange, setShowPwdChange] = useState(false);
       const [pwdChangeForm, setPwdChangeForm] = useState({ current: '', next: '', confirm: '' });
       const [isChangingPwd, setIsChangingPwd] = useState(false);
+
+      // ⚙️ Capa 한도 설정 (서버 'Capa 설정' 시트와 동기화)
+      const [capaSettingsForm, setCapaSettingsForm] = useState({});
+      const [isSavingCapa, setIsSavingCapa] = useState(false);
+      const [, setCapaSettingsVersion] = useState(0); // 설정 반영 후 화면 재계산용
+
+      const fetchCapaSettings = async () => {
+        try {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "getCapaSettings" })
+          });
+          const json = await res.json();
+          if (json.status === 'success' && json.data) {
+            applyCapaSettings(json.data);
+            setCapaSettingsForm(json.data.raw || {});
+            setCapaSettingsVersion(v => v + 1);
+          }
+        } catch (e) {
+          console.warn('Capa 설정 로드 실패 (기본값 사용):', e.message);
+        }
+      };
+
+      const handleSaveCapaSettings = async () => {
+        if (!isAdminUnlocked || isSavingCapa) return;
+        setIsSavingCapa(true);
+        try {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "updateCapaSettings", settings: capaSettingsForm, adminKey: getStoredAdminKey() })
+          });
+          const json = await res.json();
+          if (handleAdminRejected(json)) { setIsAdminUnlocked(false); return; }
+          if (json.status !== 'success') { alert('⚠️ Capa 설정 저장 실패:\n' + (json.message || '알 수 없는 오류')); return; }
+          applyCapaSettings(json.data);
+          setCapaSettingsForm(json.data?.raw || capaSettingsForm);
+          setCapaSettingsVersion(v => v + 1);
+          alert('✅ Capa 설정이 저장되었습니다.\n다음 자동배정부터 새 한도가 적용됩니다.');
+        } catch (e) {
+          alert('⚠️ 서버 통신 오류: ' + e.message);
+        } finally {
+          setIsSavingCapa(false);
+        }
+      };
 
       // 🔒 관리자 비밀번호 변경: 현재 비밀번호를 서버에서 확인한 뒤 GAS 스크립트 속성(ADMIN_PASSWORD)을 새 값으로 갱신
       const handleChangeAdminPassword = async (e) => {
@@ -5992,7 +6255,7 @@
         }
 
         const isTarget = meta.target === 'TARGET';
-        const hasCoupon = meta.hasCoupon === 'Y';
+        const hasCoupon = isCapaCouponMeta(meta); // Capa 검증은 선발급 쿠폰만
         const sDate = cleanScheduleDateStr(meta.startDate);
         const tNum = Number(String(meta.targetSize || '0').replace(/[^0-9]/g, '')) || 0;
 
@@ -6112,7 +6375,7 @@
         const uniqueName = getUniqueAssetName(assets.map(a => a.name), `${targetAsset.name} (복제)`);
         const clonedData = JSON.parse(JSON.stringify(targetAsset.data || {}));
         const newAsset = { id: newId, type: targetAsset.type, name: uniqueName, data: clonedData };
-        setAssets([...assets, newAsset]);
+        setAssets([...assets, newAsset]); // 유저플로우 노드는 동기화 effect가 추가
         setActiveTabId(newId);
       };
       
@@ -6166,20 +6429,36 @@
         newData.startDate = campaignMeta.startDate;
         newData.dueDate = campaignMeta.dueDate;
 
-        setAssets([...assets, { id: newId, type, name: uniqueName, data: newData }]);
+        setAssets([...assets, { id: newId, type, name: uniqueName, data: newData }]); // 유저플로우 노드는 동기화 effect가 추가
         setActiveTabId(newId);
         setIsAddAssetModalOpen(false);
         setOpenAccordions({ ...openAccordions, banner: true }); 
       };
 
-      const removeAsset = (id, e) => {
-        e.stopPropagation();
+      const removeAssetById = (id) => {
         const filteredAssets = assets.filter(a => a.id !== id);
-        setAssets(filteredAssets); 
-        
-        if (filteredAssets.length === 0) setActiveTabId(null);
+        setAssets(filteredAssets);
+
+        if (filteredAssets.length === 0) {
+          setActiveTabId(null);
+          // 마지막 배너 삭제: 동기화 effect는 배너가 있을 때만 돌기 때문에 여기서 직접 노드 정리
+          setMermaidCode(prev => syncFlowWithAssets(prev, []));
+        }
         else if (activeTabId === id) setActiveTabId(filteredAssets[0].id);
       };
+
+      const removeAsset = (id, e) => {
+        e.stopPropagation();
+        removeAssetById(id);
+      };
+
+      // 🔗 시안 배너 ↔ 유저플로우 동기화: 배너 추가/삭제/이름·GNB 변경 시 노드 자동 반영
+      //   (배너가 없을 때는 AI 기획 단계일 수 있으므로 건너뜀)
+      const assetFlowSig = assets.map(a => `${a.id}|${a.type}|${a.name}|${JSON.stringify(a.data?.gnb ?? '')}`).join('||');
+      useEffect(() => {
+        if (assets.length === 0) return;
+        setMermaidCode(prev => syncFlowWithAssets(prev, assets));
+      }, [assetFlowSig]);
 
       const handleDownloadExtension = async () => {
         setExportState({ isExporting: true, progress: 10, msg: "최신 확장프로그램 패킹 준비 중..." });
@@ -6555,7 +6834,7 @@
             "<li><b>타겟 유형:</b> " + (meta.target || "MASS") + "</li>" +
             "<li><b>예상 모수:</b> " + (meta.targetSize ? meta.targetSize + "명" : "미지정") + "</li>" +
             "<li><b>편성 일정:</b> " + (meta.startDate || "미지정") + " ~ " + (meta.dueDate || "미지정") + " (" + (meta.cycle || "단발성") + ")</li>" +
-            "<li><b>B tv 쿠폰:</b> " + (safeHasCoupon === 'Y' ? "포함 (" + (meta.couponBenefit || "혜택 미상") + ")" : "미포함") + "</li>" +
+            "<li><b>B tv 쿠폰:</b> " + (safeHasCoupon === 'Y' ? couponTypeLabel(meta) + " (" + (meta.couponBenefit || "혜택 미상") + ")" : "미포함") + "</li>" +
             "<li><b>외부 사은품:</b> " + (meta.externalGift || "없음") + "</li>" +
             "<li><b>총 요청 건수:</b> " + assets.length + "건</li>" +
           "</ul><br>" +
@@ -6666,7 +6945,7 @@
         const defaultMarketer = localStorage.getItem('myMarketerName') || '';
         const cleanMeta = {
           campaignName: '', product: '', target: 'MASS', targetSize: '', startDate: '', dueDate: '',
-          hasCoupon: 'N', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
+          hasCoupon: 'N', couponType: 'NONE', couponBenefit: '', externalGift: '', conceptCopy: '', mainImageUrl: '',
           bannerTypes: '', gnbLocations: '', bannerPlan: [], isCapaChecked: false,
           department: defaultDept, marketer: defaultMarketer,
           cycle: '단발성', uiVersion: '5.0'
@@ -6701,7 +6980,7 @@
           summaryParts.push(`타겟 유형: **MASS (전체 고객 · 쿠폰 없음 패스트트랙)**`);
         }
         if (prefillObj.channels) summaryParts.push(`선택 채널: **${prefillObj.channels}**`);
-        if (prefillObj.hasCoupon === 'Y') summaryParts.push(`B tv 쿠폰: **포함**`);
+        if (prefillObj.hasCoupon === 'Y') summaryParts.push(`B tv 쿠폰: **${couponTypeLabel(prefillObj)}**`);
 
         const briefingMsg = `✅ **Step 1(프로모션 Capa)에서 확정하신 조건이 우측 기획 폼에 자동 반영되었습니다!**\n- ${summaryParts.join('\n- ')}\n\n이어서 기획하실 **캠페인명**, **대상 상품(VOD/월정액)**, 그리고 **핵심 컨셉**을 말씀해 주시면 요청 기간 내 GNB 슬롯 혼잡도를 분석해 최적의 배너 구성을 제안해 드릴게요!`;
 
@@ -8019,6 +8298,9 @@
               mermaidCode={mermaidCode}
               setMermaidCode={setMermaidCode}
               onClose={() => setIsFlowModalOpen(false)}
+              assets={assets}
+              onRequestAddBanner={() => { setIsFlowModalOpen(false); setIsAddAssetModalOpen(true); }}
+              onDeleteBannerAsset={removeAssetById}
             />
           )}
 
@@ -8290,8 +8572,38 @@
                       })}
                     </div>
                   </div>
+
+                  {/* ⚙️ Capa 한도 설정 ('Capa 설정' 시트) */}
+                  <div className="border-t border-[#262833] pt-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-black text-white">Capa 한도 설정</h4>
+                      <span className="text-[10px] text-slate-500">자동배정·Capa 검증·AI 기획에 공통 적용</span>
+                    </div>
+                    <div className="space-y-2">
+                      {CAPA_SETTING_FIELDS.map(f => (
+                        <div key={f.key} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-1 sm:gap-2 items-center">
+                          <label className="text-[11px] font-bold text-slate-400">{f.label}</label>
+                          <input
+                            type="text"
+                            disabled={!isAdminUnlocked}
+                            value={capaSettingsForm[f.key] ?? ''}
+                            onChange={(e) => setCapaSettingsForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                            placeholder={f.placeholder}
+                            className="w-full bg-[#0a0812] border border-[#303340] rounded-md px-2 py-1.5 text-xs text-white font-mono outline-none focus:border-[#4f3df6] disabled:opacity-50 disabled:cursor-not-allowed"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {isAdminUnlocked && (
+                      <div className="flex justify-end mt-3">
+                        <button type="button" onClick={handleSaveCapaSettings} disabled={isSavingCapa} className="px-4 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">
+                          {isSavingCapa ? '저장 중...' : 'Capa 설정 저장'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
+
                 <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end gap-2">
                   <button onClick={() => setIsSettingsOpen(false)} className="px-4 py-2 bg-[#1a1c26] hover:bg-[#262833] text-slate-300 rounded-lg text-xs font-bold">닫기</button>
                   {isAdminUnlocked && (
@@ -8309,7 +8621,7 @@
             const plan = computeExportAssignmentPlan();
             return (
               <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[75] flex items-center justify-center p-4 animate-in zoom-in-95 duration-150" onClick={() => setIsExportConfirmModalOpen(false)}>
-                <div className="bg-[#12141c] w-full max-w-3xl border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 max-h-[88vh]" onClick={e => e.stopPropagation()}>
+                <div className={`bg-[#12141c] w-full ${mermaidCode ? 'max-w-7xl lg:h-[90vh]' : 'max-w-3xl'} border border-[#262833] rounded-2xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 max-h-[90vh]`} onClick={e => e.stopPropagation()}>
                   <div className="p-5 border-b border-[#262833] flex justify-between items-center bg-[#0f111a]">
                     <div>
                       <h3 className="text-base font-black text-white flex items-center gap-2">
@@ -8320,7 +8632,8 @@
                     <button onClick={() => setIsExportConfirmModalOpen(false)} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white"><X size={18}/></button>
                   </div>
 
-                  <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar bg-[#0a0812]">
+                  <div className={`flex-1 min-h-0 bg-[#0a0812] overflow-y-auto custom-scrollbar ${mermaidCode ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:overflow-hidden' : ''}`}>
+                  <div className={`p-6 space-y-4 ${mermaidCode ? 'lg:overflow-y-auto custom-scrollbar' : ''}`}>
                     {/* 1. 요청자(보고자) 정보 확인 및 즉시 수정 */}
                     <div className="bg-[#12141c] border border-[#262833] rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
@@ -8420,22 +8733,35 @@
                       </div>
                     </div>
 
-                    {/* 4. 유저플로우 이미지 캡처 포함 안내 */}
-                    <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    {/* 4. 유저플로우가 없을 때만 안내 (있으면 우측에 바로 표시) */}
+                    {!mermaidCode && (
+                      <div className="bg-[#12141c] border border-[#262833] rounded-xl p-3.5 flex items-center gap-2">
                         <GitMerge size={16} className="text-cyan-400" />
-                        <span className="text-xs font-bold text-white">
-                          4. 유저플로우 다이어그램 캡처 포함: {mermaidCode ? <b className="text-[#32d782]">포함됨 (userflow_diagram.png 자동 캡처)</b> : <b className="text-slate-500">등록된 유저플로우 없음</b>}
-                        </span>
+                        <span className="text-xs font-bold text-white">4. 유저플로우: <b className="text-slate-500">등록된 유저플로우 없음</b></span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => { setIsExportConfirmModalOpen(false); setIsFlowModalOpen(true); }}
-                        className="px-2.5 py-1 bg-[#1a1c26] hover:bg-[#262833] text-cyan-400 border border-cyan-500/30 rounded-lg text-[11px] font-bold"
-                      >
-                        유저플로우 미리보기/수정
-                      </button>
+                    )}
+                  </div>
+
+                  {/* 4. 유저플로우 미리보기 (Jira에 첨부될 다이어그램을 넓은 화면으로 바로 확인) */}
+                  {mermaidCode && (
+                    <div className="flex flex-col min-h-[420px] lg:min-h-0 border-t lg:border-t-0 lg:border-l border-[#262833] bg-[#0f111a]">
+                      <div className="px-4 py-3 border-b border-[#262833] flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-white flex items-center gap-1.5">
+                          <GitMerge size={15} className="text-cyan-400" /> 4. 유저플로우 <span className="text-[10px] font-bold text-[#32d782]">userflow_diagram.png로 자동 캡처·첨부</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setIsExportConfirmModalOpen(false); setIsFlowModalOpen(true); }}
+                          className="px-2.5 py-1 bg-[#1a1c26] hover:bg-[#262833] text-cyan-400 border border-cyan-500/30 rounded-lg text-[11px] font-bold shrink-0"
+                        >
+                          유저플로우 수정
+                        </button>
+                      </div>
+                      <div className="flex-1 min-h-[380px] relative">
+                        <MermaidViewer code={mermaidCode} />
+                      </div>
                     </div>
+                  )}
                   </div>
 
                   <div className="p-4 border-t border-[#262833] bg-[#0f111a] flex justify-end gap-2.5">
