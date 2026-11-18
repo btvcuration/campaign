@@ -23,6 +23,7 @@
     {
       "imports": {
         "react": "https://esm.sh/react@18.2.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
         "lucide-react": "https://esm.sh/lucide-react@0.292.0?external=react"
       }
@@ -381,6 +382,7 @@
   <script type="text/babel" data-type="module">
     import React, { useState, useRef, useEffect } from 'react';
     import { createRoot } from 'react-dom/client';
+    import { createPortal } from 'react-dom';
     
     import { 
       Tv, LayoutTemplate, Send, ChevronRight, ChevronDown, ChevronUp, Copy, CheckCircle, 
@@ -1325,8 +1327,164 @@
       };
     };
 
+    // 🎬 TMDB 배경 이미지 검색 (GAS TmdbImages.gs 경유, 키는 스크립트 속성 TMDB_API_KEY)
+    const TMDB_PROXY_URL = "https://btv-proxy.alcheminos.workers.dev";
+    // 검색창 기본값: App이 렌더링될 때 현재 '대상 상품' 값을 넣어 둠
+    const tmdbDefaultQueryRef = { current: '' };
+
+    const callTmdbProxy = async (payload) => {
+      const res = await fetch(TMDB_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const raw = await res.text();
+      if (raw.trim().startsWith('<')) throw new Error("서버 응답 지연(HTML 수신)");
+      const json = JSON.parse(raw);
+      if (json.status !== 'success') throw new Error(json.message || 'TMDB 요청 실패');
+      return json;
+    };
+
+    const TmdbBackdropPickerModal = ({ initialQuery = '', onSelect, onClose }) => {
+      const [query, setQuery] = useState(initialQuery);
+      const [results, setResults] = useState([]);
+      const [activeId, setActiveId] = useState(null);
+      const [backdrops, setBackdrops] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [loadingImages, setLoadingImages] = useState(false);
+      const [error, setError] = useState('');
+      const [searched, setSearched] = useState(false);
+      const reqSeq = useRef(0);
+
+      const runSearch = async (q) => {
+        const text = String(q || '').trim();
+        if (!text) return;
+        const seq = ++reqSeq.current;
+        setLoading(true); setError(''); setSearched(true);
+        try {
+          const json = await callTmdbProxy({ action: 'tmdbSearch', query: text });
+          if (seq !== reqSeq.current) return;
+          const list = json.results || [];
+          setResults(list);
+          setActiveId(list[0] ? `${list[0].mediaType}_${list[0].id}` : null);
+          setBackdrops(json.backdrops || []);
+        } catch (e) {
+          if (seq !== reqSeq.current) return;
+          setError(e.message); setResults([]); setBackdrops([]);
+        } finally {
+          if (seq === reqSeq.current) setLoading(false);
+        }
+      };
+
+      const pickTitle = async (r) => {
+        const key = `${r.mediaType}_${r.id}`;
+        if (key === activeId) return;
+        const seq = ++reqSeq.current;
+        setActiveId(key); setLoadingImages(true); setError(''); setBackdrops([]);
+        try {
+          const json = await callTmdbProxy({ action: 'tmdbImages', mediaType: r.mediaType, id: r.id });
+          if (seq !== reqSeq.current) return;
+          setBackdrops(json.backdrops || []);
+        } catch (e) {
+          if (seq !== reqSeq.current) return;
+          setError(e.message);
+        } finally {
+          if (seq === reqSeq.current) setLoadingImages(false);
+        }
+      };
+
+      useEffect(() => { if (initialQuery.trim()) runSearch(initialQuery); }, []);
+      useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [onClose]);
+
+      return (
+        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+          <div className="bg-[#12141c] border border-[#303340] rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-[#262833] flex items-center gap-3 bg-[#0f111a]">
+              <h3 className="text-sm font-black text-white shrink-0">🎬 TMDB 배경 이미지</h3>
+              <form className="flex-1 flex gap-2" onSubmit={e => { e.preventDefault(); runSearch(query); }}>
+                <input autoFocus type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="작품 타이틀 (예: 파묘)" className="flex-1 bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                <button type="submit" disabled={loading || !query.trim()} className="px-4 py-2 bg-[#4f3df6] hover:bg-[#3b2bc7] text-white rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-1.5">
+                  {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />} 검색
+                </button>
+              </form>
+              <button type="button" onClick={onClose} className="p-1.5 hover:bg-[#262833] rounded-full text-slate-400 hover:text-white"><X size={16} /></button>
+            </div>
+            <div className="flex-1 flex min-h-0">
+              <div className="w-56 shrink-0 border-r border-[#262833] overflow-y-auto custom-scrollbar p-2 space-y-1 bg-[#0f111a]">
+                {results.length === 0 && !loading && (
+                  <p className="text-[11px] text-slate-500 p-2 leading-relaxed">{searched ? '검색 결과가 없습니다. 원제·영문 제목으로도 검색해 보세요.' : '타이틀을 입력하고 검색하세요.'}</p>
+                )}
+                {results.map(r => {
+                  const key = `${r.mediaType}_${r.id}`;
+                  const active = key === activeId;
+                  return (
+                    <button key={key} type="button" onClick={() => pickTitle(r)} className={`w-full flex gap-2 p-1.5 rounded-lg text-left transition-colors ${active ? 'bg-[#4f3df6]/25 border border-[#4f3df6]' : 'border border-transparent hover:bg-[#1a1c26]'}`}>
+                      {r.poster ? <img src={r.poster} alt="" className="w-9 h-[54px] object-cover rounded shrink-0" /> : <div className="w-9 h-[54px] bg-[#262833] rounded shrink-0" />}
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold text-white leading-tight line-clamp-2">{r.title}</div>
+                        <div className="text-[10px] text-slate-500 truncate">{r.mediaType === 'tv' ? 'TV' : '영화'}{r.year ? ` · ${r.year}` : ''}</div>
+                        {r.originalTitle && r.originalTitle !== r.title && <div className="text-[10px] text-slate-600 truncate">{r.originalTitle}</div>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 bg-[#0a0812]">
+                {error && <div className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[11px] text-red-300">⚠️ {error}</div>}
+                {(loading || loadingImages) ? (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-xs gap-2"><Loader2 size={18} className="animate-spin text-[#4f3df6]" /> 불러오는 중...</div>
+                ) : backdrops.length === 0 ? (
+                  activeId && !error ? <div className="h-full flex items-center justify-center text-slate-500 text-xs">이 작품에는 등록된 배경 이미지가 없습니다.</div> : null
+                ) : (
+                  <>
+                    <p className="text-[10px] text-slate-500 mb-2">클릭하면 원본 해상도 URL이 입력됩니다. 글자 없는 이미지가 앞쪽에 정렬됩니다.</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {backdrops.map(b => (
+                        <button key={b.url} type="button" onClick={() => onSelect(b.url)} className="group relative rounded-lg overflow-hidden border border-[#262833] hover:border-[#4f3df6] focus:border-[#4f3df6] outline-none">
+                          <img src={b.thumb} alt="" loading="lazy" className="w-full aspect-video object-cover bg-[#1a1c26]" />
+                          <div className="absolute bottom-0 inset-x-0 px-1.5 py-0.5 bg-black/60 text-[9px] text-slate-200 flex justify-between">
+                            <span>{b.width}×{b.height}</span>
+                            <span>{b.lang ? `글자 포함(${b.lang})` : '글자 없음'}</span>
+                          </div>
+                          <div className="absolute inset-0 bg-[#4f3df6]/0 group-hover:bg-[#4f3df6]/20 flex items-center justify-center text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-all">이 이미지 적용</div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // 이미지 URL 입력창 + [TMDB] 버튼. <input type="text">와 같은 props로 바꿔 끼울 수 있음
+    const ImageUrlInput = ({ value, onChange, placeholder, className = '', tmdbQuery }) => {
+      const [open, setOpen] = useState(false);
+      const emit = (v) => onChange && onChange({ target: { value: v } });
+      return (
+        <div className="flex gap-1.5 w-full">
+          <input type="text" placeholder={placeholder} value={value} onChange={onChange} className={`${className} min-w-0 flex-1`} />
+          <button type="button" onClick={() => setOpen(true)} title="TMDB 배경 이미지에서 선택" className="shrink-0 px-2 rounded-lg bg-[#01b4e4]/15 hover:bg-[#01b4e4]/30 border border-[#01b4e4]/40 text-[#7fdcf5] text-[10px] font-black">TMDB</button>
+          {open && createPortal(
+            <TmdbBackdropPickerModal
+              initialQuery={tmdbQuery || tmdbDefaultQueryRef.current || ''}
+              onClose={() => setOpen(false)}
+              onSelect={(url) => { emit(url); setOpen(false); }}
+            />,
+            document.body
+          )}
+        </div>
+      );
+    };
+
     // 🌟 실시간 글자 수 & 줄 수 검증 입력창 컴포넌트
-    const CopyInputWithSpec = ({ label, value = '', onChange, maxChars, maxLines = 1, placeholder = '', multiline = false, textColorClass = 'text-white' }) => {
+    const CopyInputWithSpec =({ label, value = '', onChange, maxChars, maxLines = 1, placeholder = '', multiline = false, textColorClass = 'text-white' }) => {
       const text = String(value || '');
       const lines = text ? text.split('\n') : [''];
       const lineCount = lines.length;
@@ -3129,7 +3287,7 @@
                   <div className="flex flex-col">
                     <label className="block text-[11px] font-bold text-slate-400 mb-1 ml-1">메인 키비주얼 URL</label>
                     <div className="flex flex-col gap-2 h-full">
-                      <input type="text" name="mainImageUrl" placeholder="https://..." value={campaignMeta.mainImageUrl || ''} onChange={(e) => setCampaignMeta({...campaignMeta, mainImageUrl: e.target.value})} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
+                      <ImageUrlInput placeholder="https://..." tmdbQuery={campaignMeta.product} value={campaignMeta.mainImageUrl || ''} onChange={(e) => { const v = e.target.value; setCampaignMeta(prev => ({...prev, mainImageUrl: v})); }} className="w-full bg-[#0a0812] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white focus:border-[#4f3df6] outline-none" />
                       <button type="button" onClick={handleOpenImagePreview} disabled={isGeneratingImg} className="bg-[#4f3df6] hover:bg-[#3b2bc7] text-white flex-1 rounded-lg text-xs font-bold w-full transition-colors h-full min-h-[36px]">
                         {isGeneratingImg ? "⏳ AI 이미지 생성 중..." : (campaignMeta.mainImageUrl ? "🖼️ 반영된 이미지 확인" : "🪄 AI 키비주얼 이미지 자동 생성")}
                       </button>
@@ -3462,7 +3620,7 @@
       return `${clean.slice(5).replace('-', '/')}(${days[d.getDay()]})`;
     };
 
-    // ⚙️ Capa 한도: 앱 시작 시 서버('Capa 설정' 시트)에서 받아 덮어씀. 아래는 서버 응답 전·실패 시 기본값
+    // ⚙️ Capa 한도: 앱 시작 시 서버('Settings' 시트)에서 받아 덮어씀. 아래는 서버 응답 전·실패 시 기본값
     const CAPA_SETTINGS = {
       bannerDaily: 2800000,
       bannerByWeekday: { 4: 2700000 },
@@ -5810,6 +5968,7 @@
         marketer: localStorage.getItem('myMarketerName') || '',
         cycle: '단발성', uiVersion: '5.0'
       });
+      tmdbDefaultQueryRef.current = campaignMeta.product || ''; // TMDB 검색창 기본값
 
       const [assets, setAssets] = useState([]); 
       const [mermaidCode, setMermaidCode] = useState('');
@@ -5880,7 +6039,7 @@
       const [pwdChangeForm, setPwdChangeForm] = useState({ current: '', next: '', confirm: '' });
       const [isChangingPwd, setIsChangingPwd] = useState(false);
 
-      // ⚙️ Capa 한도 설정 (서버 'Capa 설정' 시트와 동기화)
+      // ⚙️ Capa 한도 설정 (서버 'Settings' 시트와 동기화)
       const [capaSettingsForm, setCapaSettingsForm] = useState({});
       const [isSavingCapa, setIsSavingCapa] = useState(false);
       const [, setCapaSettingsVersion] = useState(0); // 설정 반영 후 화면 재계산용
@@ -7470,7 +7629,7 @@
                                       onChange={val => handleAssetChange(activeAsset.id, 'bgColor', val)}
                                       presets={['#0a0a0f', '#2b1d16', '#1e1b2e', '#132421', '#2a161d', '#1c2536', '#332414', '#18181b']}
                                     />
-                                    <div className="col-span-2"><input type="text" placeholder="배경 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="배경 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="우측 상단 배경 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7538,8 +7697,7 @@
                                       <>
                                         <div className="col-span-2">
                                           <label className="block text-[10px] font-bold text-cyan-300 mb-1">파노라마 통합 이미지 URL ({numCards}개 카드에 자동 분할 연결)</label>
-                                          <input
-                                            type="text"
+                                          <ImageUrlInput
                                             placeholder="가로형 와이드 이미지 URL (또는 요청 이미지명)"
                                             value={activeAsset.data?.panoramaImg ?? activeAsset.data?.cards?.[0]?.cardImg ?? ''}
                                             onChange={e => handleAssetChange(activeAsset.id, 'panoramaImg', e.target.value)}
@@ -7565,7 +7723,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label={`[카드 ${activeIdx + 1}] 좌상단 프리뷰 서브`} maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={cardData.heroSub || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroSub', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 우상단 프리뷰 이미지 URL`} value={cardData.heroImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder={`[카드 ${activeIdx + 1}] 우상단 프리뷰 이미지 URL`} value={cardData.heroImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'heroImg', e.target.value)} className="w-full bg-[#12141c] border border-[#303340] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-pink-400" /></div>
                                     <ImageTransformControl
                                       label={`[카드 ${activeIdx + 1}] 상단 프리뷰 이미지 크기 · 위치`}
                                       data={cardData}
@@ -7576,7 +7734,7 @@
                                     {!isPanorama && (
                                       <>
                                         <div className="col-span-2 border-t border-[#1a1c26] mt-1 pt-2 text-[10px] font-bold text-[#7387ff]">카드 {activeIdx + 1} 개별 배너 이미지 설정</div>
-                                        <div className="col-span-2"><input type="text" placeholder={`[카드 ${activeIdx + 1}] 개별 카드 이미지 URL`} value={cardData.cardImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#7387ff]" /></div>
+                                        <div className="col-span-2"><ImageUrlInput placeholder={`[카드 ${activeIdx + 1}] 개별 카드 이미지 URL`} value={cardData.cardImg || ''} onChange={e => handleCardChange(activeAsset.id, activeIdx, 'cardImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#7387ff]" /></div>
                                         <ImageTransformControl
                                           label={`[카드 ${activeIdx + 1}] 개별 배너 이미지 크기 · 위치`}
                                           data={cardData}
@@ -7604,7 +7762,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="서브 텍스트 (최대 3줄)" maxChars={lim.subMax} maxLines={3} multiline={true} textColorClass="text-purple-300" value={activeAsset.data?.subCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'subCopy', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="전체 배경 이미지 URL" value={activeAsset.data?.bgImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bgImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="전체 배경 이미지 URL" value={activeAsset.data?.bgImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bgImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="전체 배경 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7619,7 +7777,7 @@
                                         <div>
                                           <CopyInputWithSpec label={`배너 ${i} 2줄`} maxChars={lim.cardMax} maxLines={1} textColorClass="text-yellow-400" value={activeAsset.data?.[`card${i}Sub`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Sub`, e.target.value)} />
                                         </div>
-                                        <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.[`card${i}Img`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Img`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                        <div className="col-span-2"><ImageUrlInput placeholder="이미지 URL" value={activeAsset.data?.[`card${i}Img`] || ''} onChange={e => handleAssetChange(activeAsset.id, `card${i}Img`, e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                         <ImageTransformControl
                                           label={`하단 배너 ${i} 이미지 크기 · 위치`}
                                           data={activeAsset.data}
@@ -7655,7 +7813,7 @@
                                     {activeAsset.data?.subType === '가입하기형' && (
                                       <div className="col-span-2"><input type="text" placeholder="월정액 로고 이미지 URL" value={activeAsset.data?.logoImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'logoImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     )}
-                                    <div className="col-span-2"><input type="text" placeholder="배경/우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="배경/우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="빅배너 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7684,7 +7842,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="프리뷰 서브 텍스트" maxChars={lim.subMax} maxLines={2} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.previewSub || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewSub', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="우상단 프리뷰 이미지 URL" value={activeAsset.data?.previewImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="우상단 프리뷰 이미지 URL" value={activeAsset.data?.previewImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'previewImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="우상단 프리뷰 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7700,7 +7858,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="배너 내 텍스트" maxChars={lim.cardMax} maxLines={3} multiline={true} value={activeAsset.data?.bannerCopy || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerCopy', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="배너 배경 이미지 URL" value={activeAsset.data?.bannerImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="배너 배경 이미지 URL" value={activeAsset.data?.bannerImg || ''} onChange={e => handleAssetChange(activeAsset.id, 'bannerImg', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="하단 배너 카드 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7721,7 +7879,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="하단 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="롱배너 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7747,7 +7905,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="2줄 서브 텍스트" maxChars={lim.subMax} maxLines={1} multiline={true} textColorClass="text-slate-300" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="우측 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="띠배너 우측 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7810,7 +7968,7 @@
                                 const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { btnMax: 9 });
                                 return (
                                   <>
-                                    <div className="col-span-2"><input type="text" placeholder="중앙 팝업 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="중앙 팝업 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="팝업 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7831,7 +7989,7 @@
                                 const lim = extractSpecLimitsFromSheetText(matchedSpec?.textSpec, { btnMax: 5 });
                                 return (
                                   <>
-                                    <div className="col-span-2"><input type="text" placeholder="썸네일 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="썸네일 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="미니 EPG 썸네일 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7850,7 +8008,7 @@
                                   <div className="col-span-2"><CopyInputWithSpec label="좌상단 뱃지 문구" maxChars={6} value={activeAsset.data?.badgeText || ''} onChange={e => handleAssetChange(activeAsset.id, 'badgeText', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="메인 로고/타이틀 (좌측 정렬)" maxChars={15} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="하단 보조 텍스트 (선택)" maxChars={12} value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} /></div>
-                                  <div className="col-span-2"><input type="text" placeholder="1.5단 배너 이미지 URL (또는 요청 이미지명)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                  <div className="col-span-2"><ImageUrlInput placeholder="1.5단 배너 이미지 URL (또는 요청 이미지명)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                   <ImageTransformControl
                                     label="1.5단 배너 이미지 크기 · 위치 조정"
                                     data={activeAsset.data}
@@ -7876,7 +8034,7 @@
                                     <div className="col-span-2"><CopyInputWithSpec label="작품명 (하늘색 상단 타이틀)" maxChars={lim.subMax} textColorClass="text-sky-300 font-bold" value={activeAsset.data?.topTag || ''} onChange={e => handleAssetChange(activeAsset.id, 'topTag', e.target.value)} /></div>
                                     <div className="col-span-2"><CopyInputWithSpec label="메인 이벤트 타이틀" maxChars={lim.mainMax} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
                                     <div className="col-span-2"><CopyInputWithSpec label="이벤트 기간 표기" maxChars={30} value={activeAsset.data?.periodText || ''} onChange={e => handleAssetChange(activeAsset.id, 'periodText', e.target.value)} /></div>
-                                    <div className="col-span-2"><input type="text" placeholder="우측 인물/장면 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="우측 인물/장면 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="이벤트 배너 우측 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -7892,7 +8050,7 @@
                                   <div className="col-span-2"><CopyInputWithSpec label="메인 타이틀 로고 (가운데 정렬)" maxChars={15} textColorClass="text-white font-bold" value={activeAsset.data?.mainTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'mainTitle', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="서브 타이틀 / 부제 (선택)" maxChars={18} textColorClass="text-slate-200 font-bold" value={activeAsset.data?.subTitle || ''} onChange={e => handleAssetChange(activeAsset.id, 'subTitle', e.target.value)} /></div>
                                   <div className="col-span-2"><CopyInputWithSpec label="하단 메인 카피 (2줄 권장 · 가운데 정렬)" maxChars={24} maxLines={2} multiline={true} value={activeAsset.data?.copy || ''} onChange={e => handleAssetChange(activeAsset.id, 'copy', e.target.value)} /></div>
-                                  <div className="col-span-2"><input type="text" placeholder="빅배너 이미지 URL (81x108 비율 권장)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                  <div className="col-span-2"><ImageUrlInput placeholder="빅배너 이미지 URL (81x108 비율 권장)" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                   <ImageTransformControl
                                     label="모바일 빅배너 이미지 크기 · 위치 조정"
                                     data={activeAsset.data}
@@ -7956,7 +8114,7 @@
                                   </div>
                                   <div className="col-span-2">
                                     <label className="block text-[10px] font-bold text-slate-400 mb-1">2. 중단 메인 이미지 (URL 또는 요청 이미지 설명)</label>
-                                    <input type="text" placeholder="이미지 URL 또는 디자이너 요청 문구 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
+                                    <ImageUrlInput placeholder="이미지 URL 또는 디자이너 요청 문구 입력" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" />
                                   </div>
                                   <ImageTransformControl
                                     label="이벤트 페이지 이미지 크기 · 위치 조정"
@@ -7989,7 +8147,7 @@
                                     <div className="col-span-2">
                                       <CopyInputWithSpec label="CTA 버튼 문구 (선택)" maxChars={lim.btnMax} maxLines={1} value={activeAsset.data?.buttonText || ''} onChange={e => handleAssetChange(activeAsset.id, 'buttonText', e.target.value)} />
                                     </div>
-                                    <div className="col-span-2"><input type="text" placeholder="배너 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
+                                    <div className="col-span-2"><ImageUrlInput placeholder="배너 이미지 URL" value={activeAsset.data?.imageUrl || ''} onChange={e => handleAssetChange(activeAsset.id, 'imageUrl', e.target.value)} className="w-full bg-[#0a0812] border border-[#262833] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[#4f3df6]" /></div>
                                     <ImageTransformControl
                                       label="배너 이미지 크기 · 위치 조정"
                                       data={activeAsset.data}
@@ -8573,7 +8731,7 @@
                     </div>
                   </div>
 
-                  {/* ⚙️ Capa 한도 설정 ('Capa 설정' 시트) */}
+                  {/* ⚙️ Capa 한도 설정 ('Settings' 시트) */}
                   <div className="border-t border-[#262833] pt-5">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-xs font-black text-white">Capa 한도 설정</h4>
