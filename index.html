@@ -3295,19 +3295,56 @@
         return sum;
       }, 0);
     };
-    // 🌟 관리자 비밀번호 설정 (원하시는 비밀번호로 변경하세요)
-    const ADMIN_PASSWORD = 'btvadmin';
+    // 🌟 관리자 인증: 비밀번호는 소스에 두지 않고 서버(GAS Script Properties의 ADMIN_PASSWORD)에서만 검증합니다.
+    //   - 검증에 성공한 비밀번호는 현재 탭 세션 동안만 sessionStorage에 보관하고, 관리자 요청마다 adminKey로 함께 보냅니다.
+    const ADMIN_KEY_STORAGE = 'btv_admin_key';
+    const getStoredAdminKey = () => {
+      try { return sessionStorage.getItem(ADMIN_KEY_STORAGE) || ''; } catch (e) { return ''; }
+    };
+    const clearStoredAdminKey = () => {
+      try { sessionStorage.removeItem(ADMIN_KEY_STORAGE); sessionStorage.removeItem('btv_admin_auth'); } catch (e) {}
+    };
 
-    // 🌟 관리자 비밀번호 검증 헬퍼 (현재 탭 세션 동안 인증 유지)
-    const verifyAdminPassword = (actionLabel = '관리자 전용 기능') => {
-      if (sessionStorage.getItem('btv_admin_auth') === 'true') return true;
+    // 서버에 비밀번호를 확인하고, 맞으면 세션에 저장 후 true 반환
+    const verifyAdminKeyOnServer = async (key) => {
+      const trimmed = String(key || '').trim();
+      if (!trimmed) return false;
+      try {
+        const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "verifyAdmin", adminKey: trimmed })
+        });
+        const json = await res.json();
+        if (json.status === 'success') {
+          try { sessionStorage.setItem(ADMIN_KEY_STORAGE, trimmed); } catch (e) {}
+          return true;
+        }
+        return false;
+      } catch (e) {
+        alert("⚠️ 관리자 인증 중 서버 통신 오류: " + e.message);
+        return false;
+      }
+    };
+
+    // 관리자 전용 기능 실행 전 호출: 인증된 adminKey를 반환하고, 취소·실패 시 null
+    const requestAdminKey = async (actionLabel = '관리자 전용 기능') => {
+      const stored = getStoredAdminKey();
+      if (stored) return stored;
       const input = window.prompt(`🔒 [${actionLabel}]\n관리자 비밀번호를 입력해 주세요:`);
-      if (input === null) return false;
-      if (input.trim() === ADMIN_PASSWORD) {
-        sessionStorage.setItem('btv_admin_auth', 'true');
+      if (input === null) return null;
+      if (await verifyAdminKeyOnServer(input)) return input.trim();
+      alert('🚨 비밀번호가 일치하지 않습니다. 관리자에게 문의해 주세요.');
+      return null;
+    };
+
+    // 서버가 관리자 인증을 거절한 경우(비밀번호 변경 등) 세션 키를 지우고 안내
+    const handleAdminRejected = (json) => {
+      if (json && json.code === 'ADMIN_REQUIRED') {
+        clearStoredAdminKey();
+        alert('🔒 관리자 인증이 만료되었거나 비밀번호가 변경되었습니다. 다시 시도해 주세요.');
         return true;
       }
-      alert('🚨 비밀번호가 일치하지 않습니다. 관리자에게 문의해 주세요.');
       return false;
     };
 
@@ -3378,15 +3415,17 @@
       useEffect(() => { fetchScheduleData(); }, []);
 
       const handleAssignExecutionTimes = async () => {
-        if (!verifyAdminPassword('스케줄 확정 및 실행시각 자동배정')) return;
+        const adminKey = await requestAdminKey('스케줄 확정 및 실행시각 자동배정');
+        if (!adminKey) return;
         setIsAssigning(true);
         try {
           const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "assignExecutionTimes" })
+            body: JSON.stringify({ action: "assignExecutionTimes", adminKey })
           });
           const json = await res.json();
+          if (handleAdminRejected(json)) return;
           if (json.status === 'success') {
             if (Array.isArray(json.data)) setRawSourceData(json.data);
             else await fetchScheduleData();
@@ -4592,19 +4631,23 @@
       };
 
       const handleAssignExecutionTimes = async () => {
-        if (!verifyAdminPassword('스케줄 확정 및 실행시각 자동배정')) return;
+        const adminKey = await requestAdminKey('스케줄 확정 및 실행시각 자동배정');
+        if (!adminKey) return;
         setIsAssigning(true);
         try {
           const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "assignExecutionTimes" })
+            body: JSON.stringify({ action: "assignExecutionTimes", adminKey })
           });
           const json = await res.json();
+          if (handleAdminRejected(json)) return;
           if (json.status === 'success') {
             await fetchAllStatusData();
             const s = json.summary || {};
             alert(`✅ 실행시각 자동배정 완료!\n• 확정 배정: ${s.assignedCount || 0}건\n• 미반영(슬랙 알림): ${s.failedCount || 0}건`);
+          } else {
+            alert("⚠️ 자동배정 실패: " + (json.message || "알 수 없는 오류"));
           }
         } catch (e) {
           alert("⚠️ 서버 통신 오류: " + e.message);
@@ -5612,25 +5655,68 @@
       });
 
       // 🌟 시스템 설정(Admin) 모달 내 관리자 잠금 해제 상태
-      const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => sessionStorage.getItem('btv_admin_auth') === 'true');
+      const [isAdminUnlocked, setIsAdminUnlocked] = useState(() => !!getStoredAdminKey());
       const [adminPwdInput, setAdminPwdInput] = useState('');
+      const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
       const [isSavingConfig, setIsSavingConfig] = useState(false);
+      const [showPwdChange, setShowPwdChange] = useState(false);
+      const [pwdChangeForm, setPwdChangeForm] = useState({ current: '', next: '', confirm: '' });
+      const [isChangingPwd, setIsChangingPwd] = useState(false);
+
+      // 🔒 관리자 비밀번호 변경: 현재 비밀번호를 서버에서 확인한 뒤 GAS 스크립트 속성(ADMIN_PASSWORD)을 새 값으로 갱신
+      const handleChangeAdminPassword = async (e) => {
+        e.preventDefault();
+        if (isChangingPwd) return;
+        const current = pwdChangeForm.current.trim();
+        const next = pwdChangeForm.next.trim();
+        if (!current || !next) { alert('현재 비밀번호와 새 비밀번호를 모두 입력해 주세요.'); return; }
+        if (next.length < 6) { alert('새 비밀번호는 6자 이상이어야 합니다.'); return; }
+        if (next !== pwdChangeForm.confirm.trim()) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
+        if (next === current) { alert('새 비밀번호가 현재 비밀번호와 같습니다.'); return; }
+        setIsChangingPwd(true);
+        try {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "changeAdminPassword", adminKey: current, newPassword: next })
+          });
+          const json = await res.json();
+          if (json.status === 'success') {
+            try { sessionStorage.setItem(ADMIN_KEY_STORAGE, next); } catch (err) {}
+            setShowPwdChange(false);
+            setPwdChangeForm({ current: '', next: '', confirm: '' });
+            alert('✅ 관리자 비밀번호가 변경되었습니다.\n다른 관리자는 다음 관리자 작업 시 새 비밀번호를 입력해야 합니다.');
+          } else {
+            alert('🚨 비밀번호 변경 실패: ' + (json.message || '알 수 없는 오류'));
+          }
+        } catch (err) {
+          alert('⚠️ 서버 통신 오류: ' + err.message);
+        } finally {
+          setIsChangingPwd(false);
+        }
+      };
 
       const handleProfileClick = () => setIsProfileModalOpen(true);
       const handleSettingsClick = () => {
-        setIsAdminUnlocked(sessionStorage.getItem('btv_admin_auth') === 'true');
+        setIsAdminUnlocked(!!getStoredAdminKey());
         setAdminPwdInput('');
+        setShowPwdChange(false);
         setIsSettingsOpen(true);
       };
 
-      const handleUnlockAdminInModal = (e) => {
+      const handleUnlockAdminInModal = async (e) => {
         e.preventDefault();
-        if (adminPwdInput.trim() === ADMIN_PASSWORD) {
-          sessionStorage.setItem('btv_admin_auth', 'true');
-          setIsAdminUnlocked(true);
-          setAdminPwdInput('');
-        } else {
-          alert('🚨 관리자 비밀번호가 일치하지 않습니다.');
+        if (isVerifyingAdmin) return;
+        setIsVerifyingAdmin(true);
+        try {
+          if (await verifyAdminKeyOnServer(adminPwdInput)) {
+            setIsAdminUnlocked(true);
+            setAdminPwdInput('');
+          } else {
+            alert('🚨 관리자 비밀번호가 일치하지 않습니다.');
+          }
+        } finally {
+          setIsVerifyingAdmin(false);
         }
       };
 
@@ -5651,11 +5737,20 @@
             name: info?.name || '',
             jiraId: info?.jiraId || ''
           }));
-          await fetch("https://btv-proxy.alcheminos.workers.dev", {
+          const res = await fetch("https://btv-proxy.alcheminos.workers.dev", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "updateConfig", configData })
+            body: JSON.stringify({ action: "updateConfig", configData, adminKey: getStoredAdminKey() })
           });
+          const json = await res.json();
+          if (handleAdminRejected(json)) {
+            setIsAdminUnlocked(false);
+            return;
+          }
+          if (json.status !== 'success') {
+            alert("⚠️ Config 시트 저장 실패: " + (json.message || "알 수 없는 오류"));
+            return;
+          }
           setIsSettingsOpen(false);
         } catch (err) {
           alert("⚠️ Config 시트 저장 중 오류가 발생했습니다: " + err.message);
@@ -8043,21 +8138,63 @@
                           placeholder="관리자 비밀번호"
                           className="w-32 bg-[#0a0812] border border-pink-500/40 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-pink-400"
                         />
-                        <button type="submit" className="px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-black shrink-0">
-                          잠금 해제
+                        <button type="submit" disabled={isVerifyingAdmin} className="px-3 py-1.5 bg-pink-500 hover:bg-pink-600 disabled:opacity-60 text-white rounded-lg text-xs font-black shrink-0">
+                          {isVerifyingAdmin ? '확인 중...' : '잠금 해제'}
                         </button>
                       </div>
                     </form>
                   ) : (
-                    <div className="bg-[#32d782]/10 border border-[#32d782]/30 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-[#32d782]">
-                      <span className="flex items-center gap-1.5"><CheckCircle size={15}/> 관리자 편집 모드가 활성화되었습니다.</span>
-                      <button
-                        type="button"
-                        onClick={() => { sessionStorage.removeItem('btv_admin_auth'); setIsAdminUnlocked(false); }}
-                        className="text-[10px] text-slate-400 hover:text-white underline"
-                      >
-                        다시 잠그기
-                      </button>
+                    <div className="bg-[#32d782]/10 border border-[#32d782]/30 rounded-xl p-3 text-xs font-bold text-[#32d782]">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5"><CheckCircle size={15}/> 관리자 편집 모드가 활성화되었습니다.</span>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => { setShowPwdChange(v => !v); setPwdChangeForm({ current: '', next: '', confirm: '' }); }}
+                            className="text-[10px] text-slate-400 hover:text-white underline"
+                          >
+                            {showPwdChange ? '변경 취소' : '비밀번호 변경'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { clearStoredAdminKey(); setIsAdminUnlocked(false); setShowPwdChange(false); }}
+                            className="text-[10px] text-slate-400 hover:text-white underline"
+                          >
+                            다시 잠그기
+                          </button>
+                        </div>
+                      </div>
+                      {showPwdChange && (
+                        <form onSubmit={handleChangeAdminPassword} className="mt-3 pt-3 border-t border-[#32d782]/20 grid grid-cols-1 sm:grid-cols-4 gap-1.5">
+                          <input
+                            type="password"
+                            autoComplete="current-password"
+                            value={pwdChangeForm.current}
+                            onChange={(e) => setPwdChangeForm(f => ({ ...f, current: e.target.value }))}
+                            placeholder="현재 비밀번호"
+                            className="bg-[#0a0812] border border-[#32d782]/30 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#32d782]"
+                          />
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            value={pwdChangeForm.next}
+                            onChange={(e) => setPwdChangeForm(f => ({ ...f, next: e.target.value }))}
+                            placeholder="새 비밀번호 (6자 이상)"
+                            className="bg-[#0a0812] border border-[#32d782]/30 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#32d782]"
+                          />
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            value={pwdChangeForm.confirm}
+                            onChange={(e) => setPwdChangeForm(f => ({ ...f, confirm: e.target.value }))}
+                            placeholder="새 비밀번호 확인"
+                            className="bg-[#0a0812] border border-[#32d782]/30 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#32d782]"
+                          />
+                          <button type="submit" disabled={isChangingPwd} className="px-3 py-1.5 bg-[#32d782] hover:bg-[#28b86e] disabled:opacity-60 text-[#0a0812] rounded-lg text-xs font-black">
+                            {isChangingPwd ? '변경 중...' : '변경 저장'}
+                          </button>
+                        </form>
+                      )}
                     </div>
                   )}
 
