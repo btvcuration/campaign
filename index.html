@@ -1327,7 +1327,19 @@
       };
     };
 
-    // 🎬 TMDB 배경 이미지 검색 (GAS TmdbImages.gs 경유, 키는 스크립트 속성 TMDB_API_KEY)
+    // 🌟 Jira 전송 진행 표시 지원 표시: 확장앱(1.9+)이 이 값을 보고, 없으면 예전처럼 alert로 알림
+    try { document.documentElement.setAttribute('data-jira-progress', '1'); } catch (e) {}
+    const JIRA_PROGRESS_MIN_EXT = '1.9';
+    const compareVersion = (a, b) => {
+      const pa = String(a || '0').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+      const pb = String(b || '0').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+      }
+      return 0;
+    };
+
+    // 🎬 TMDB 배경 이미지 검색(GAS TmdbImages.gs 경유, 키는 스크립트 속성 TMDB_API_KEY)
     const TMDB_PROXY_URL = "https://btv-proxy.alcheminos.workers.dev";
     // 검색창 기본값: App이 렌더링될 때 현재 '대상 상품' 값을 넣어 둠
     const tmdbDefaultQueryRef = { current: '' };
@@ -6139,6 +6151,92 @@
       const [isCapturingFlow, setIsCapturingFlow] = useState(false);
 
       const [exportState, setExportState] = useState({ isExporting: false, progress: 0, msg: '' });
+
+      // 🌟 Jira 전송 추적
+      //   jiraSendRef: 진행 중인 전송 { uniqueCode, campaignKey, draftIds, baselineAssets, timer }
+      //   lastJiraSendRef: 같은 캠페인 재전송 시 이어서 처리할 { campaignKey, uniqueCode, parentJiraKey }
+      //     (캠페인명+시작일이 같을 때만 재사용 → 다른 캠페인을 덮어쓰지 않음)
+      const jiraSendRef = useRef(null);
+      const lastJiraSendRef = useRef(null);
+      const JIRA_SEND_WATCHDOG_MS = 90000;
+
+      const finishJiraSend = (delayMs = 3500) => {
+        const cur = jiraSendRef.current;
+        if (cur && cur.timer) clearTimeout(cur.timer);
+        jiraSendRef.current = null;
+        setTimeout(() => setExportState({ isExporting: false, progress: 0, msg: '' }), delayMs);
+      };
+
+      const armJiraWatchdog = () => {
+        const cur = jiraSendRef.current;
+        if (!cur) return;
+        if (cur.timer) clearTimeout(cur.timer);
+        cur.timer = setTimeout(() => {
+          if (jiraSendRef.current !== cur) return;
+          setExportState({ isExporting: true, progress: 100, msg: "⚠️ 확장앱 응답 없음 — Jira에서 결과를 확인해 주세요" });
+          alert("⚠️ 확장 프로그램에서 응답이 없습니다.\nJira와 통합 현황에서 등록 결과를 확인해 주세요.\n(같은 캠페인을 다시 전송하면 이미 만들어진 일감은 새로 만들지 않고 이어서 처리합니다.)");
+          finishJiraSend(0);
+        }, JIRA_SEND_WATCHDOG_MS);
+      };
+
+      useEffect(() => {
+        const onProgress = (e) => {
+          const d = e.detail || {};
+          const cur = jiraSendRef.current;
+          if (!cur || (d.uniqueCode && d.uniqueCode !== cur.uniqueCode)) return;
+
+          // 상위 일감 키는 받는 즉시 기억 → 중간에 실패해도 재전송 시 새 상위 일감을 만들지 않음
+          if (d.parentKey) {
+            lastJiraSendRef.current = { campaignKey: cur.campaignKey, uniqueCode: cur.uniqueCode, parentJiraKey: d.parentKey };
+          }
+          const frac = (d.total > 0) ? Math.min(1, (d.done || 0) / d.total) : 0;
+
+          if (d.stage === 'PARENT' || d.stage === 'PARENT_CREATED') {
+            setExportState({ isExporting: true, progress: d.stage === 'PARENT' ? 72 : 75, msg: d.msg || 'Jira 상위 일감 처리 중...' });
+            armJiraWatchdog();
+          } else if (d.stage === 'CHILDREN') {
+            setExportState({ isExporting: true, progress: 75 + Math.round(frac * 10), msg: d.msg || '하위 일감 처리 중...' });
+            armJiraWatchdog();
+          } else if (d.stage === 'SHEET') {
+            setExportState({ isExporting: true, progress: 87, msg: d.msg || '구글 시트 기록 중...' });
+            armJiraWatchdog();
+          } else if (d.stage === 'ATTACH') {
+            setExportState({ isExporting: true, progress: 89 + Math.round(frac * 9), msg: d.msg || '시안 이미지 첨부 중...' });
+            armJiraWatchdog();
+          } else if (d.stage === 'DONE') {
+            const warn = (d.warnings || []).length;
+            setExportState({ isExporting: true, progress: 100, msg: warn ? `✅ 전송 완료 (이미지 첨부 ${warn}건 실패) — 새 탭에서 Jira를 확인하세요` : "✅ 전송 완료! 새 탭에서 Jira를 확인하세요." });
+            // 성공했을 때만: 현재 상태를 새 기준점으로 저장(재전송 시 중복 안내 방지) + 임시저장 정리
+            setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: cur.baselineAssets, aiOriginalMeta: snapshotMeta(prev) }));
+            (cur.draftIds || []).forEach(id => deleteDraftSlot(id));
+            if (warn) alert("✅ Jira 등록은 완료됐지만 일부 이미지 첨부에 실패했습니다.\n\n" + d.warnings.join('\n') + "\n\nJira에서 직접 첨부하거나 같은 캠페인을 다시 전송해 주세요.");
+            finishJiraSend();
+          } else if (d.stage === 'PARTIAL' || d.stage === 'ERROR') {
+            const lines = (d.failures || []).map(f => `- [${f.step}] ${f.name}: ${f.message}`);
+            if (d.stage === 'ERROR' && d.message) lines.unshift(`- ${d.message}`);
+            const made = (d.children || []).filter(c => c.key).length;
+            const total = (d.children || []).length;
+            setExportState({ isExporting: true, progress: 100, msg: d.stage === 'ERROR' ? "🚨 전송 실패 — 다시 전송해 주세요" : "⚠️ 일부 실패 — 다시 전송하면 이어서 처리됩니다" });
+            alert(
+              (d.stage === 'ERROR' ? "🚨 Jira 전송이 중단되었습니다." : "⚠️ Jira 전송 중 일부가 실패했습니다.") + "\n\n" +
+              lines.join('\n') + "\n\n" +
+              (d.parentKey ? `상위 일감: ${d.parentKey} / 하위 일감 ${made}/${total}건 처리됨\n` : '') +
+              "같은 화면에서 [Jira 전송]을 다시 누르면, 이미 만들어진 일감은 새로 만들지 않고 업데이트하며 빠진 것만 새로 만듭니다."
+            );
+            finishJiraSend(4000);
+          }
+        };
+        window.addEventListener('JIRA_SEND_PROGRESS', onProgress);
+        return () => window.removeEventListener('JIRA_SEND_PROGRESS', onProgress);
+      }, []);
+
+      // 전송 중 창 닫기/새로고침 경고 (캡처는 이 화면에서 진행되고, 결과도 이 화면으로 돌아옴)
+      useEffect(() => {
+        if (!exportState.isExporting) return;
+        const onBeforeUnload = (e) => { e.preventDefault(); e.returnValue = ''; return ''; };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+      }, [exportState.isExporting]);
       const [isSettingsOpen, setIsSettingsOpen] = useState(false);
       const [openAccordions, setOpenAccordions] = useState({ campaign: true, banner: true });
 
@@ -7056,7 +7154,7 @@
               childTableRows +
               "</table>" + multiGnbNoticeHtml + "<br><h3>🎨 캡처 시안 (상태별)</h3>" + compressedBodyHTML + "<p>※ 고화질 원본은 본문 하단 <b>첨부파일</b>을 확인해 주세요.</p>";
 
-            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: setImagesArr[0], startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs, assetName: asset?.name || '' };
+            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: setImagesArr[0], startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs, assetName: asset?.name || '', assetId: asset?.id || '' };
           } else {
             let copyText = [data.topText, data.mainTitle, data.copy, data.bannerCopy, data.previewTitle, data.bottomText, data.subTitle, data.badgeText, data.buttonText]
               .filter(Boolean)
@@ -7087,7 +7185,7 @@
               (compressedBody ? `<img src="${compressedBody}" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; margin: 10px 0;" />` : '') +
               `<p>※ 고화질 원본은 본문 하단 <b>첨부파일(preview.png)</b>을 확인해 주세요.</p>`;
 
-            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: imgDataUrl, startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs, assetName: asset?.name || '' };
+            return { title: `[디자인] ${meta.campaignName || "신규 캠페인"} _ ${asset?.name || '미지정'}`, desc: childDesc, assignee: primaryManager.jiraId, imageData: imgDataUrl, startDate: data.startDate, dueDate: data.dueDate, gnb: targetGnbs, assetName: asset?.name || '', assetId: asset?.id || '' };
           }
         }));
 
@@ -7126,11 +7224,15 @@
           `${plan.gnbLines.join('\n')}\n\n` +
           `담당자님, [${meta.campaignName || '신규 캠페인'}] 프로모션(요청자: ${plan.myDept} ${plan.myName})이 등록(또는 업데이트) 되었습니다. 위 담당 영역 및 각 하위 일감(Sub-task)을 확인하시어 배너 편성 및 세팅을 부탁드립니다.${changeCommentNote}`;
 
-        const uniqueCode = meta.uniqueCode || `BTV-${Date.now().toString(36).toUpperCase()}`;
+        const campaignKey = `${String(meta.campaignName || '').trim()}|${meta.startDate || ''}`;
+        const lastSend = lastJiraSendRef.current;
+        const resumeSend = (!meta.uniqueCode && lastSend && lastSend.campaignKey === campaignKey) ? lastSend : null;
+        const uniqueCode = meta.uniqueCode || resumeSend?.uniqueCode || `BTV-${Date.now().toString(36).toUpperCase()}`;
+        const parentJiraKeyToUse = meta.parentJiraKey || resumeSend?.parentJiraKey || "";
         const safeTargetSize = String(meta.targetSize || '0').replace(/[^0-9]/g, '');
 
         const finalData = {
-          skipJira: false, parentJiraKey: meta.parentJiraKey || "", uniqueCode: uniqueCode,
+          skipJira: false, parentJiraKey: parentJiraKeyToUse, uniqueCode: uniqueCode,
           // 🌟 상위 일감의 assignee에는 [상위] B tv / Mobile / 메타 이미지 담당자(plan.parentAssigneeId)를 전달!
           parent: { title: `[캠페인] ${meta.campaignName || "신규 캠페인"}`, desc: parentDescText, assignee: plan.parentAssigneeId, reporter: plan.cleanMyId, startDate: meta.startDate, dueDate: meta.dueDate, images: parentImagesToUpload, comment: parentCommentText },
           children: childIssues,
@@ -7148,14 +7250,33 @@
           }
         };
         
+        const completedDraftIds = Array.from(new Set([
+          meta.uniqueCode || `DRAFT_${(meta.campaignName || '무제').trim()}_${meta.startDate || 'NODATE'}`,
+          `DRAFT_${(meta.campaignName || '무제').trim()}_${meta.startDate || 'NODATE'}`
+        ]));
+        const extNode = document.getElementById('btv-campaign-extension-installed');
+        const extVer = extNode ? extNode.getAttribute('data-version') : '';
+        const supportsProgress = extVer && compareVersion(extVer, JIRA_PROGRESS_MIN_EXT) >= 0;
+
+        if (supportsProgress) {
+          // 🌟 [1.9] 결과가 올 때까지 진행 상황 표시 (성공/실패를 확인한 뒤에 기준점·임시저장 정리)
+          if (jiraSendRef.current?.timer) clearTimeout(jiraSendRef.current.timer);
+          jiraSendRef.current = { uniqueCode, campaignKey, draftIds: completedDraftIds, baselineAssets: assets.map(snapshotAsset), timer: null };
+          lastJiraSendRef.current = { campaignKey, uniqueCode, parentJiraKey: parentJiraKeyToUse };
+          setExportState({ isExporting: true, progress: 70, msg: parentJiraKeyToUse ? `Jira ${parentJiraKeyToUse} 업데이트 요청 중...` : "Jira 일감 생성 요청 중..." });
+          armJiraWatchdog();
+          window.dispatchEvent(new CustomEvent('TEST_JIRA_SEND', { detail: finalData }));
+          return;
+        }
+
+        // 예전 확장앱(1.8 이하): 결과를 알 수 없으므로 기존 동작 유지
         const event = new CustomEvent('TEST_JIRA_SEND', { detail: finalData });
         window.dispatchEvent(event);
-        
+
         setExportState({ isExporting: true, progress: 100, msg: "🚀 전송 완료! 새 탭에서 Jira를 확인하세요." });
         // 🌟 수정 전송 후에는 현재 상태를 새 기준점으로 저장 → 같은 화면에서 재전송 시 중복 안내 방지
         setCampaignMeta(prev => ({ ...prev, aiOriginalAssets: assets.map(snapshotAsset), aiOriginalMeta: snapshotMeta(prev) }));
-        const completedDraftId = meta.uniqueCode || `DRAFT_${(meta.campaignName || '무제').trim()}_${meta.startDate || 'NODATE'}`;
-        deleteDraftSlot(completedDraftId);
+        completedDraftIds.forEach(id => deleteDraftSlot(id));
         setTimeout(() => {
           setExportState({ isExporting: false, progress: 0, msg: '' });
         }, 3500);
