@@ -66,3 +66,12 @@ window.addEventListener('CANCEL_JIRA_ISSUE', (e) => {
     window.dispatchEvent(new CustomEvent('RECEIVE_JIRA_CANCEL', { detail: response }));
   });
 });
+
+// 🌟 [1.9] Jira 전송 진행 상황 중계 (Extension -> React)
+//   화면이 진행 표시를 지원하면 html[data-jira-progress="1"] 표시를 둠 → 없으면 handled:false로 답해 백그라운드가 alert로 알림
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || message.type !== 'JIRA_SEND_PROGRESS') return;
+  const handled = document.documentElement.getAttribute('data-jira-progress') === '1';
+  window.dispatchEvent(new CustomEvent('JIRA_SEND_PROGRESS', { detail: message.payload }));
+  sendResponse({ handled });
+});
